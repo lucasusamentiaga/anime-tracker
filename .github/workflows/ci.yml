@@ -7,9 +7,10 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  syntax-check:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.9', '3.11', '3.12']
 
@@ -21,13 +22,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Check Python syntax
         run: |
+          set -e
+          echo "Checking all Python files..."
           python -m py_compile main.py
           python -m py_compile database.py
           python -m py_compile sheets_sync.py
@@ -41,26 +39,39 @@ jobs:
 
       - name: Verify no duplicate routes
         run: |
-          python -c "
+          python << 'EOF'
           import re
           from collections import Counter
           src = open('main.py').read()
-          routes = re.findall(r'@app\.\w+\(\"(/[^\"]+)\"', src)
-          dupes = {k:v for k,v in Counter(routes).items() if v > 1}
-          assert not dupes, f'Duplicate routes: {dupes}'
-          print(f'{len(routes)} routes, no duplicates')
-          "
+          routes = re.findall(r'@app\.(\w+)\("([^"]+)"', src)
+          dupes = {k: v for k, v in Counter(f"{m}:{p}" for m, p in routes).items() if v > 1}
+          assert not dupes, f"Duplicate routes: {dupes}"
+          print(f"OK: {len(routes)} routes, no duplicates")
+          EOF
 
-      - name: Verify database schema consistency
+      - name: Verify schema consistency
         run: |
-          python -c "
-          import re
+          python << 'EOF'
           db = open('database.py').read()
-          main = open('main.py').read()
           sheets = open('sheets_sync.py').read()
-          # Check new columns exist in all 3 places
-          for col in ['temporada','lista_personalizada','favorito','notif_activa']:
-              assert col in db, f'{col} missing from database.py'
-              assert col in sheets, f'{col} missing from sheets_sync.py'
-          print('Schema consistency OK')
-          "
+          main = open('main.py').read()
+          for col in ['temporada', 'lista_personalizada', 'favorito', 'notif_activa']:
+              assert col in db, f"{col} missing from database.py"
+              assert col in sheets, f"{col} missing from sheets_sync.py"
+              assert col in main, f"{col} missing from main.py"
+          print("Schema consistency OK")
+          EOF
+
+      - name: Verify all JS onclick functions defined
+        run: |
+          python << 'EOF'
+          import re
+          idx = open('templates/index.html').read()
+          called = set(re.findall(r"(?:onclick|onchange|oninput|onkeydown)=['\"][^'\"]*?\b([a-zA-Z_]\w*)\(", idx))
+          called -= {'event','this','if','confirm','parseInt','parseFloat','encodeURIComponent','setTimeout','clearTimeout','Date','Math'}
+          defined = set(re.findall(r'(?:async )?function ([a-zA-Z_]\w*)\s*\(', idx))
+          defined |= set(re.findall(r'(?:const|let|var)\s+([a-zA-Z_]\w*)\s*=\s*(?:async\s*)?\(', idx))
+          missing = called - defined
+          assert not missing, f"Undefined JS functions: {missing}"
+          print(f"OK: {len(defined)} JS functions defined")
+          EOF
