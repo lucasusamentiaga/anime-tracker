@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendario — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;--accent:#7c3aed;--light:#a78bfa;--card2:#12121a;--success:#34d399}
+[data-theme=light]{--bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;--light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;--success:#059669}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+header h1{font-size:16px;font-weight:700;color:var(--light);flex:1}
+.back{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;text-decoration:none}
+.back:hover{border-color:var(--accent);color:var(--light)}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;color:#4b4b6b;border-color:#d4d0ec}
+main{max-width:800px;margin:0 auto;padding:20px}
+.day{margin-bottom:20px}
+.day-header{font-size:14px;font-weight:700;color:var(--light);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.day-header .today{background:var(--accent);color:#fff;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.ep-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.ep-card img{width:40px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0}
+.ep-card .info{flex:1;min-width:0}
+.ep-card .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-card .meta{font-size:11px;color:var(--muted)}
+.ep-card .time{font-size:12px;font-weight:700;color:var(--success);flex-shrink:0}
+[data-theme=light] .ep-card{background:#fff;border-color:#d4d0ec}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .icon{font-size:40px;margin-bottom:12px}
+.spin{width:24px;height:24px;border:3px solid rgba(124,58,237,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{text-align:center;padding:50px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>📅 Calendario semanal</h1>
+  <a href="/app" class="back">← Volver</a>
+</header>
+<main id="container">
+  <div class="loading"><div class="spin"></div>Cargando calendario…</div>
+</main>
+<script>
+if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';
+
+const DIAS_ES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+async function cargar() {
+  const cont = document.getElementById('container');
+  try {
+    const r = await fetch('/api/calendario');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (!d.total) {
+      cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>No hay episodios programados esta semana.</p><p style="font-size:12px;margin-top:8px;color:var(--muted)">Marca animes como "viendo" para ver su calendario aquí.</p></div>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    const hoy = new Date().toISOString().split('T')[0];
+    for (const [dayKey, eps] of Object.entries(d.dias)) {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'day';
+      const dt = new Date(dayKey + 'T12:00:00');
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = DIAS_ES[dt.getDay()] + ' ' + dt.getDate() + '/' + (dt.getMonth()+1);
+      if (dayKey === hoy) {
+        const badge = document.createElement('span');
+        badge.className = 'today';
+        badge.textContent = 'HOY';
+        header.appendChild(badge);
+      }
+      dayDiv.appendChild(header);
+      eps.forEach(ep => {
+        const card = document.createElement('div');
+        card.className = 'ep-card';
+        const img = document.createElement('img');
+        img.src = ep.imagen || '';
+        img.alt = '';
+        img.onerror = () => { img.style.display='none'; };
+        const info = document.createElement('div');
+        info.className = 'info';
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = ep.nombre;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = 'Episodio ' + ep.episodio + (ep.total_eps ? ' / ' + ep.total_eps : '');
+        info.appendChild(name);
+        info.appendChild(meta);
+        const time = document.createElement('div');
+        time.className = 'time';
+        time.textContent = ep.hora || '';
+        card.appendChild(img);
+        card.appendChild(info);
+        card.appendChild(time);
+        dayDiv.appendChild(card);
+      });
+      frag.appendChild(dayDiv);
+    }
+    cont.innerHTML = '';
+    cont.appendChild(frag);
+  } catch(e) {
+    cont.innerHTML = '<div class="empty"><div class="icon">⚠️</div><p>Error: ' + e.message + '</p></div>';
+  }
+}
+cargar();
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter"
+   style="position:fixed;bottom:20px;right:20px;z-index:50;
+   background:#000;color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+</a>
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

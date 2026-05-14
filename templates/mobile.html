@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acceso Móvil — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;
+      --accent:#7c3aed;--light:#a78bfa;--success:#34d399;--danger:#f87171;--warn:#f59e0b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;
+       display:flex;align-items:center;gap:12px}
+header img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+header h1{font-size:16px;font-weight:700;color:var(--light)}
+.back{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;
+      color:var(--muted);padding:6px 14px;font-size:13px;text-decoration:none;display:inline-block}
+main{max-width:640px;margin:0 auto;padding:28px 20px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px}
+.card h2{font-size:15px;font-weight:700;color:var(--light);margin-bottom:4px}
+.card p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.step{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;
+      background:#12121a;border-radius:10px;padding:12px}
+.step .n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#3d2d70;
+         color:var(--light);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step p{font-size:13px;color:#c4c4d8;line-height:1.6;margin:0}
+.step a{color:var(--light)}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;font-weight:600;
+      text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=password]{width:100%;background:#12121a;border:1px solid var(--border);
+  border-radius:8px;color:var(--fg);padding:9px 12px;font-size:15px;letter-spacing:4px;
+  text-align:center;font-weight:700}
+input:focus{outline:2px solid var(--accent);border-color:transparent}
+.row{display:flex;gap:10px;margin-top:6px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;
+     font-weight:600;font-size:13px;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff}
+.btn-d{background:#2d1c1c;color:var(--danger);border:1px solid #5a2020}
+.btn-g{background:#252535;color:var(--muted);border:1px solid var(--border)}
+.status-box{border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7}
+.status-on {background:#0a1f18;border:1px solid #1d6b50;color:var(--success)}
+.status-off{background:#1a1520;border:1px solid var(--border);color:var(--muted)}
+.ip-box{background:#12121a;border:1px solid #3d2d70;border-radius:8px;padding:10px 14px;
+        font-family:monospace;font-size:16px;font-weight:700;color:#c4b5fd;
+        letter-spacing:1px;text-align:center;margin:10px 0;user-select:all}
+#qr-wrap{display:flex;justify-content:center;margin:12px 0}
+#qr-img{border-radius:10px;border:2px solid var(--border)}
+.err{color:var(--danger);font-size:13px;margin-top:6px;display:none}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;
+      border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.warn-box{background:#1e1708;border:1px solid #7a4a00;border-radius:10px;padding:12px 14px;
+          font-size:12px;color:var(--warn);line-height:1.6}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .card{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .card h2{color:#4f46e5}
+[data-theme=light] .step{background:#f0eef8;border-color:#d4d0ec}
+[data-theme=light] .ip-box{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+[data-theme=light] input[type=password]{background:#f8f7fc;border-color:#d4d0ec;color:#1e1e2e}
+</style>
+</head>
+<body>
+<header>
+  <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <h1>📱 Acceso Móvil</h1>
+  <a href="/app" class="back">← Volver</a>
+</header>
+
+<main>
+
+  <!-- Estado actual -->
+  <div class="card">
+    <h2>Estado del acceso móvil</h2>
+    <div id="status-box" class="status-box status-off">Cargando…</div>
+    <div id="ip-section" style="display:none">
+      <p style="margin:12px 0 4px;font-size:12px;color:var(--muted)">Conecta la app móvil a esta dirección:</p>
+      <div class="ip-box" id="ip-display">—</div>
+      <div id="qr-wrap">
+        <img id="qr-img" width="180" height="180" alt="QR" style="display:none">
+      </div>
+    </div>
+  </div>
+
+  <!-- Activar -->
+  <div class="card" id="card-enable">
+    <h2>Activar acceso móvil</h2>
+    <p>Define un PIN de 4–8 dígitos. La app móvil lo necesitará para conectarse la primera vez.</p>
+
+    <div class="warn-box">
+      ⚠️ Esto expone la app a tu red WiFi local. Úsalo solo en redes de confianza (tu casa).
+      Cualquier dispositivo en la misma red que conozca el PIN podrá acceder a tu lista.
+    </div>
+
+    <div style="margin-top:16px">
+      <label>PIN (4–8 dígitos)</label>
+      <input type="password" id="pin-input" maxlength="8" placeholder="••••"
+             inputmode="numeric" pattern="[0-9]*"
+             onkeydown="if(event.key==='Enter')activar()">
+      <p class="err" id="err-pin"></p>
+      <div class="row">
+        <button class="btn btn-p" id="btn-activar" onclick="activar()">✓ Activar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desactivar -->
+  <div class="card" id="card-disable" style="display:none">
+    <h2>Gestionar acceso</h2>
+    <p>Puedes cambiar el PIN o desactivar completamente el acceso móvil.</p>
+    <div style="margin-top:4px">
+      <label>Nuevo PIN</label>
+      <input type="password" id="pin-change" maxlength="8" placeholder="••••" inputmode="numeric">
+      <p class="err" id="err-change"></p>
+      <div class="row">
+        <button class="btn btn-p" onclick="cambiarPin()">Cambiar PIN</button>
+        <button class="btn btn-d" onclick="desactivar()">Desactivar acceso</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instrucciones APK -->
+  <div class="card">
+    <h2>Cómo instalar la app móvil</h2>
+    <p>Descarga e instala el archivo <code style="background:#252535;padding:1px 5px;border-radius:4px">.apk</code> en tu Android.</p>
+    <div class="step"><div class="n">1</div><p>Descarga <strong>AnimeTrackerMobile.apk</strong> desde la misma carpeta donde instalaste la app de PC.</p></div>
+    <div class="step"><div class="n">2</div><p>En tu Android: <strong>Ajustes → Seguridad → Fuentes desconocidas</strong> → activa para instalar APKs externos.</p></div>
+    <div class="step"><div class="n">3</div><p>Instala el .apk. Abre la app, introduce la IP que ves arriba y el PIN que configuraste aquí.</p></div>
+    <div class="step"><div class="n">4</div><p>Asegúrate de que PC y móvil están en la <strong>misma red WiFi</strong>.</p></div>
+  </div>
+
+</main>
+
+<script>
+async function cargarEstado() {
+  try {
+    const r = await fetch('/api/mobile/status');
+    const d = await r.json();
+    const box   = document.getElementById('status-box');
+    const ipSec = document.getElementById('ip-section');
+    const cardEn = document.getElementById('card-enable');
+    const cardDis = document.getElementById('card-disable');
+
+    if (d.pin_configurado) {
+      box.className = 'status-box status-on';
+      box.textContent = '';
+      const strong = document.createElement('strong');
+      strong.textContent = '✅ Acceso móvil activado';
+      box.appendChild(strong);
+      box.appendChild(document.createTextNode(
+        '\nTokens activos: ' + (d.tokens_activos|0) + ' · Reinicia la app si acabas de activarlo.'
+      ));
+      ipSec.style.display = 'block';
+      cardEn.style.display = 'none';
+      cardDis.style.display = 'block';
+
+      if (d.network_host) {
+        document.getElementById('ip-display').textContent = d.network_host;
+        // Generar QR con la URL de la app móvil
+        const url = encodeURIComponent(`animetracker://${d.network_host}`);
+        const qr  = document.getElementById('qr-img');
+        qr.src    = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${url}&bgcolor=1a1a24&color=a78bfa`;
+        qr.style.display = 'block';
+      } else {
+        document.getElementById('ip-display').textContent = 'Reinicia la app para obtener la IP';
+      }
+    } else {
+      box.className = 'status-box status-off';
+      box.textContent = '○ Acceso móvil desactivado.';
+      ipSec.style.display = 'none';
+      cardEn.style.display = 'block';
+      cardDis.style.display = 'none';
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function activar() {
+  const pin = document.getElementById('pin-input').value.trim();
+  const err = document.getElementById('err-pin');
+  err.style.display = 'none';
+  if (!/^\d{4,8}$/.test(pin)) {
+    err.textContent = 'El PIN debe tener entre 4 y 8 dígitos numéricos.';
+    err.style.display = 'block'; return;
+  }
+  const btn = document.getElementById('btn-activar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+  try {
+    const r = await fetch('/api/mobile/enable', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({pin})
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail; err.style.display='block'; return; }
+    document.getElementById('pin-input').value = '';
+    await cargarEstado();
+  } catch(e) { err.textContent = 'Error de conexión'; err.style.display='block'; }
+  finally { btn.disabled = false; btn.textContent = '✓ Activar'; }
+}
+
+async function cambiarPin() {
+  const pin = document.getElementById('pin-change').value.trim();
+  const err = document.getElementById('err-change');
+  err.style.display = 'none';
+  if (!/^\d{4,8}$/.test(pin)) {
+    err.textContent = 'PIN inválido.'; err.style.display = 'block'; return;
+  }
+  const r = await fetch('/api/mobile/enable', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({pin})
+  });
+  const d = await r.json();
+  if (!r.ok) { err.textContent = d.detail; err.style.display='block'; return; }
+  document.getElementById('pin-change').value = '';
+  await cargarEstado();
+}
+
+async function desactivar() {
+  if (!confirm('¿Desactivar el acceso móvil? Se cerrarán todas las sesiones activas.')) return;
+  await fetch('/api/mobile/disable', {method: 'POST'});
+  await cargarEstado();
+}
+
+cargarEstado();
+</script>
+<script>
+if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';
+</script>
+</body>
+</html>

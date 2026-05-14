@@ -1,0 +1,27 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.spec
+
+# Build output
+dist/
+_build_tmp/
+build/
+
+# Runtime data (personal, generated)
+anime_tracker.db
+credentials.json
+avatar.*
+*.log
+backups/
+
+# Dev only
+make_release.py
+
+# OS
+.DS_Store
+Thumbs.db

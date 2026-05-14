@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Novedades — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;
+      --accent:#7c3aed;--light:#a78bfa;--success:#34d399;--danger:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:11px 20px;
+       display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+header img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+header h1{font-size:16px;font-weight:700;color:var(--light);flex:1}
+.back{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);
+      padding:6px 14px;font-size:13px;text-decoration:none;display:inline-block}
+
+.plat-bar{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;border-bottom:1px solid var(--border);
+          background:var(--card);scrollbar-width:none}
+.plat-bar::-webkit-scrollbar{display:none}
+.plat-btn{flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--bg);
+          border:1px solid var(--border);border-radius:99px;color:var(--muted);
+          padding:6px 14px;font-size:13px;cursor:pointer;transition:all .15s;font-weight:500}
+.plat-btn.active{background:rgba(124,58,237,.15);border-color:var(--accent);color:var(--light)}
+.plat-btn:hover{border-color:var(--accent);color:var(--fg)}
+
+main{max-width:1100px;margin:0 auto;padding:20px}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;
+               letter-spacing:.5px;margin-bottom:14px;margin-top:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+      overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.card .thumb{position:relative;aspect-ratio:3/4}
+.card .thumb img{width:100%;height:100%;object-fit:cover}
+.card .score{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);
+             color:#fbbf24;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px}
+.card .plats{position:absolute;bottom:0;inset-x:0;background:linear-gradient(transparent,rgba(0,0,0,.9));
+             padding:6px 8px 5px;display:flex;gap:3px;flex-wrap:wrap}
+.plat-tag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase}
+.pt-cr{background:#f47521;color:#fff}.pt-nf{background:#e50914;color:#fff}
+.pt-am{background:#00a8e1;color:#fff}.pt-dp{background:#006e99;color:#fff}.pt-ot{background:#444;color:#fff}
+.card .info{padding:8px 10px 10px}
+.card .title{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:4px;
+             display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .genres{display:flex;flex-wrap:wrap;gap:3px}
+.genre-tag{font-size:10px;color:var(--light);background:rgba(124,58,237,.1);
+           border:1px solid rgba(124,58,237,.2);border-radius:4px;padding:1px 5px}
+.next-ep{font-size:10px;color:var(--success);margin-top:4px;font-weight:600}
+
+.add-btn{display:flex;align-items:center;justify-content:center;gap:4px;
+         background:var(--accent);color:#fff;border:none;border-radius:6px;
+         padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;
+         margin-top:6px;width:100%;transition:opacity .15s}
+.add-btn:hover{opacity:.85}
+.add-btn.added{background:#14342a;color:var(--success)}
+
+.loading{text-align:center;padding:60px;color:var(--muted)}
+.spin{width:24px;height:24px;border:3px solid rgba(124,58,237,.2);border-top-color:var(--accent);
+      border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.err-box{background:#1a0a0a;border:1px solid #5a2020;border-radius:10px;padding:16px;
+         color:var(--danger);text-align:center;margin:20px 0;font-size:13px}
+
+/* Toast */
+#toast{position:fixed;top:16px;right:16px;z-index:100;opacity:0;pointer-events:none;
+       transition:opacity .3s;max-width:280px}
+#toast.show{opacity:1}
+.toast-i{background:var(--card);border:1px solid #1d6b50;border-radius:10px;
+          padding:10px 14px;font-size:13px;font-weight:500;color:var(--success)}
+.toast-i.err{border-color:#5a2020;color:var(--danger)}
+
+
+/* Twitter/X floating button */
+#tw-btn{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  background:#000;color:#fff;border:none;border-radius:50%;
+  width:40px;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:transform .2s,box-shadow .2s;text-decoration:none;
+  opacity:0.85;
+}
+#tw-btn:hover{transform:scale(1.12);box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:1}
+#tw-btn svg{flex-shrink:0}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .plat-btn{background:#fff;color:#4b4b6b;border-color:#d4d0ec}
+[data-theme=light] .plat-btn.active{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+[data-theme=light] .card{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .genre-tag{background:#eef2ff;color:#4338ca}
+</style>
+</head>
+<body>
+
+<div id="toast"><div class="toast-i" id="toast-i"></div></div>
+
+<header>
+  <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <h1>🎬 Novedades</h1>
+  <a href="/app" class="back">← Volver a mi lista</a>
+</header>
+
+<div class="plat-bar">
+  <button class="plat-btn active" data-p="all"         onclick="cargar('all',this)">🌐 Todas</button>
+  <button class="plat-btn"        data-p="crunchyroll" onclick="cargar('crunchyroll',this)">🟠 Crunchyroll</button>
+  <button class="plat-btn"        data-p="netflix"     onclick="cargar('netflix',this)">🔴 Netflix</button>
+  <button class="plat-btn"        data-p="amazon"      onclick="cargar('amazon',this)">🔵 Amazon</button>
+  <button class="plat-btn"        data-p="disney"      onclick="cargar('disney',this)">🔵 Disney+</button>
+</div>
+
+<main>
+  <div id="container">
+    <div class="loading"><div class="spin"></div>Cargando novedades…</div>
+  </div>
+</main>
+
+<script>
+let LISTA_LOCAL = new Set(); // nombres ya en la lista del usuario
+let TR = {};
+
+async function init() {
+  try {
+    const [langR, animesR] = await Promise.all([fetch('/api/lang'), fetch('/api/animes')]);
+    const langD   = await langR.json();
+    const animesD = await animesR.json();
+    TR = langD.translations || {};
+    LISTA_LOCAL = new Set((animesD.animes||[]).map(a => a.nombre.toLowerCase()));
+  } catch(_) {}
+  cargar('all', document.querySelector('.plat-btn'));
+}
+
+function toast(msg, tipo='ok') {
+  const el = document.getElementById('toast');
+  const i  = document.getElementById('toast-i');
+  i.className = 'toast-i' + (tipo === 'err' ? ' err' : '');
+  i.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function platColor(p) {
+  const m = {
+    'Crunchyroll':'pt-cr','Netflix':'pt-nf',
+    'Amazon Prime Video':'pt-am','Disney Plus':'pt-dp',
+    'Disney+':'pt-dp',
+  };
+  return m[p] || 'pt-ot';
+}
+
+function nextEpText(next) {
+  if (!next) return '';
+  const d = new Date(next.airingAt * 1000);
+  const now = Date.now();
+  const diff = d - now;
+  if (diff < 0) return `Ep ${next.episode} ya disponible`;
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 24) return `Ep ${next.episode} en ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `Ep ${next.episode} en ${days}d`;
+}
+
+async function cargar(plat, btn) {
+  document.querySelectorAll('.plat-btn').forEach(b => b.classList.toggle('active', b === btn));
+  const cont = document.getElementById('container');
+  cont.innerHTML = '<div class="loading"><div class="spin"></div>Cargando…</div>';
+
+  try {
+    const r = await fetch(`/api/novedades?plataforma=${plat}`);
+    const d = await r.json();
+
+    if (d.error) {
+      const eb = document.createElement('div');
+    eb.className = 'err-box';
+    eb.textContent = 'Error al cargar: ' + (d.error || 'desconocido');
+    cont.innerHTML = '';
+    cont.appendChild(eb);
+      return;
+    }
+    const items = d.novedades || [];
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'loading';
+      empty.textContent = 'Sin resultados. Prueba seleccionando "Todas" o comprueba tu conexión.';
+      cont.innerHTML = ''; cont.appendChild(empty);
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    const nowSec = Date.now() / 1000;
+
+    // "Próximamente" = tienen episodio programado en los próximos 7 días
+    const proximamente = items.filter(a =>
+      a.proximo_ep &&
+      a.proximo_ep.airingAt > nowSec &&
+      a.proximo_ep.airingAt < nowSec + 7 * 86400
+    );
+
+    // "En emisión ahora" = todos los demás (ya emitidos o sin fecha próxima)
+    const enEmision = items.filter(a => !proximamente.includes(a));
+
+    // Sección "Próximamente" (ordenada por cuándo airan)
+    if (proximamente.length) {
+      proximamente.sort((a, b) => (a.proximo_ep?.airingAt || 0) - (b.proximo_ep?.airingAt || 0));
+      const tP = document.createElement('p');
+      tP.className = 'section-title';
+      tP.textContent = '🔔 Próximamente — esta semana';
+      frag.appendChild(tP);
+      const gP = document.createElement('div');
+      gP.className = 'grid';
+      proximamente.forEach(a => gP.appendChild(makeCard(a)));
+      frag.appendChild(gP);
+    }
+
+    // Sección "En emisión ahora" (ordenada por puntuación)
+    if (enEmision.length) {
+      const tE = document.createElement('p');
+      tE.className = 'section-title';
+      tE.textContent = '📺 En emisión ahora';
+      frag.appendChild(tE);
+      const gE = document.createElement('div');
+      gE.className = 'grid';
+      enEmision.forEach(a => gE.appendChild(makeCard(a)));
+      frag.appendChild(gE);
+    }
+
+    cont.innerHTML = '';
+    cont.appendChild(frag);
+
+  } catch(e) {
+    { const eb=document.createElement('div'); eb.className='err-box';
+    eb.textContent='Error de conexión: '+(e.message||'');
+    cont.innerHTML=''; cont.appendChild(eb); }
+  }
+}
+
+function makeCard(a) {
+  const BLANK = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect fill='%231a1a24' width='1' height='1'/></svg>";
+  const yaEnLista = LISTA_LOCAL.has((a.nombre||'').toLowerCase());
+
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb';
+
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.src = a.imagen || BLANK;
+  img.onerror = () => { img.src = BLANK; };
+  thumb.appendChild(img);
+
+  if (a.puntuacion && a.puntuacion > 0) {
+    const sc = document.createElement('div');
+    sc.className = 'score';
+    sc.textContent = '⭐ ' + a.puntuacion.toFixed(1);
+    thumb.appendChild(sc);
+  }
+
+  const platsDiv = document.createElement('div');
+  platsDiv.className = 'plats';
+  (a.plataformas||[]).forEach(p => {
+    const t = document.createElement('span');
+    t.className = 'plat-tag ' + platColor(p);
+    t.textContent = p.replace('Amazon Prime Video','Amazon').replace('Disney Plus','Disney+').substring(0,10);
+    platsDiv.appendChild(t);
+  });
+  thumb.appendChild(platsDiv);
+  card.appendChild(thumb);
+
+  const info = document.createElement('div');
+  info.className = 'info';
+
+  const title = document.createElement('div');
+  title.className = 'title';
+  title.textContent = a.nombre;
+  info.appendChild(title);
+
+  const genres = document.createElement('div');
+  genres.className = 'genres';
+  (a.generos||[]).slice(0,3).forEach(g => {
+    const span = document.createElement('span');
+    span.className = 'genre-tag';
+    span.textContent = g;
+    genres.appendChild(span);
+  });
+  info.appendChild(genres);
+
+  const nxt = nextEpText(a.proximo_ep);
+  if (nxt) {
+    const ne = document.createElement('div');
+    ne.className = 'next-ep';
+    ne.textContent = '⏰ ' + nxt;
+    info.appendChild(ne);
+  }
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-btn' + (yaEnLista ? ' added' : '');
+  addBtn.textContent = yaEnLista ? '✓ En mi lista' : '+ Añadir';
+  if (!yaEnLista) {
+    addBtn.addEventListener('click', async () => {
+      addBtn.disabled = true;
+      addBtn.textContent = '…';
+      try {
+        const r = await fetch('/api/animes', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({nombre: a.nombre, fuente: 'anilist'})
+        });
+        const d = await r.json();
+        if (r.status === 409) { toast('Ya en tu lista', 'ok'); }
+        else if (!r.ok) { toast('Error al añadir', 'err'); addBtn.disabled = false; addBtn.textContent = '+ Añadir'; return; }
+        else { toast('✓ ' + a.nombre + ' añadido'); }
+        addBtn.className = 'add-btn added';
+        addBtn.textContent = '✓ En mi lista';
+        LISTA_LOCAL.add(a.nombre.toLowerCase());
+      } catch(_) { toast('Error de conexión', 'err'); addBtn.disabled = false; addBtn.textContent = '+ Añadir'; }
+    });
+  }
+  info.appendChild(addBtn);
+  card.appendChild(info);
+  return card;
+}
+
+init();
+</script>
+<script>
+if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+</svg>
+</a>
+
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
+   text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

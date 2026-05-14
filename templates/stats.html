@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estadísticas — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;--accent:#7c3aed;--light:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px}
+header img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+header h1{font-size:17px;font-weight:700;color:var(--light)}
+.back-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+main{padding:20px;max-width:900px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
+.kpi .value{font-size:28px;font-weight:700;color:var(--light)}
+.kpi .label{font-size:12px;color:var(--muted);margin-top:4px}
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.section h2{font-size:14px;font-weight:600;color:var(--light);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-label{font-size:12px;color:var(--fg);width:100px;flex-shrink:0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.bar-track{flex:1;background:var(--border);border-radius:4px;height:14px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.bar-count{font-size:11px;color:var(--muted);width:30px;text-align:right;flex-shrink:0}
+.anime-list{display:grid;gap:8px}
+.anime-row{display:flex;gap:10px;align-items:center;padding:8px;background:#12121a;border-radius:8px}
+.anime-row img{width:36px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.anime-row .info{flex:1;min-width:0}
+.anime-row .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anime-row .meta{font-size:11px;color:var(--muted)}
+.score-badge{background:#1e1a30;color:#fbbf24;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;flex-shrink:0}
+
+/* Improved KPI cards with gradient + icon */
+.kpi{
+  background:linear-gradient(135deg, var(--card), var(--card2,#0f0f13));
+  position:relative;overflow:hidden;
+  transition:transform .2s, box-shadow .2s;
+}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(124,58,237,.15)}
+.kpi-icon{font-size:22px;opacity:0.7;margin-bottom:6px}
+.kpi .value{
+  font-size:32px;font-weight:800;
+  background:linear-gradient(135deg, var(--accent), var(--light));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+  background:linear-gradient(135deg,#6d28d9,#9333ea);
+  -webkit-background-clip:text;background-clip:text;
+}
+
+/* Donut chart for state distribution */
+.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut-svg{width:160px;height:160px;flex-shrink:0}
+.donut-bg{fill:none;stroke:var(--border);stroke-width:14}
+.donut-seg{fill:none;stroke-width:14;transition:stroke-width .2s}
+.donut-seg:hover{stroke-width:18;cursor:pointer}
+.donut-center{font-size:18px;font-weight:700;fill:var(--light);text-anchor:middle;dominant-baseline:central}
+.donut-center-sub{font-size:9px;fill:var(--muted);text-anchor:middle;dominant-baseline:central}
+.donut-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:6px}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.donut-legend-item .swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.donut-legend-item .lbl{flex:1;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.donut-legend-item .pct{color:var(--muted);font-size:11px;font-weight:600}
+
+/* Bar with percentage label */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-label{font-size:12px;color:var(--fg);width:110px;flex-shrink:0;font-weight:500;
+  text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.bar-track{flex:1;background:var(--border);border-radius:6px;height:18px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.16,1,.3,1);
+  background:linear-gradient(90deg, var(--accent), var(--light))}
+.bar-count{font-size:11px;color:var(--fg);width:50px;text-align:right;flex-shrink:0;font-weight:600}
+
+/* Genre tags as pills with size by count */
+.genre-cloud{display:flex;flex-wrap:wrap;gap:8px}
+.genre-pill{
+  background:linear-gradient(135deg, rgba(124,58,237,.15), rgba(167,139,250,.1));
+  border:1px solid rgba(124,58,237,.25);
+  border-radius:99px;padding:5px 14px;font-size:13px;color:var(--light);
+  font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  transition:transform .15s;
+}
+.genre-pill:hover{transform:scale(1.05)}
+.genre-pill .count{font-size:10px;opacity:0.7;font-weight:700}
+  background:linear-gradient(135deg,rgba(109,40,217,.1),rgba(147,51,234,.05));
+  color:#5b21b6;border-color:rgba(109,40,217,.3);
+}
+
+/* Empty state */
+.empty-state{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px}
+.empty-state .icon{font-size:32px;margin-bottom:8px;opacity:.5}
+
+/* Twitter/X floating button */
+#tw-btn{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  background:#000;color:#fff;border:none;border-radius:50%;
+  width:40px;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:transform .2s,box-shadow .2s;text-decoration:none;
+  opacity:0.85;
+}
+#tw-btn:hover{transform:scale(1.12);box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:1}
+#tw-btn svg{flex-shrink:0}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .kpi{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .section{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .section h2{color:#4f46e5}
+[data-theme=light] .bar-label{color:#1e1e2e}
+[data-theme=light] .bar-count{color:#64648c}
+[data-theme=light] .bar-track{background:#e5e4f0}
+[data-theme=light] .anime-row{background:#f0eef8}
+[data-theme=light] .anime-row .name{color:#1e1e2e}
+[data-theme=light] .score-badge{background:#eef2ff;color:#4338ca}
+[data-theme=light] .genre-pill{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+[data-theme=light] .donut-center{fill:#4f46e5}
+[data-theme=light] .back-btn{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+</style>
+</head>
+<body>
+<header>
+  <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <h1 id="h-stats">Estadísticas</h1>
+  <a href="/app" class="back-btn">← Volver</a>
+</header>
+<main>
+  <div class="grid" id="kpis">
+    <div class="kpi">
+      <div class="kpi-icon">📺</div>
+      <div class="value" id="k-total">–</div>
+      <div class="label" id="lbl-total">Total animes</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">▶️</div>
+      <div class="value" id="k-eps">–</div>
+      <div class="label" id="lbl-eps">Episodios vistos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">⏱️</div>
+      <div class="value" id="k-hours">–</div>
+      <div class="label" id="lbl-hours">Horas vistas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">⭐</div>
+      <div class="value" id="k-score">–</div>
+      <div class="label" id="lbl-score">Puntuación media</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🎭</div>
+      <div class="value" id="k-genre" style="font-size:16px;line-height:1.3">–</div>
+      <div class="label" id="lbl-genre">Género favorito</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🏆</div>
+      <div class="value" id="k-completed">–</div>
+      <div class="label" id="lbl-completed">Completados</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="section">
+      <h2 id="lbl-by-state">Por estado</h2>
+      <div id="chart-state" class="donut-wrap"></div>
+    </div>
+    <div class="section">
+      <h2 id="lbl-by-src">Por fuente</h2>
+      <div id="chart-src"></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:16px">
+    <h2 id="lbl-genres">Géneros</h2>
+    <div id="chart-genres" class="genre-cloud"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="section">
+      <h2 id="lbl-top">Mejor valorados</h2>
+      <div class="anime-list" id="list-top"></div>
+    </div>
+    <div class="section">
+      <h2 id="lbl-recent">Añadidos recientemente</h2>
+      <div class="anime-list" id="list-recent"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let TR = {};
+function T(k, vars={}) {
+  let txt = TR[k] || k;
+  Object.entries(vars).forEach(([key,val]) => { txt = txt.replace(`{${key}}`, val); });
+  return txt;
+}
+
+const COLORS = ['#7c3aed','#059669','#d97706','#dc2626','#0891b2','#9333ea','#65a30d'];
+
+function makeBar(label, value, max, color) {
+  const pct = max > 0 ? Math.round(value / max * 100) : 0;
+  return `<div class="bar-row">
+    <span class="bar-label" title="${label}">${label}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="bar-count">${value}</span>
+  </div>`;
+}
+
+function makeAnimeRow(a, showScore=false) {
+  // DOM-safe: no innerHTML with user data
+  const row = document.createElement('div');
+  row.className = 'anime-row';
+
+  const img = document.createElement('img');
+  img.src = a.imagen || '';
+  img.alt = '';
+  img.onerror = () => { img.style.display='none'; };
+  row.appendChild(img);
+
+  const info = document.createElement('div');
+  info.className = 'info';
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = a.nombre || '';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = a.fuente || '';
+  info.appendChild(name);
+  info.appendChild(meta);
+  row.appendChild(info);
+
+  if (showScore && a.puntuacion) {
+    const sc = document.createElement('span');
+    sc.className = 'score-badge';
+    sc.textContent = '⭐ ' + a.puntuacion;
+    row.appendChild(sc);
+  }
+  return row;
+}
+
+function renderDonut(container, items) {
+  const total = items.reduce((s,i) => s + i.value, 0);
+  if (!total) { container.innerHTML = ''; return; }
+
+  const SVG = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('class', 'donut-svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+
+  const bg = document.createElementNS(SVG, 'circle');
+  bg.setAttribute('class', 'donut-bg');
+  bg.setAttribute('cx', '50'); bg.setAttribute('cy', '50'); bg.setAttribute('r', '40');
+  svg.appendChild(bg);
+
+  const C = 2 * Math.PI * 40;
+  let offset = 0;
+  items.forEach(it => {
+    const len = (it.value / total) * C;
+    const seg = document.createElementNS(SVG, 'circle');
+    seg.setAttribute('class', 'donut-seg');
+    seg.setAttribute('cx', '50'); seg.setAttribute('cy', '50'); seg.setAttribute('r', '40');
+    seg.setAttribute('stroke', it.color);
+    seg.setAttribute('stroke-dasharray', `${len} ${C - len}`);
+    seg.setAttribute('stroke-dashoffset', -offset);
+    seg.setAttribute('transform', 'rotate(-90 50 50)');
+    seg.setAttribute('stroke-linecap', 'butt');
+    svg.appendChild(seg);
+    offset += len;
+  });
+
+  // Center text
+  const ct = document.createElementNS(SVG, 'text');
+  ct.setAttribute('class', 'donut-center');
+  ct.setAttribute('x', '50'); ct.setAttribute('y', '47');
+  ct.textContent = total;
+  svg.appendChild(ct);
+  const cs = document.createElementNS(SVG, 'text');
+  cs.setAttribute('class', 'donut-center-sub');
+  cs.setAttribute('x', '50'); cs.setAttribute('y', '60');
+  cs.textContent = 'TOTAL';
+  svg.appendChild(cs);
+
+  // Legend
+  const legend = document.createElement('div');
+  legend.className = 'donut-legend';
+  items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'donut-legend-item';
+    const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = it.color;
+    const lb = document.createElement('span'); lb.className = 'lbl'; lb.textContent = it.label;
+    const pc = document.createElement('span'); pc.className = 'pct';
+    pc.textContent = Math.round(it.value / total * 100) + '% (' + it.value + ')';
+    row.appendChild(sw); row.appendChild(lb); row.appendChild(pc);
+    legend.appendChild(row);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+  container.appendChild(legend);
+}
+
+async function loadStats() {
+  // Idioma
+  const lr = await fetch('/api/lang');
+  const ld = await lr.json();
+  TR = ld.translations || {};
+
+  // Aplicar textos
+  document.getElementById('h-stats').textContent    = T('stats_title');
+  document.getElementById('lbl-total').textContent  = T('total_animes');
+  document.getElementById('lbl-eps').textContent    = T('total_episodes');
+  document.getElementById('lbl-score').textContent  = T('avg_score');
+  document.getElementById('lbl-genre').textContent  = T('favorite_genre');
+  const lblHours = document.getElementById('lbl-hours');
+  if (lblHours) lblHours.textContent = T('hours_watched') || 'Horas vistas';
+  const lblComp = document.getElementById('lbl-completed');
+  if (lblComp) lblComp.textContent = T('completed_count') || 'Completados';
+  document.getElementById('lbl-by-state').textContent = T('by_state');
+  document.getElementById('lbl-by-src').textContent   = T('by_source');
+  document.getElementById('lbl-genres').textContent   = T('genres');
+  document.getElementById('lbl-top').textContent      = T('top_rated');
+  document.getElementById('lbl-recent').textContent   = T('recently_added');
+  document.querySelector('.back-btn').textContent = '← ' + T('close');
+
+  // Restore saved theme
+  if (localStorage.getItem('theme') === 'light')
+    document.documentElement.dataset.theme = 'light';
+
+  const r = await fetch('/api/stats');
+  const d = await r.json();
+
+  document.getElementById('k-total').textContent = d.total || 0;
+  document.getElementById('k-eps').textContent   = d.total_episodes || 0;
+  document.getElementById('k-score').textContent = d.avg_score || '–';
+  document.getElementById('k-genre').textContent = d.favorite_genre || '–';
+
+  // Calcular horas vistas (24 min por episodio)
+  const horas = Math.round((d.total_episodes || 0) * 24 / 60);
+  document.getElementById('k-hours').textContent = horas;
+
+  // Completados
+  const completados = (d.by_state || {}).completado || (d.by_state || {}).completed || 0;
+  document.getElementById('k-completed').textContent = completados;
+
+  // Estado — donut chart
+  const stateKeys = {
+    'pendiente': T('pending'), 'pending': T('pending'),
+    'viendo': T('watching'),   'watching': T('watching'),
+    'completado': T('completed'), 'completed': T('completed'),
+    'abandonado': T('dropped'),   'dropped': T('dropped'),
+    'pausa': T('paused'),         'paused': T('paused'),
+  };
+  const stateEntries = Object.entries(d.by_state || {});
+  const stateContainer = document.getElementById('chart-state');
+  if (!stateEntries.length) {
+    stateContainer.innerHTML = '<div class="empty-state"><div class="icon">📊</div>Sin datos aún</div>';
+  } else {
+    renderDonut(stateContainer, stateEntries.map(([k,v],i) => ({
+      label: stateKeys[k] || k, value: v, color: COLORS[i % COLORS.length],
+    })));
+  }
+
+  // Fuente
+  const srcEntries = Object.entries(d.by_source || {});
+  const maxSrc = srcEntries.length ? Math.max(...srcEntries.map(([,v])=>v)) : 1;
+  document.getElementById('chart-src').innerHTML = srcEntries.length
+    ? srcEntries.map(([k,v],i) => makeBar(k, v, maxSrc, COLORS[i%COLORS.length])).join('')
+    : '<p style="color:var(--muted);font-size:13px">Sin datos aún</p>';
+
+  // Géneros — pills coloridas
+  const genreEntries = Object.entries(d.genres || {}).sort((a,b) => b[1]-a[1]);
+  const genreCloud = document.getElementById('chart-genres');
+  genreCloud.innerHTML = '';
+  if (!genreEntries.length) {
+    genreCloud.innerHTML = '<div class="empty-state"><div class="icon">🎭</div>Sin géneros aún</div>';
+  } else {
+    genreEntries.slice(0, 20).forEach(([g, count]) => {
+      const pill = document.createElement('span');
+      pill.className = 'genre-pill';
+      const txt = document.createTextNode(g + ' ');
+      const cnt = document.createElement('span');
+      cnt.className = 'count';
+      cnt.textContent = '×' + count;
+      pill.appendChild(txt);
+      pill.appendChild(cnt);
+      genreCloud.appendChild(pill);
+    });
+  }
+
+  // Top
+  // Top rated
+  const listTop = document.getElementById('list-top');
+  listTop.innerHTML = '';
+  if (d.top_rated && d.top_rated.length) {
+    d.top_rated.forEach(a => listTop.appendChild(makeAnimeRow(a, true)));
+  } else {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);font-size:13px';
+    p.textContent = 'Sin datos aún';
+    listTop.appendChild(p);
+  }
+
+  // Recientes
+  const listRecent = document.getElementById('list-recent');
+  listRecent.innerHTML = '';
+  if (d.recently_added && d.recently_added.length) {
+    d.recently_added.forEach(a => listRecent.appendChild(makeAnimeRow(a)));
+  } else {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);font-size:13px';
+    p.textContent = 'Sin datos aún';
+    listRecent.appendChild(p);
+  }
+}
+
+loadStats();
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+</svg>
+</a>
+
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
+   text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

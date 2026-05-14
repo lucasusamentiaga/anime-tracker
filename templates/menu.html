@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden}
+#bg{position:fixed;inset:0;z-index:0}
+#glow{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* UI central */
+.ui{position:relative;z-index:10;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+
+/* Logo más grande */
+.logo-wrap{margin-bottom:24px;opacity:0;animation:fadeUp 1s .1s cubic-bezier(.16,1,.3,1) forwards}
+.logo-wrap img{
+  width:160px;height:160px;
+  border-radius:50%;object-fit:cover;
+  border:4px solid rgba(167,139,250,.85);
+  box-shadow:0 0 0 0 rgba(124,58,237,.6);
+  animation:pring 2.8s ease 1.4s infinite;
+}
+@keyframes pring{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.6)}50%{box-shadow:0 0 0 22px rgba(124,58,237,0)}}
+
+/* SVG título */
+#title-svg{width:min(680px,92vw);height:auto;margin-bottom:10px;overflow:visible}
+#title-svg text{font-family:"Segoe UI",system-ui,sans-serif;font-weight:800;font-size:76px;letter-spacing:-2px;fill:none;stroke:url(#tg);stroke-width:1.5;stroke-linecap:round}
+#title-fill{font-family:"Segoe UI",system-ui,sans-serif;font-weight:800;font-size:76px;letter-spacing:-2px;fill:url(#tgf);opacity:0}
+
+/* Subtítulo */
+.subtitle-wrap{height:26px;overflow:hidden;margin-bottom:34px}
+.sw{display:inline-block;font-size:12px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(167,139,250,.75);opacity:0;transform:translateY(100%)}
+
+/* Botón */
+.enter-btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:13px 34px;border-radius:99px;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:none;text-decoration:none;box-shadow:0 0 28px rgba(124,58,237,.4),0 4px 20px rgba(0,0,0,.5);transition:transform .2s,box-shadow .2s;opacity:0;animation:fadeUp .8s .95s cubic-bezier(.16,1,.3,1) forwards;position:relative;overflow:hidden}
+.enter-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);border-radius:99px}
+.enter-btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 0 50px rgba(124,58,237,.65),0 8px 30px rgba(0,0,0,.5)}
+.enter-btn:active{transform:scale(.97)}
+.arrow{font-size:18px;transition:transform .2s}.enter-btn:hover .arrow{transform:translateX(5px)}
+
+/* Stats */
+.stats-row{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;justify-content:center;opacity:0;animation:fadeUp .8s 1.15s cubic-bezier(.16,1,.3,1) forwards}
+.stat-pill{background:rgba(26,26,36,.8);border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:4px 13px;font-size:11px;color:#a78bfa;backdrop-filter:blur(8px)}
+
+/* Lang */
+.lang-bar{position:fixed;top:18px;right:18px;z-index:20;display:flex;gap:5px;opacity:0;animation:fadeDown .8s .5s ease forwards}
+.lang-btn{background:rgba(15,15,20,.85);border:1px solid rgba(124,58,237,.3);border-radius:7px;color:#a78bfa;padding:5px 9px;font-size:11px;cursor:pointer;backdrop-filter:blur(10px);transition:all .15s}
+.lang-btn:hover,.lang-btn.active{background:rgba(124,58,237,.35);border-color:rgba(124,58,237,.7);color:#fff}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<script>if(localStorage.getItem('theme')==='light')document.documentElement.setAttribute('data-theme','light');</script>
+
+<canvas id="bg"></canvas>
+<div id="glow"></div>
+
+<div class="lang-bar">
+  <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+  <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+  <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+</div>
+
+<div class="ui">
+  <div class="logo-wrap">
+    <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  </div>
+
+  <svg id="title-svg" viewBox="0 0 680 90" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="tg"  x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#ffffff"/>
+        <stop offset="50%"  stop-color="#a78bfa"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+      <linearGradient id="tgf" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#ffffff"/>
+        <stop offset="50%"  stop-color="#a78bfa"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+    </defs>
+    <text id="title-stroke" x="50%" y="76" text-anchor="middle">Anime Tracker</text>
+    <text id="title-fill"   x="50%" y="76" text-anchor="middle">Anime Tracker</text>
+  </svg>
+
+  <div class="subtitle-wrap" id="sub-wrap"></div>
+
+  <a href="/app" class="enter-btn">
+    <span id="enter-txt">Entrar</span>
+    <span class="arrow">→</span>
+  </a>
+
+  <div class="stats-row" id="stats-row"></div>
+  <div style="margin-top:12px;opacity:0;animation:fadeUp .8s 1.3s cubic-bezier(.16,1,.3,1) forwards">
+    <a href="/novedades" style="display:inline-flex;align-items:center;gap:6px;color:var(--light);font-size:12px;text-decoration:none;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);padding:5px 14px;border-radius:99px">🎬 Ver novedades</a>
+  </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<script>
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const TX = {
+  es:{sub:"TU LISTA PERSONAL DE ANIMES", enter:"Entrar",    t:"{n} animes", w:"{n} viendo",    c:"{n} completados"},
+  en:{sub:"YOUR PERSONAL ANIME LIST",    enter:"Enter",     t:"{n} animes", w:"{n} watching",  c:"{n} completed"},
+  fr:{sub:"VOTRE LISTE ANIME PERSO",     enter:"Entrer",    t:"{n} animes", w:"{n} en cours",  c:"{n} terminés"},
+  de:{sub:"DEINE ANIME-LISTE",           enter:"Eintreten", t:"{n} Animes", w:"{n} am Schauen",c:"{n} fertig"},
+};
+let LANG = 'es';
+const T = (k, n = 0) => ((TX[LANG] || TX.es)[k] || k).replace('{n}', n);
+
+async function setLang(l) {
+  LANG = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+  await fetch('/api/lang', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lang:l})}).catch(()=>{});
+  document.getElementById('enter-txt').textContent = T('enter');
+  buildSub();
+}
+
+// ── Canvas interactivo ────────────────────────────────────────────────────────
+(function() {
+  const cv = document.getElementById('bg');
+  const cx = cv.getContext('2d');
+  const glow = document.getElementById('glow');
+  let W, H, mx = 400, my = 300;
+
+  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  window.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    glow.style.background = `radial-gradient(600px circle at ${mx}px ${my}px, rgba(124,58,237,.13) 0%, transparent 70%)`;
+  }, {passive:true});
+
+  // Partículas — inicializar con posición real del canvas
+  const N = 90;
+  const ps = Array.from({length: N}, () => {
+    const a = Math.random() * .45 + .08;
+    return {
+      x: Math.random() * (innerWidth  || 1920),
+      y: Math.random() * (innerHeight || 1080),
+      vx: (Math.random() - .5) * .3,
+      vy: -(Math.random() * .35 + .08),
+      r:  Math.random() * 1.3 + .3,
+      a, ba: a,
+    };
+  });
+
+  let raf;
+  function frame() {
+    cx.clearRect(0, 0, W, H);
+
+    // Actualizar y dibujar partículas
+    for (const p of ps) {
+      const dx = p.x - mx, dy = p.y - my;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 130 * 130) {
+        const d = Math.sqrt(d2);
+        const f = (130 - d) / 130;
+        if (d > 0) { p.x += dx / d * f * 2; p.y += dy / d * f * 2; }
+        p.a = Math.min(.95, p.ba + f * .8);
+      } else {
+        p.a += (p.ba - p.a) * .06;
+      }
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -8)  { p.x = Math.random() * W; p.y = H + 5; }
+      if (p.x < 0)   p.x = W;
+      if (p.x > W)   p.x = 0;
+      cx.beginPath();
+      cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      cx.fillStyle = `rgba(167,139,250,${p.a.toFixed(2)})`;
+      cx.fill();
+    }
+
+    // Líneas de conexión cerca del cursor (optimizado: sólo las cercanas)
+    const near = ps.filter(p => {
+      const dx = p.x - mx, dy = p.y - my;
+      return dx * dx + dy * dy < 160 * 160;
+    });
+    for (let i = 0; i < near.length; i++) {
+      for (let j = i + 1; j < near.length; j++) {
+        const dx = near[i].x - near[j].x, dy = near[i].y - near[j].y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 90 * 90) {
+          cx.beginPath();
+          cx.moveTo(near[i].x, near[i].y);
+          cx.lineTo(near[j].x, near[j].y);
+          cx.strokeStyle = `rgba(124,58,237,${(.35 * (1 - Math.sqrt(d2) / 90)).toFixed(2)})`;
+          cx.lineWidth = .6;
+          cx.stroke();
+        }
+      }
+    }
+
+    raf = requestAnimationFrame(frame);
+  }
+  frame();
+
+  // Pausar animación cuando la pestaña está oculta (ahorro CPU)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cancelAnimationFrame(raf);
+    else frame();
+  });
+})();
+
+// ── Subtítulo ─────────────────────────────────────────────────────────────────
+function buildSub() {
+  const wrap = document.getElementById('sub-wrap');
+  const words = T('sub').split(' ');
+  wrap.innerHTML = words.map((w, i) => `<span class="sw" id="sw${i}">${w}&nbsp;</span>`).join('');
+  if (window.anime) {
+    anime({
+      targets: '.sw',
+      translateY: ['100%', '0%'],
+      opacity: [0, 1],
+      duration: 550,
+      delay: anime.stagger(75, {start: 350}),
+      easing: 'cubicBezier(.16,1,.3,1)',
+    });
+  } else {
+    document.querySelectorAll('.sw').forEach((el, i) => {
+      setTimeout(() => {
+        el.style.transition = 'opacity .5s, transform .5s';
+        el.style.opacity = 1;
+        el.style.transform = 'translateY(0)';
+      }, 350 + i * 75);
+    });
+  }
+}
+
+// ── Título SVG drawable ───────────────────────────────────────────────────────
+function animTitle() {
+  const s = document.getElementById('title-stroke');
+  const f = document.getElementById('title-fill');
+  if (!s) return;
+  const LEN = 2200;
+  s.style.strokeDasharray  = LEN;
+  s.style.strokeDashoffset = LEN;
+  if (window.anime) {
+    anime({
+      targets: s,
+      strokeDashoffset: [LEN, 0],
+      duration: 1700,
+      delay: 150,
+      easing: 'easeInOutQuad',
+      complete() {
+        anime({targets: f, opacity: [0, 1], duration: 550, easing: 'easeOutQuad'});
+        anime({targets: s, opacity: [1, 0], duration: 350, delay: 250, easing: 'easeInQuad'});
+      }
+    });
+  } else {
+    s.style.strokeDashoffset = 0;
+    f.style.opacity = 1;
+  }
+}
+
+
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const {animes = []} = await (await fetch('/api/animes')).json();
+    if (!animes.length) return;
+    const w = animes.filter(a => ['viendo','watching'].includes(a.estado_usuario)).length;
+    const c = animes.filter(a => ['completado','completed'].includes(a.estado_usuario)).length;
+    document.getElementById('stats-row').innerHTML =
+      `<span class="stat-pill">${T('t', animes.length)}</span>
+       <span class="stat-pill">${T('w', w)}</span>
+       <span class="stat-pill">${T('c', c)}</span>`;
+  } catch(_) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const {lang} = await (await fetch('/api/setup/status')).json();
+    if (lang) LANG = lang;
+  } catch(_) {}
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === LANG));
+  document.getElementById('enter-txt').textContent = T('enter');
+  buildSub();
+  animTitle();
+  loadStats();
+}
+init();
+</script>
+<div style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(167,139,250,.4)">v1.0.0</div>
+</body>
+</html>

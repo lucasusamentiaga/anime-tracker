@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#7c3aed">
+<link rel="icon" href="/static/icon.ico">
+<title>Anime Tracker</title>
+<style>
+:root{
+  --bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;
+  --accent:#7c3aed;--accent2:#9f5ff7;--light:#a78bfa;
+  --success:#34d399;--danger:#f87171;--warn:#f59e0b;--card2:#12121a;
+  --glow:rgba(124,58,237,.25);
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a78bfa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#ffffff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --card2:#f0eef8;--glow:rgba(99,102,241,.1);--light:#4f46e5;
+  --accent:#4f46e5;--accent2:#6366f1;--success:#059669;--danger:#dc2626;--warn:#d97706;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234f46e5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+/* Light mode readability overrides */
+
+/* ── Light mode — clean white + indigo accent ────────────────────────────── */
+[data-theme=light] header{background:#fff;border-color:#d4d0ec;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+[data-theme=light] .app-title{color:#4f46e5}
+[data-theme=light] .stat-pill{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+[data-theme=light] .toolbar{background:#fff;border-color:#d4d0ec}
+[data-theme=light] select{background-color:#f8f7fc;color:#1e1e2e;border-color:#d4d0ec}
+[data-theme=light] input{background:#f8f7fc;color:#1e1e2e;border-color:#d4d0ec}
+[data-theme=light] textarea{background:#f8f7fc;color:#1e1e2e;border-color:#d4d0ec}
+[data-theme=light] .btn-primary{background:linear-gradient(135deg,#4f46e5,#4338ca);box-shadow:0 2px 8px rgba(79,70,229,.25)}
+[data-theme=light] .btn-ghost{color:#4b4b6b;border-color:#d4d0ec;background:#fff}
+[data-theme=light] .btn-ghost:hover{border-color:#4f46e5;color:#4338ca;background:#eef2ff}
+[data-theme=light] .btn-labeled span{color:#64648c}
+[data-theme=light] .btn-labeled:hover span{color:#4338ca}
+[data-theme=light] .btn-sync{background:#ecfdf5;color:#059669;border-color:#a7f3d0}
+[data-theme=light] .btn-sync:hover{background:#d1fae5}
+[data-theme=light] .lang-select{background-color:#f8f7fc;color:#1e1e2e;border-color:#d4d0ec}
+[data-theme=light] .ac{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .ac:hover{border-color:#4f46e5;box-shadow:0 6px 20px rgba(79,70,229,.1)}
+[data-theme=light] .ac .atitle{color:#1e1e2e}
+[data-theme=light] .ac .asrc{color:#4f46e5;font-style:normal}
+[data-theme=light] .progress-bar{background:#e5e4f0}
+[data-theme=light] .progress-bar .fill{background:linear-gradient(90deg,#4f46e5,#818cf8)}
+[data-theme=light] .b-watching,[data-theme=light] .b-viendo{background:#dbeafe;color:#1d4ed8;border-color:#93c5fd}
+[data-theme=light] .b-completed,[data-theme=light] .b-completado{background:#dcfce7;color:#166534;border-color:#86efac}
+[data-theme=light] .b-pending,[data-theme=light] .b-pendiente{background:#fef9c3;color:#854d0e;border-color:#fde047}
+[data-theme=light] .b-dropped,[data-theme=light] .b-abandonado{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+[data-theme=light] .b-paused,[data-theme=light] .b-pausa{background:#e0f2fe;color:#0c4a6e;border-color:#7dd3fc}
+[data-theme=light] .b-genre{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+[data-theme=light] .modal{background:#fff;border-color:#d4d0ec;box-shadow:0 20px 50px rgba(0,0,0,.15)}
+[data-theme=light] .modal h3{color:#4f46e5}
+[data-theme=light] .field label{color:#64648c}
+[data-theme=light] .field select,[data-theme=light] .field input,[data-theme=light] .field textarea{background:#f8f7fc;border-color:#d4d0ec;color:#1e1e2e}
+[data-theme=light] .synopsis-box{background:#f0eef8;color:#4b4b6b}
+[data-theme=light] .toast-inner{background:#fff;color:#1e1e2e;border-color:#d4d0ec;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+[data-theme=light] .toast-inner.ok{background:#ecfdf5;color:#059669;border-color:#a7f3d0}
+[data-theme=light] .toast-inner.err{background:#fef2f2;color:#dc2626;border-color:#fca5a5}
+[data-theme=light] .toast-inner.warn{background:#fffbeb;color:#d97706;border-color:#fde047}
+[data-theme=light] #autocomplete-drop{background:#fff !important;border-color:#d4d0ec !important;box-shadow:0 6px 16px rgba(0,0,0,.1) !important}
+[data-theme=light] #autocomplete-drop div:hover{background:#eef2ff !important;color:#4338ca}
+[data-theme=light] .dmenu-item{color:#1e1e2e;border-color:#f0eef8}
+[data-theme=light] .dmenu-item:hover{background:#eef2ff;color:#4338ca}
+[data-theme=light] #export-menu{background:#fff !important;border-color:#d4d0ec !important}
+[data-theme=light] .count-label{color:#64648c}
+[data-theme=light] #empty-msg{color:#64648c}
+[data-theme=light] #tw-btn{background:#4f46e5;box-shadow:0 2px 10px rgba(79,70,229,.3)}
+
+/* ── Multi-select mode ──────────────────────────────────────────────────── */
+.ac.selected{border:2px solid var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.ac.selected .sel-check{display:flex !important}
+.sel-check{
+  display:none;position:absolute;top:6px;left:6px;z-index:5;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+  align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+body.sel-mode .ac .sel-check{display:flex;background:var(--border);color:var(--muted)}
+body.sel-mode .ac.selected .sel-check{background:var(--accent);color:#fff}
+body.sel-mode .ac:hover{cursor:pointer}
+body.sel-mode .ac .del{display:none}
+body.sel-mode .ac .plus1{display:none}
+
+/* Bulk action bar */
+#bulk-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:var(--card);border-top:2px solid var(--accent);
+  padding:10px 20px;display:none;align-items:center;gap:10px;
+  box-shadow:0 -4px 20px rgba(0,0,0,.3);
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#bulk-bar.show{display:flex}
+#bulk-bar .bulk-count{font-size:14px;font-weight:700;color:var(--light);min-width:90px}
+#bulk-bar select{padding:6px 10px;font-size:12px;border-radius:8px;min-width:100px}
+#bulk-bar .bulk-btn{
+  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);background:var(--card2);color:var(--fg);
+  transition:all .15s;
+}
+#bulk-bar .bulk-btn:hover{border-color:var(--accent);color:var(--light)}
+#bulk-bar .bulk-btn.danger{border-color:#dc2626;color:#dc2626}
+#bulk-bar .bulk-btn.danger:hover{background:#dc2626;color:#fff}
+#bulk-bar .bulk-close{
+  margin-left:auto;background:none;border:none;color:var(--muted);
+  font-size:20px;cursor:pointer;padding:4px 8px;
+}
+[data-theme=light] #bulk-bar{background:#fff;border-color:#4f46e5;box-shadow:0 -4px 16px rgba(0,0,0,.1)}
+
+/* Loading skeleton */
+.skel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.skel-card{
+  background:var(--card);border:1px solid var(--border);border-radius:13px;
+  aspect-ratio:2/3;overflow:hidden;position:relative;
+}
+.skel-card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);
+  animation:shimmer 1.4s infinite;
+}
+@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+[data-theme=light] .skel-card::after{background:linear-gradient(90deg,transparent,rgba(0,0,0,.04),transparent)}
+
+/* Custom scrollbar */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* Notif badge */
+#btn-notif-perm{position:relative}
+.notif-badge{
+  position:absolute;top:2px;right:2px;
+  background:#dc2626;color:#fff;font-size:9px;font-weight:700;
+  border-radius:99px;padding:1px 5px;min-width:14px;height:14px;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+}
+
+/* Active filters indicator */
+.filter-active{position:relative}
+.filter-active::after{
+  content:'';position:absolute;top:4px;right:4px;
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
+}
+
+/* Improved empty states */
+.empty-illust{font-size:48px;margin-bottom:16px;opacity:.6;display:block}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh;transition:background .3s,color .3s}
+a,button,select,input{transition:all .15s ease}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Header ── */
+header{
+  background:linear-gradient(180deg,var(--card) 0%,rgba(26,26,36,.97) 100%);
+  border-bottom:1px solid var(--border);padding:8px 20px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;
+  flex-wrap:wrap;backdrop-filter:blur(12px);
+  box-shadow:0 2px 20px rgba(0,0,0,.3);
+}
+.logo{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex-shrink:0;
+      box-shadow:0 0 16px var(--glow),0 0 0 4px rgba(124,58,237,.08)}
+.app-title{font-size:17px;font-weight:800;color:var(--light);letter-spacing:-.3px}
+.header-stats{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.stat-pill{
+  background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.05));
+  border:1px solid rgba(124,58,237,.25);border-radius:99px;padding:3px 11px;
+  font-size:11px;color:var(--light);font-weight:500;
+  transition:background .15s;
+}
+.stat-pill:hover{background:linear-gradient(135deg,rgba(124,58,237,.25),rgba(124,58,237,.1))}
+.header-actions{display:flex;gap:5px;align-items:center}
+.header-actions a{text-decoration:none}
+
+/* ── Toolbar ── */
+.toolbar{
+  padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  border-bottom:1px solid var(--border);background:var(--card);position:relative;
+}
+
+/* ── Inputs genéricos ── */
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],textarea{
+  background:var(--card2);border:1px solid var(--border);border-radius:9px;
+  color:var(--fg);padding:8px 12px;font-size:13px;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;appearance:none;
+}
+input:focus,textarea:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(124,58,237,.18);
+}
+
+/* ── Select visual mejorado ── */
+select{
+  background:var(--card2) var(--select-arrow) no-repeat right 10px center / 12px;
+  border:1px solid var(--border);border-radius:9px;
+  color:var(--fg);padding:8px 32px 8px 12px;font-size:13px;font-family:inherit;
+  cursor:pointer;-webkit-appearance:none;appearance:none;
+  transition:border-color .15s,box-shadow .15s;min-width:0;
+}
+select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(124,58,237,.18);
+}
+select:hover{border-color:var(--accent)}
+select option{background:var(--card);color:var(--fg);padding:8px 6px}
+select option:checked{background:rgba(124,58,237,.15);color:var(--light)}
+
+/* Toolbar inputs/selects flex */
+.toolbar input{flex:1;min-width:150px}
+.toolbar select,.toolbar input{background:var(--card2) var(--select-arrow) no-repeat right 10px center / 12px;}
+.toolbar input{background:var(--card2);background-image:none}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;padding:8px 15px;border-radius:9px;
+  font-weight:600;font-size:13px;cursor:pointer;border:none;
+  transition:all .15s;white-space:nowrap;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.2);filter:brightness(1.05)}
+.btn:active{transform:scale(.97);box-shadow:none}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{
+  background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;
+  box-shadow:0 2px 10px rgba(124,58,237,.3);
+}
+.btn-primary:hover{background:linear-gradient(135deg,#8b4cf6,#6d28d9);box-shadow:0 4px 16px rgba(124,58,237,.4)}
+.btn-ghost{background:var(--card2);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:rgba(124,58,237,.4);color:var(--light)}
+.btn-sync{
+  background:linear-gradient(135deg,#14342a,#0a2218);color:var(--success);
+  border:1px solid #1d6b50;font-size:12px;padding:6px 12px;
+}
+.btn-sync:hover{background:linear-gradient(135deg,#1a4535,#0f2d22)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-icon{padding:7px 10px;font-size:14px}
+.btn-labeled{padding:6px 10px;font-size:12px;gap:4px;flex-direction:column;height:auto;line-height:1.1;text-decoration:none !important}
+.btn-labeled span{font-size:10px;color:var(--muted);font-weight:500;display:block}
+.btn-labeled:hover span{color:var(--light)}
+
+/* ── Grid ── */
+main{padding:16px 20px}
+#lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px}
+
+/* ── Cards ── */
+.ac{
+  background:var(--card);border:1px solid var(--border);border-radius:13px;
+  overflow:hidden;cursor:pointer;
+  transition:transform .18s cubic-bezier(.16,1,.3,1),border-color .18s,box-shadow .18s,opacity .3s;
+  animation:cardIn .35s ease both;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.ac:hover{
+  transform:translateY(-4px);border-color:rgba(124,58,237,.5);
+  box-shadow:0 8px 24px rgba(0,0,0,.3),0 0 0 1px rgba(124,58,237,.15);
+}
+.ac .thumb{position:relative;aspect-ratio:3/4}
+.ac .thumb img{width:100%;height:100%;object-fit:cover}
+.ac .overlay{
+  position:absolute;bottom:0;inset-x:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.9));
+  padding:8px 8px 6px;
+}
+.ac .del{
+  position:absolute;top:6px;right:6px;opacity:0;transition:opacity .15s;
+  background:rgba(127,29,29,.88);color:#fca5a5;border:none;border-radius:50%;
+  width:24px;height:24px;cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+.ac:hover .del{opacity:1}
+.ac .plus1{
+  position:absolute;top:6px;left:6px;opacity:0;transition:opacity .15s;
+  background:rgba(20,52,42,.92);color:#34d399;border:none;border-radius:7px;
+  padding:3px 7px;cursor:pointer;font-size:10px;font-weight:700;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+.ac:hover .plus1{opacity:1}
+.ac .plus1:hover{background:#059669;color:#fff}
+.ac .info{padding:8px 10px 10px}
+.ac .atitle{font-size:11px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ac .ameta{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.ac .asrc{font-size:10px;color:var(--light);margin-top:3px;font-style:italic}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden;cursor:help}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--light));border-radius:2px;transition:width .6s cubic-bezier(.16,1,.3,1)}
+
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.2px}
+.b-watching,.b-viendo{background:rgba(30,58,95,.9);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}
+.b-completed,.b-completado{background:rgba(20,52,42,.9);color:#34d399;border:1px solid rgba(52,211,153,.2)}
+.b-pending,.b-pendiente{background:rgba(45,37,32,.9);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.b-dropped,.b-abandonado{background:rgba(45,28,28,.9);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+.b-paused,.b-pausa{background:rgba(26,42,26,.9);color:#86efac;border:1px solid rgba(134,239,172,.2)}
+.b-genre{background:rgba(124,58,237,.1);color:var(--light);border:1px solid rgba(124,58,237,.25)}
+
+/* ── Modal ── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  z-index:50;display:none;align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--card);border:1px solid var(--border);border-radius:18px;
+  padding:24px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.1);
+}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:14px;color:var(--light)}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.field select,.field input,.field textarea{width:100%}
+.field textarea{resize:vertical;min-height:60px}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+
+/* Preview modal */
+.preview-header{display:flex;gap:14px;margin-bottom:16px}
+.preview-header img{width:80px;height:110px;object-fit:cover;border-radius:10px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.preview-header .meta h4{font-size:15px;font-weight:700;line-height:1.3;margin-bottom:6px}
+.preview-header .meta p{font-size:12px;color:var(--muted);line-height:1.5}
+.genres-wrap{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.synopsis-box{background:var(--card2);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.6;max-height:80px;overflow-y:auto;margin-top:8px}
+
+/* ── Toast ── */
+#toast{position:fixed;top:16px;right:16px;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-width:300px;transform:translateY(-6px)}
+#toast.show{opacity:1;transform:translateY(0)}
+.toast-inner{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:10px 15px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast-inner.ok{border-color:#1d6b50;color:var(--success);background:rgba(20,52,42,.95)}
+.toast-inner.err{border-color:#5a2020;color:var(--danger);background:rgba(45,28,28,.95)}
+.toast-inner.warn{border-color:#7a4a00;color:var(--warn);background:rgba(45,37,10,.95)}
+
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Table compact view */
+#lista.table-view{display:flex;flex-direction:column;gap:2px}
+#lista.table-view .ac{display:flex;flex-direction:row;border-radius:8px;height:48px;overflow:hidden}
+#lista.table-view .ac .thumb{width:36px;height:48px;aspect-ratio:auto;flex-shrink:0}
+#lista.table-view .ac .thumb img{width:36px;height:48px}
+#lista.table-view .ac .overlay{display:none}
+#lista.table-view .ac .del{display:none}
+#lista.table-view .ac .plus1{position:static;opacity:1;padding:2px 6px;font-size:9px;border-radius:4px;margin-left:auto;flex-shrink:0}
+#lista.table-view .ac .info{flex:1;display:flex;align-items:center;gap:8px;padding:4px 10px;min-width:0}
+#lista.table-view .ac .atitle{font-size:12px;margin:0;-webkit-line-clamp:1;flex:1;min-width:0}
+#lista.table-view .ac .ameta{flex-shrink:0}
+#lista.table-view .ac .asrc{display:none}
+#lista.table-view .ac .progress-bar{display:none}
+
+/* Search preview items */
+.sp-item{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.sp-item:hover{background:rgba(79,70,229,.08)}
+.sp-item:last-child{border-bottom:none}
+.sp-item img{width:40px;height:56px;border-radius:6px;object-fit:cover;flex-shrink:0}
+.sp-item .sp-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.sp-item .sp-title{font-size:12px;font-weight:600;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-item .sp-meta{font-size:10px;color:var(--muted)}
+.sp-item .sp-add{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;align-self:center}
+.sp-item .sp-add:hover{opacity:.85}
+[data-theme=light] .sp-item:hover{background:rgba(79,70,229,.06)}
+[data-theme=light] #search-preview{background:#fff;border-color:#d4d0ec}
+
+#empty-msg{text-align:center;color:var(--muted);margin-top:60px;font-size:14px;display:none}
+.count-label{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* Dropdown menus */
+.dmenu-item{
+  padding:10px 14px;font-size:13px;cursor:pointer;color:var(--fg);
+  border-bottom:1px solid var(--border);transition:background .1s;
+  display:flex;align-items:center;gap:8px;
+}
+.dmenu-item:last-child{border-bottom:none}
+.dmenu-item:hover{background:rgba(124,58,237,.12);color:var(--light)}
+
+/* Lang selector */
+.lang-select{
+  background:var(--card2) var(--select-arrow) no-repeat right 8px center / 10px;
+  border:1px solid var(--border);border-radius:9px;color:var(--fg);
+  padding:6px 28px 6px 26px;font-size:12px;cursor:pointer;font-weight:500;
+  -webkit-appearance:none;appearance:none;
+  transition:all .15s;
+}
+.lang-select:hover{border-color:var(--accent);background-color:rgba(124,58,237,.06)}
+.lang-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+
+/* ── Autocomplete dropdown ── */
+#autocomplete-drop{
+  background:var(--card) !important;
+  border:1px solid var(--border) !important;
+  border-radius:10px !important;
+  box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(124,58,237,.1) !important;
+  overflow:hidden;
+}
+#autocomplete-drop div{
+  padding:9px 13px;font-size:13px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+#autocomplete-drop div:last-child{border-bottom:none}
+#autocomplete-drop div:hover{background:rgba(124,58,237,.1) !important;color:var(--light)}
+
+/* Twitter/X floating button */
+#tw-btn{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  background:#000;color:#fff;border:none;border-radius:50%;
+  width:40px;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:transform .2s,box-shadow .2s;text-decoration:none;
+  opacity:0.85;
+}
+#tw-btn:hover{transform:scale(1.12);box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:1}
+#tw-btn svg{flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div style="position:fixed;bottom:4px;left:12px;font-size:10px;color:var(--muted);opacity:.5;z-index:1">v1.0.0</div>
+<div id="toast"><div class="toast-inner" id="toast-inner"></div></div>
+
+<!-- Modal: Editar anime -->
+<div class="modal-bg" id="modal-edit" onclick="if(event.target===this)cerrarModal('modal-edit')">
+  <div class="modal">
+    <h3 id="edit-title">Editar anime</h3>
+    <div class="preview-header">
+      <img id="edit-img" src="" alt="" onerror="this.style.display='none'">
+      <div class="meta">
+        <h4 id="edit-nombre-display"></h4>
+        <p id="edit-info"></p>
+        <div class="genres-wrap" id="edit-genres"></div>
+      </div>
+    </div>
+    <input type="hidden" id="edit-nombre">
+    <div class="field">
+      <label id="lbl-state">Estado</label>
+      <select id="edit-estado">
+        <option value="pendiente" id="opt-pending">Pendiente</option>
+        <option value="viendo" id="opt-watching">Viendo</option>
+        <option value="completado" id="opt-completed">Completado</option>
+        <option value="abandonado" id="opt-dropped">Abandonado</option>
+        <option value="pausa" id="opt-paused">En pausa</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label id="lbl-score">Puntuación (0–10)</label>
+        <input type="number" id="edit-puntuacion" min="0" max="10" step="0.5">
+      </div>
+      <div class="field">
+        <label id="lbl-seen-ep">Episodios vistos</label>
+        <input type="number" id="edit-vistos" min="0">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label id="lbl-start">Fecha inicio</label>
+        <input type="date" id="edit-inicio">
+      </div>
+      <div class="field">
+        <label id="lbl-end">Fecha fin</label>
+        <input type="date" id="edit-fin">
+      </div>
+    </div>
+    <div class="field">
+      <label id="lbl-notes">Notas</label>
+      <textarea id="edit-notas" rows="2" placeholder=""></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Temporada</label>
+        <input type="text" id="edit-temporada" placeholder="Ej: Otoño 2024">
+      </div>
+      <div class="field">
+        <label>Lista</label>
+        <select id="edit-lista">
+          <option value="principal">Principal</option>
+          <option value="quiero_ver">Quiero ver</option>
+          <option value="completados">Completados</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;user-select:none">
+        <input type="checkbox" id="edit-favorito" style="accent-color:var(--accent);width:15px;height:15px">
+        ⭐ Favorito
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;user-select:none">
+        <input type="checkbox" id="edit-notif" style="accent-color:var(--accent);width:15px;height:15px">
+        🔔 Notificar nuevos eps
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="verRelacionados()" id="btn-rel" title="Animes similares">🔗 Relacionados</button>
+      <button class="btn btn-primary" style="flex:2" onclick="guardarEdicion()" id="btn-save-edit">Guardar</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-edit')" id="btn-cancel-edit">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Previsualizar anime -->
+<div class="modal-bg" id="modal-preview" onclick="if(event.target===this)cerrarModal('modal-preview')">
+  <div class="modal">
+    <h3 id="prev-title">Vista previa</h3>
+    <div id="prev-loading" style="text-align:center;padding:30px;color:var(--muted)">
+      <span class="spin"></span>
+    </div>
+    <div id="prev-content" style="display:none">
+      <div class="preview-header">
+        <img id="prev-img" src="" alt="" onerror="this.style.display='none'">
+        <div class="meta">
+          <h4 id="prev-nombre"></h4>
+          <p id="prev-info"></p>
+          <div class="genres-wrap" id="prev-genres"></div>
+        </div>
+      </div>
+      <div class="synopsis-box" id="prev-synopsis"></div>
+    </div>
+    <div id="prev-notfound" style="display:none;text-align:center;padding:20px;color:var(--danger)" id="msg-notfound"></div>
+    <div class="modal-actions" id="prev-actions" style="display:none">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmarAgregar()" id="btn-add-confirm">Añadir a mi lista</button>
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-preview')" id="btn-cancel-preview">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <img class="logo" src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <span class="app-title" id="h-app-name">Anime Tracker</span>
+  <div class="header-stats">
+    <span class="stat-pill" id="stat-total">0 animes</span>
+    <span class="stat-pill" id="stat-watching">0 viendo</span>
+    <span class="stat-pill" id="stat-completed">0 completados</span>
+  </div>
+  <div class="header-actions">
+    <div style="position:relative;display:inline-flex;align-items:center">
+      <span style="position:absolute;left:8px;font-size:13px;pointer-events:none">🌐</span>
+      <select class="lang-select" id="lang-sel" onchange="cambiarIdioma(this.value)" style="padding-left:26px">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
+    </div>
+    <button class="btn btn-sync" id="btn-sync" onclick="sincronizar()">↑ Sync Sheets</button>
+    <a href="/import" class="btn btn-ghost btn-labeled" title="Importar animes">📥 <span id="nav-import">Importar</span></a>
+    <a href="/stats" class="btn btn-ghost btn-labeled" title="Estadísticas">📊 <span id="nav-stats">Estadísticas</span></a>
+    <a href="/novedades" class="btn btn-ghost btn-labeled" title="Novedades">🎬 <span id="nav-novedades">Novedades</span></a>
+    <a href="/calendario" class="btn btn-ghost btn-labeled" title="Calendario semanal">📅 <span id="nav-calendario">Calendario</span></a>
+    <a href="/recomendaciones" class="btn btn-ghost btn-labeled" title="Recomendaciones">💡 <span id="nav-recos">Recomendados</span></a>
+    <div style="position:relative;display:inline-block" id="export-wrap">
+      <button class="btn btn-ghost btn-labeled" onclick="toggleExportMenu()" title="Exportar datos">⬇ <span id="nav-export">Exportar</span></button>
+      <div id="export-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;
+           background:var(--card);border:1px solid var(--border);border-radius:10px;
+           min-width:170px;z-index:30;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden">
+        <div class="dmenu-item" onclick="exportarCSV();closeExportMenu()">📊 Exportar CSV</div>
+        <div class="dmenu-item" onclick="exportarJSON();closeExportMenu()">📄 Exportar JSON</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-labeled" id="btn-random" onclick="animeAleatorio()" title="Anime aleatorio">🎲 <span id="nav-random">Aleatorio</span></button>
+    <button class="btn btn-ghost btn-labeled" id="btn-notif-perm" onclick="pedirPermiso()" title="Notificaciones del navegador">🔔 <span>Avisos</span></button>
+    <button class="btn btn-ghost btn-labeled" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema">🌙 <span id="nav-theme">Tema</span></button>
+    <a href="/mobile" class="btn btn-ghost btn-labeled" title="Acceso móvil">📱 <span id="nav-mobile">Móvil</span></a>
+    <a href="/setup" class="btn btn-ghost btn-labeled" title="Configuración">⚙ <span id="nav-config">Config</span></a>
+    <a href="/" class="btn btn-ghost btn-labeled" title="Menú inicio">⌂ <span id="nav-home">Inicio</span></a>
+  </div>
+</header>
+
+<!-- Toolbar: búsqueda + filtros -->
+<div class="toolbar">
+  <input id="inp-nombre" type="text" placeholder="Nombre del anime…"
+         autocomplete="off"
+         oninput="autocomplete(this.value)"
+         onkeydown="if(event.key==='Enter'){cerrarAutocomplete();previsualizarAnime()}"
+         onblur="setTimeout(cerrarAutocomplete,200)">
+  <div id="autocomplete-drop" style="position:absolute;z-index:99;background:var(--card);border:1px solid var(--border);border-radius:8px;min-width:200px;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)"></div>
+  <select id="inp-fuente">
+    <option value="anilist">AniList</option>
+    <option value="jikan">Jikan v4 (MAL)</option>
+    <option value="kitsu">Kitsu</option>
+    <option value="mal">MAL (legacy)</option>
+    <option value="animeflv">AnimeFLV</option>
+    <option value="animeplanet">AnimePlanet</option>
+    <option value="animeav1">AnimeAV1</option>
+    <option value="crunchyroll">Crunchyroll</option>
+  </select>
+  <button class="btn btn-ghost" id="btn-preview" onclick="previsualizarAnime()">👁 <span id="txt-preview">Previsualizar</span></button>
+  <button class="btn btn-primary" id="btn-add" onclick="agregarDirecto()"><span id="txt-add">+ Añadir</span></button>
+</div>
+<div class="toolbar" style="border-top:none;padding-top:6px">
+  <div style="position:relative;flex:1;min-width:150px">
+  <input id="f-nombre" type="text" placeholder="Buscar en lista…" oninput="render()" onkeydown="if(event.key==='Escape')cerrarPreview()">
+  <div id="search-preview" style="display:none;position:absolute;top:100%;left:0;right:0;
+       background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:35;
+       max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);margin-top:4px">
+  </div>
+  </div>
+  <select id="f-estado" onchange="render()">
+    <option value="" id="opt-all-states">📋 Estado</option>
+    <option value="pendiente">⏳ Pendiente</option>
+    <option value="viendo">▶️ Viendo</option>
+    <option value="completado">✅ Completado</option>
+    <option value="abandonado">❌ Abandonado</option>
+    <option value="pausa">⏸ En pausa</option>
+  </select>
+  <select id="f-fuente" onchange="render()">
+    <option value="" id="opt-all-src">Todas las fuentes</option>
+  </select>
+  <button class="btn btn-ghost btn-sm" id="btn-view-toggle" onclick="toggleView()" title="Grid / Tabla" style="font-size:15px">≡</button>
+  <button class="btn btn-ghost btn-sm" id="btn-sel-mode" onclick="toggleSelMode()" title="Seleccionar varios" style="font-size:13px">☑</button>
+  <select id="f-sort" onchange="render()">
+    <option value="date" id="opt-sort-date">🕐 Recientes</option>
+    <option value="name" id="opt-sort-name">🔤 Nombre</option>
+    <option value="score" id="opt-sort-score">⭐ Puntuación</option>
+    <option value="progress" id="opt-sort-prog">📊 Progreso</option>
+    <option value="inicio">📅 Fecha inicio</option>
+    <option value="fin">📅 Fecha fin</option>
+    <option value="favs">💛 Favoritos</option>
+  </select>
+  <select id="f-lista" onchange="render()" title="Filtrar por lista" style="max-width:130px">
+    <option value="">📂 Listas</option>
+    <option value="principal">📁 Principal</option>
+    <option value="quiero_ver">👀 Quiero ver</option>
+    <option value="completados">✅ Completados</option>
+  </select>
+  <button class="btn btn-ghost btn-sm" id="btn-favs-filter" onclick="toggleFavsFilter()" title="Solo favoritos">⭐</button>
+  <span class="count-label" id="count-label"></span>
+</div>
+
+<main>
+  <div id="lista"></div>
+  <p id="empty-msg"></p>
+</main>
+
+<script>
+let ANIMES = [], TR = {}, LANG = 'es';
+let _previewData = null;
+
+// ── Traducciones ──────────────────────────────────────────────────────────────
+function T(k, vars={}) {
+  let txt = TR[k] || k;
+  Object.entries(vars).forEach(([key, val]) => { txt = txt.replace(`{${key}}`, val); });
+  return txt;
+}
+
+async function cargarIdioma() {
+  try {
+    const r = await fetch('/api/lang');
+    if (!r.ok) return;
+    const d = await r.json();
+    LANG = d.lang;
+    TR   = d.translations || {};
+    const sel = document.getElementById('lang-sel');
+    if (sel) sel.value = LANG;
+    aplicarTraducciones();
+  } catch(e) {
+    console.warn('cargarIdioma:', e);
+  }
+}
+
+function aplicarTraducciones() {
+  // Header
+  document.getElementById('h-app-name').textContent = T('app_name');
+  document.title = T('app_name');
+  // Toolbar
+  document.getElementById('inp-nombre').placeholder = T('anime_name_placeholder');
+  document.getElementById('txt-preview').textContent = T('preview_btn');
+  document.getElementById('txt-add').textContent     = T('add_btn');
+  document.getElementById('f-nombre').placeholder    = T('filter_placeholder');
+  // Filter options
+  document.getElementById('opt-all-states').textContent = T('all_states');
+  document.getElementById('opt-all-src').textContent    = T('all_sources');
+  document.getElementById('opt-sort-date').textContent  = T('sort_date');
+  document.getElementById('opt-sort-name').textContent  = T('sort_name');
+  document.getElementById('opt-sort-score').textContent = T('sort_score');
+  document.getElementById('opt-sort-prog').textContent  = T('sort_progress');
+  // Edit modal
+  document.getElementById('lbl-state').textContent   = T('state');
+  document.getElementById('lbl-score').textContent   = T('score_label');
+  document.getElementById('lbl-seen-ep').textContent = T('seen_episodes');
+  document.getElementById('lbl-start').textContent   = T('start_date');
+  document.getElementById('lbl-end').textContent     = T('end_date');
+  document.getElementById('lbl-notes').textContent   = T('notes');
+  document.getElementById('btn-cancel-edit').textContent   = T('cancel');
+  document.getElementById('btn-cancel-preview').textContent= T('cancel');
+  document.getElementById('opt-pending').textContent   = T('pending');
+  document.getElementById('opt-watching').textContent  = T('watching');
+  document.getElementById('opt-completed').textContent = T('completed');
+  document.getElementById('opt-dropped').textContent   = T('dropped');
+  document.getElementById('opt-paused').textContent    = T('paused');
+  // Sync button — ahora SÍ se traduce (texto dinámico)
+  const btnSync = document.getElementById('btn-sync');
+  if (btnSync && !btnSync.disabled) {
+    btnSync.textContent = '↑ ' + (T('sync_sheets_short') || T('sync_sheets') || 'Sync Sheets');
+  }
+
+  // Header buttons with text labels
+  const labelMap = [
+    ['nav-import',    'Importar'],
+    ['nav-stats',     'Estadísticas'],
+    ['nav-novedades', 'Novedades'],
+    ['nav-export',    'Exportar'],
+    ['nav-random',    'Aleatorio'],
+    ['nav-mobile',    'Móvil'],
+    ['nav-config',    'Config'],
+    ['nav-home',      'Inicio'],
+    ['nav-calendario','Calendario'],
+    ['nav-recos',     'Recomendados'],
+    ['nav-theme',     'Tema'],
+  ];
+  for (const [id, fallback] of labelMap) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = T(id) || fallback;
+  }
+
+  // Avisos button — uses its own helper
+  if (typeof actualizarBotonAvisos === 'function') actualizarBotonAvisos();
+
+  // empty-msg text is set by render() dynamically — don't override here
+  // Re-render stats
+  actualizarStats();
+  render();
+}
+
+async function cambiarIdioma(lang) {
+  try {
+    await fetch('/api/lang', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lang})});
+    await cargarIdioma();
+  } catch(e) {
+    console.warn('cambiarIdioma:', e);
+    toast(T('lang_error'), 'err');
+  }
+}
+
+// ── Tema ──────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isDark = !document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = isDark ? 'light' : '';
+  // Keep the translated label, only change the emoji
+  const btn = document.getElementById('btn-theme');
+  const label = document.getElementById('nav-theme');
+  const labelText = label ? label.textContent : (T('nav-theme') || 'Tema');
+  btn.innerHTML = (isDark ? '🌞' : '🌙') + ' <span id="nav-theme">' + labelText + '</span>';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+// Apply saved theme immediately (script runs after DOM is ready)
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.documentElement.dataset.theme = 'light';
+    const b = document.getElementById('btn-theme');
+    if (b) { const s = b.querySelector('span'); const txt = s ? s.textContent : 'Tema'; b.innerHTML = '🌞 <span id="nav-theme">' + txt + '</span>'; }
+  }
+})();
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, tipo='ok') {
+  const el = document.getElementById('toast');
+  const inner = document.getElementById('toast-inner');
+  inner.className = 'toast-inner ' + tipo;
+  inner.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window._tt);
+  window._tt = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ── Cargar datos ──────────────────────────────────────────────────────────────
+async function cargar() {
+  // Show skeleton if no animes loaded yet
+  const lista = document.getElementById('lista');
+  if (lista && ANIMES.length === 0) {
+    lista.innerHTML = '<div class="skel-grid">' + 
+      '<div class="skel-card"></div>'.repeat(6) + '</div>';
+  }
+  try {
+    const r = await fetch('/api/animes');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    ANIMES = d.animes || [];
+    poblarFiltroFuente();
+    actualizarStats();
+    render();
+  } catch(e) {
+    console.error('cargar:', e);
+    toast('Error cargando lista: ' + e.message, 'err');
+  }
+}
+
+function poblarFiltroFuente() {
+  const fuentes = [...new Set(ANIMES.map(a => a.fuente).filter(Boolean))];
+  const sel = document.getElementById('f-fuente');
+  const cur = sel.value;
+  // Mantener solo la opción "todas las fuentes" y añadir las reales
+  while (sel.options.length > 1) sel.remove(1);
+  fuentes.forEach(f => {
+    const o = document.createElement('option');
+    o.value = f; o.textContent = f;
+    sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+
+function actualizarStats() {
+  const total    = ANIMES.length;
+  const watching = ANIMES.filter(a => a.estado_usuario === 'viendo' || a.estado_usuario === 'watching').length;
+  const done     = ANIMES.filter(a => a.estado_usuario === 'completado' || a.estado_usuario === 'completed').length;
+  document.getElementById('stat-total').textContent    = T('stat_total',    {n: total});
+  document.getElementById('stat-watching').textContent = T('stat_watching', {n: watching});
+  document.getElementById('stat-completed').textContent= T('stat_completed',{n: done});
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const q      = document.getElementById('f-nombre').value.toLowerCase();
+  const estado = document.getElementById('f-estado').value;
+  const fuente = document.getElementById('f-fuente').value;
+  const sort   = document.getElementById('f-sort').value;
+  // Visual indicators on active filters
+  ['f-estado','f-fuente','f-lista'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('filter-active', !!el.value);
+  });
+
+  let lista = ANIMES.filter(a => {
+    if (q      && !a.nombre.toLowerCase().includes(q)) return false;
+    if (estado && a.estado_usuario !== estado)          return false;
+    if (fuente && a.fuente !== fuente)                  return false;
+    // Lista personalizada
+    const listaFiltro = (document.getElementById('f-lista')?.value || '');
+    if (listaFiltro && a.lista_personalizada !== listaFiltro) return false;
+    // Solo favoritos
+    if (window._soloFavs && !a.favorito) return false;
+    return true;
+  });
+
+  if (sort === 'name')     lista.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  else if (sort === 'score') lista.sort((a,b) => (b.puntuacion||0) - (a.puntuacion||0));
+  else if (sort === 'progress') lista.sort((a,b) => {
+    const pa = a.capitulos && a.capitulos !== 'película' ? (a.episodios_vistos||0)/parseInt(a.capitulos) : 0;
+    const pb = b.capitulos && b.capitulos !== 'película' ? (b.episodios_vistos||0)/parseInt(b.capitulos) : 0;
+    return pb - pa;
+  });
+  else if (sort === 'inicio') lista.sort((a,b) => (b.fecha_inicio||'').localeCompare(a.fecha_inicio||''));
+  else if (sort === 'fin')    lista.sort((a,b) => (b.fecha_fin||'').localeCompare(a.fecha_fin||''));
+  else if (sort === 'favs')   lista.sort((a,b) => (b.favorito||0) - (a.favorito||0));
+
+  const n = lista.length;
+  document.getElementById('count-label').textContent = T(n === 1 ? 'n_results' : 'n_results_plural', {n});
+
+  const el    = document.getElementById('lista');
+  const empty = document.getElementById('empty-msg');
+
+  if (!lista.length) {
+    el.innerHTML = '';
+    if (ANIMES.length === 0) {
+      // Lista completamente vacía — mensaje de bienvenida
+      empty.innerHTML = '';
+      const welcomeDiv = document.createElement('div');
+      welcomeDiv.style.cssText = 'text-align:center;padding:80px 20px;';
+      const icon = document.createElement('div');
+      icon.className = 'empty-illust';
+      icon.textContent = '🎌';
+      const title = document.createElement('p');
+      title.style.cssText = 'font-size:16px;font-weight:600;color:var(--light);margin-bottom:8px;';
+      title.textContent = T('welcome_title') || 'Tu lista está vacía';
+      const sub = document.createElement('p');
+      sub.style.cssText = 'font-size:13px;color:var(--muted);line-height:1.6;';
+      sub.textContent = T('welcome_sub') || 'Escribe el nombre de un anime y pulsa "+ Añadir" para empezar.';
+      welcomeDiv.appendChild(icon);
+      welcomeDiv.appendChild(title);
+      welcomeDiv.appendChild(sub);
+      empty.appendChild(welcomeDiv);
+    } else {
+      empty.textContent = T('list_empty') || 'Sin resultados para ese filtro.';
+    }
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Construir tarjetas de forma segura (sin innerHTML con datos de usuario)
+  el.innerHTML = '';
+  lista.forEach(a => {
+    const estado_key = {
+      'pendiente':'pending','viendo':'watching','completado':'completed',
+      'abandonado':'dropped','pausa':'paused',
+    }[a.estado_usuario] || a.estado_usuario;
+    const bc       = 'b-' + (a.estado_usuario || 'pendiente');
+    const stLabel  = T(estado_key) || a.estado_usuario;
+    const capNum   = parseInt(a.capitulos) || 0;
+    const caps     = a.capitulos === 'película' ? T('movie') : T('episodes', {n: a.capitulos});
+    const vistos   = a.episodios_vistos || 0;
+    const pct      = capNum > 0 ? Math.min(100, Math.round(vistos / capNum * 100)) : 0;
+    const showProg = capNum > 0;
+    const gens     = (a.genero||'').split(',').slice(0,2).map(g=>g.trim()).filter(Boolean);
+    const enc      = encodeURIComponent(a.nombre);
+    const BLANK_IMG= "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect fill='%231a1a24' width='1' height='1'/></svg>";
+
+    // Crear nodo DOM — nunca interpolamos datos del usuario en innerHTML
+    const card = document.createElement('div');
+    card.className = 'ac';
+    card.dataset.nombre = a.nombre;
+    card.draggable = true;
+    card.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', a.nombre);
+      card.style.opacity = '0.5';
+    });
+    card.addEventListener('dragend', () => { card.style.opacity = ''; });
+    card.addEventListener('click', (e) => {
+      if (document.body.classList.contains('sel-mode')) {
+        e.stopPropagation();
+        card.classList.toggle('selected');
+        updateBulkCount();
+        return;
+      }
+      abrirModal(enc);
+    });
+    card.addEventListener('dblclick', (e) => { e.preventDefault(); plusEpisodio(enc); });
+
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb';
+
+    const img = document.createElement('img');
+    img.src = a.imagen || BLANK_IMG;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = () => {
+      img.src = '';
+      img.style.background = 'linear-gradient(135deg, var(--card2), var(--border))';
+      const ph = document.createElement('div');
+      ph.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.4';
+      ph.textContent = '🎌';
+      thumb.appendChild(ph);
+    };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + bc;
+    badge.textContent = stLabel;
+    overlay.appendChild(badge);
+
+    // Botón +1 episodio
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'plus1';
+    plusBtn.title = '+1 ep';
+    plusBtn.textContent = '+1';
+    plusBtn.addEventListener('click', e => { e.stopPropagation(); plusEpisodio(enc); });
+
+    // Estrella de favorito
+    if (a.favorito) {
+      const star = document.createElement('div');
+      star.style.cssText = 'position:absolute;top:5px;left:' + (capNum > 0 ? '34px' : '5px') + ';font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.8)';
+      star.textContent = '⭐';
+      thumb.appendChild(star);
+    }
+
+    // Indicador de notificación
+    if (a.notif_activa) {
+      const bell = document.createElement('div');
+      bell.style.cssText = 'position:absolute;top:5px;right:32px;font-size:11px;opacity:0.9';
+      bell.textContent = '🔔';
+      thumb.appendChild(bell);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del';
+    delBtn.title = T('delete');
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', e => { e.stopPropagation(); eliminar(enc); });
+
+    // Checkbox de selección
+    const selCheck = document.createElement('div');
+    selCheck.className = 'sel-check';
+    selCheck.textContent = '✓';
+    thumb.appendChild(selCheck);
+
+    thumb.appendChild(img);
+    thumb.appendChild(overlay);
+    if (capNum > 0) thumb.appendChild(plusBtn);
+    thumb.appendChild(delBtn);
+
+    const info = document.createElement('div');
+    info.className = 'info';
+
+    const title = document.createElement('div');
+    title.className = 'atitle';
+    title.textContent = a.nombre; // textContent = XSS-safe
+
+    const meta1 = document.createElement('div');
+    meta1.className = 'ameta';
+    const capsSpan = document.createElement('span');
+    capsSpan.style.cssText = 'font-size:10px;color:var(--muted)';
+    capsSpan.textContent = caps;
+    meta1.appendChild(capsSpan);
+    if (a.puntuacion) {
+      const sc = document.createElement('span');
+      sc.style.cssText = 'font-size:10px;color:#fbbf24';
+      sc.textContent = T('score', {n: a.puntuacion});
+      meta1.appendChild(sc);
+    }
+    if (showProg && vistos > 0) {
+      const pr = document.createElement('span');
+      pr.style.cssText = 'font-size:10px;color:var(--muted)';
+      pr.textContent = vistos + '/' + (capNum || '?');
+      meta1.appendChild(pr);
+    }
+
+    info.appendChild(title);
+    info.appendChild(meta1);
+
+    if (showProg) {
+      const pb = document.createElement('div');
+      pb.className = 'progress-bar';
+      const pf = document.createElement('div');
+      pf.className = 'fill';
+      pf.style.width = pct + '%';
+      pb.appendChild(pf);
+      info.appendChild(pb);
+    }
+
+    const meta2 = document.createElement('div');
+    meta2.className = 'ameta';
+    meta2.style.marginTop = '3px';
+    gens.forEach(g => {
+      const gb = document.createElement('span');
+      gb.className = 'badge b-genre';
+      gb.textContent = g;
+      meta2.appendChild(gb);
+    });
+    info.appendChild(meta2);
+
+    const src2 = document.createElement('div');
+    src2.className = 'asrc';
+    src2.textContent = (a.fuente || '') + (a.temporada ? ' · ' + a.temporada : '');
+    info.appendChild(src2);
+
+    card.appendChild(thumb);
+    card.appendChild(info);
+    el.appendChild(card);
+  });
+}
+
+// ── Previsualizar (antes de guardar) ─────────────────────────────────────────
+async function previsualizarAnime() {
+  const nombre = document.getElementById('inp-nombre').value.trim();
+  const fuente = document.getElementById('inp-fuente').value;
+  if (!nombre) return;
+
+  const btn = document.getElementById('btn-preview');
+  btn.disabled = true;
+
+  // Abrir modal con loading
+  document.getElementById('prev-loading').style.display = 'block';
+  document.getElementById('prev-content').style.display = 'none';
+  document.getElementById('prev-notfound').style.display = 'none';
+  document.getElementById('prev-actions').style.display = 'none';
+  document.getElementById('prev-title').textContent = T('preview_title');
+  abrirModalEl('modal-preview');
+
+  try {
+    const r = await fetch('/api/buscar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nombre, fuente})
+    });
+    const d = await r.json();
+
+    document.getElementById('prev-loading').style.display = 'none';
+
+    if (!d.ok || !d.data) {
+      document.getElementById('prev-notfound').style.display = 'block';
+      document.getElementById('prev-notfound').textContent = T('not_found');
+      return;
+    }
+
+    _previewData = {data: d.data, fuente_usada: d.fuente_usada};
+    const a = d.data;
+
+    document.getElementById('prev-img').src       = a.imagen || '';
+    document.getElementById('prev-nombre').textContent = a.nombre;
+    const caps = a.capitulos === 'película' ? T('movie') : T('episodes', {n: a.capitulos});
+    document.getElementById('prev-info').textContent =
+      `${T('source_used', {src: d.fuente_usada})} · ${caps} · ${a.estado_anime || ''}`;
+    document.getElementById('prev-genres').innerHTML =
+      (a.genero || []).slice(0,5).map(g => `<span class="badge b-genre">${g}</span>`).join('');
+    document.getElementById('prev-synopsis').textContent = a.sinopsis || '';
+
+    document.getElementById('prev-content').style.display = 'block';
+    document.getElementById('prev-actions').style.display = 'flex';
+    document.getElementById('btn-add-confirm').textContent = T('add_to_list');
+
+  } catch(e) {
+    document.getElementById('prev-loading').style.display = 'none';
+    document.getElementById('prev-notfound').style.display = 'block';
+    document.getElementById('prev-notfound').textContent = T('error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function confirmarAgregar() {
+  if (!_previewData) return;
+  const btn = document.getElementById('btn-add-confirm');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+
+  try {
+    const r = await fetch('/api/animes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        nombre: _previewData.data.nombre,
+        fuente: _previewData.fuente_usada
+      })
+    });
+    const d = await r.json();
+    if (r.status === 409) { toast(T('already_in_list'), 'warn'); return; }
+    if (!r.ok) { toast(d.detail || T('error'), 'err'); return; }
+    toast(T('added_ok', {name: d.data.nombre, src: d.data.fuente}));
+    cerrarModal('modal-preview');
+    document.getElementById('inp-nombre').value = '';
+    _previewData = null;
+    await cargar();
+  } catch(e) { toast(T('error'), 'err'); }
+  finally { btn.disabled = false; btn.textContent = T('add_to_list'); }
+}
+
+// ── Añadir directo (sin preview) ─────────────────────────────────────────────
+async function agregarDirecto() {
+  const nombre = document.getElementById('inp-nombre').value.trim();
+  const fuente = document.getElementById('inp-fuente').value;
+  if (!nombre) return;
+
+  const btn = document.getElementById('btn-add');
+  const txt = document.getElementById('txt-add');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spin"></span>';
+
+  try {
+    const r = await fetch('/api/animes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nombre, fuente})
+    });
+    const d = await r.json();
+    if (r.status === 409) { toast(T('already_in_list'), 'warn'); return; }
+    if (!r.ok) { toast(d.detail || T('not_found'), 'err'); return; }
+    toast(T('added_ok', {name: d.data.nombre, src: d.data.fuente}));
+    document.getElementById('inp-nombre').value = '';
+    await cargar();
+  } catch(e) { toast(T('error'), 'err'); }
+  finally { btn.disabled = false; txt.textContent = T('add_btn'); }
+}
+
+// ── Modal editar ──────────────────────────────────────────────────────────────
+function abrirModal(enc) {
+  const nombre = decodeURIComponent(enc);
+  const a = ANIMES.find(x => x.nombre === nombre);
+  if (!a) return;
+
+  document.getElementById('edit-title').textContent  = T('edit_anime');
+  document.getElementById('edit-nombre').value       = nombre;
+  document.getElementById('edit-img').src            = a.imagen || '';
+  document.getElementById('edit-nombre-display').textContent = a.nombre;
+  const caps = a.capitulos === 'película' ? T('movie') : T('episodes', {n: a.capitulos});
+  document.getElementById('edit-info').textContent   = `${a.fuente} · ${caps} · ${a.estado_anime || ''}`;
+  document.getElementById('edit-genres').innerHTML   =
+    (a.genero||'').split(',').filter(Boolean)
+      .map(g => `<span class="badge b-genre">${g.trim()}</span>`).join('');
+
+  document.getElementById('edit-estado').value    = a.estado_usuario || 'pendiente';
+  document.getElementById('edit-puntuacion').value= a.puntuacion || '';
+  document.getElementById('edit-vistos').value    = a.episodios_vistos || '';
+  document.getElementById('edit-inicio').value    = a.fecha_inicio || '';
+  document.getElementById('edit-fin').value       = a.fecha_fin || '';
+  document.getElementById('edit-notas').value     = a.notas || '';
+  // New fields
+  const tEl = document.getElementById('edit-temporada');
+  if (tEl) tEl.value = a.temporada || '';
+  const lEl = document.getElementById('edit-lista');
+  if (lEl) lEl.value = a.lista_personalizada || 'principal';
+  const fEl = document.getElementById('edit-favorito');
+  if (fEl) fEl.checked = !!a.favorito;
+  const nEl = document.getElementById('edit-notif');
+  if (nEl) nEl.checked = !!a.notif_activa;
+
+  document.getElementById('btn-save-edit').textContent = T('save');
+  abrirModalEl('modal-edit');
+}
+
+async function guardarEdicion() {
+  const nombre = document.getElementById('edit-nombre').value;
+  const body   = {
+    estado_usuario:   document.getElementById('edit-estado').value,
+    puntuacion:       parseFloat(document.getElementById('edit-puntuacion').value) || null,
+    episodios_vistos: parseInt(document.getElementById('edit-vistos').value) || null,
+    fecha_inicio:     document.getElementById('edit-inicio').value || null,
+    fecha_fin:        document.getElementById('edit-fin').value || null,
+    notas:            document.getElementById('edit-notas').value || null,
+    temporada:        document.getElementById('edit-temporada')?.value || null,
+    lista_personalizada: document.getElementById('edit-lista')?.value || 'principal',
+    favorito:         document.getElementById('edit-favorito')?.checked ? 1 : 0,
+    notif_activa:     document.getElementById('edit-notif')?.checked ? 1 : 0,
+  };
+  // Si activa notificación, pedir permiso del navegador
+  if (body.notif_activa) pedirPermiso();
+  try {
+    const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}`, {
+      method: 'PATCH', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { toast(T('error'), 'err'); return; }
+    toast(T('saved_ok'));
+    cerrarModal('modal-edit');
+    await cargar();
+  } catch(e) { toast(T('error'), 'err'); }
+}
+
+async function verRelacionados() {
+  const nombre = document.getElementById('edit-nombre').value;
+  if (!nombre) return;
+  try {
+    const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}/relacionados`);
+    const d = await r.json();
+    if (!d.relacionados?.length) { toast(T('related_none'), 'warn'); return; }
+    cerrarModal('modal-edit');
+    // Filtrar la lista por los géneros del anime
+    document.getElementById('f-nombre').value = '';
+    // Mostrar los relacionados resaltados en la lista
+    const names = new Set(d.relacionados.map(a => a.nombre));
+    const grid = document.getElementById('lista');
+    grid.querySelectorAll('.ac').forEach(card => {
+      if (names.has(card.dataset.nombre)) {
+        card.style.border = '2px solid var(--accent)';
+        card.style.boxShadow = '0 0 12px var(--glow)';
+        card.style.opacity = '';
+      } else {
+        card.style.opacity = '0.3';
+        card.style.border = '';
+      }
+    });
+    toast(`🔗 ${d.relacionados.length} animes relacionados con ${nombre}`);
+    setTimeout(() => {
+      grid.querySelectorAll('.ac').forEach(c => {
+        c.style.border=''; c.style.boxShadow=''; c.style.opacity='';
+      });
+    }, 5000);
+  } catch(e) { toast(T('conn_error'), 'err'); }
+}
+
+// ── Favoritos filter ──────────────────────────────────────────────────────────
+window._soloFavs = false;
+function toggleFavsFilter() {
+  window._soloFavs = !window._soloFavs;
+  const btn = document.getElementById('btn-favs-filter');
+  if (btn) btn.style.background = window._soloFavs ? 'rgba(251,191,36,.2)' : '';
+  render();
+  if (window._soloFavs) toast('⭐ ' + T('only_favs'));
+}
+
+// ── Web Notifications ────────────────────────────────────────────────────────
+async function pedirPermiso() {
+  if (!('Notification' in window)) {
+    toast('Tu navegador no soporta notificaciones', 'warn'); return;
+  }
+
+  // Si están activas en nuestra app -> desactivarlas
+  if (localStorage.getItem('notif_enabled') === '1') {
+    localStorage.setItem('notif_enabled', '0');
+    if (window._notifInterval) {
+      clearInterval(window._notifInterval);
+      window._notifInterval = null;
+    }
+    actualizarBotonAvisos();
+    toast('🔕 ' + T('notif_off'), 'ok');
+    return;
+  }
+
+  // Pedir permiso del navegador si no se concedió ya
+  if (Notification.permission !== 'granted') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      toast(T('notif_denied'), 'warn');
+      return;
+    }
+  }
+
+  // Activar en nuestra app
+  localStorage.setItem('notif_enabled', '1');
+  if (!window._notifInterval) {
+    window._notifInterval = setInterval(checkNotificaciones, 30 * 60 * 1000);
+  }
+  actualizarBotonAvisos();
+  toast('🔔 ' + T('notif_on'), 'ok');
+  try {
+    new Notification('Anime Tracker', {
+      body: 'Te avisaremos cuando haya nuevos episodios de los animes con notificación.',
+      icon: '/static/logo.png'
+    });
+  } catch(_) {}
+}
+
+async function actualizarBotonAvisos() {
+  const btn = document.getElementById('btn-notif-perm');
+  if (!btn) return;
+  const on = localStorage.getItem('notif_enabled') === '1' && Notification.permission === 'granted';
+  // Show count badge with animes that have notif_activa
+  if (on) {
+    try {
+      const r = await fetch('/api/notif/activas');
+      const d = await r.json();
+      const count = (d.animes || []).length;
+      // Remove old badge
+      const old = btn.querySelector('.notif-badge');
+      if (old) old.remove();
+      if (count > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'notif-badge';
+        badge.textContent = count > 99 ? '99+' : count;
+        btn.appendChild(badge);
+      }
+    } catch(_) {}
+  } else {
+    const old = btn.querySelector('.notif-badge');
+    if (old) old.remove();
+  }
+  if (on) {
+    btn.innerHTML = '🔔 <span style="color:var(--success)">' + (T('avisos_on') || 'Avisos ON') + '</span>';
+    btn.style.borderColor = 'var(--success)';
+  } else {
+    btn.innerHTML = '🔕 <span>' + (T('avisos_off') || 'Avisos') + '</span>';
+    btn.style.borderColor = '';
+  }
+}
+
+async function checkNotificaciones() {
+  if (Notification.permission !== 'granted') return;
+  try {
+    const r = await fetch('/api/notif/activas');
+    const d = await r.json();
+    (d.animes || []).forEach(a => {
+      if (a.estado_anime && a.estado_anime.toLowerCase().includes('emisi')) {
+        new Notification(`📺 ${a.nombre}`, {
+          body: `Puede que haya nuevo episodio disponible (ep ${(a.episodios_vistos||0)+1})`,
+          icon: a.imagen || '/static/logo.png',
+          tag: `anime-${a.nombre}`,
+        });
+      }
+    });
+  } catch(_) {}
+}
+
+async function plusEpisodio(enc) {
+  const nombre = decodeURIComponent(enc);
+  try {
+    const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}/plus1`, {method:'POST'});
+    if (!r.ok) return;
+    const d = await r.json();
+    // Actualizar en memoria sin recargar todo
+    const idx = ANIMES.findIndex(a => a.nombre === nombre);
+    if (idx >= 0) ANIMES[idx].episodios_vistos = d.episodios_vistos;
+    render();
+    toast(`+1 ep · ${nombre} (${d.episodios_vistos})`, 'ok');
+  } catch(_) {}
+}
+
+async function eliminar(enc) {
+  const nombre = decodeURIComponent(enc);
+  const animeBackup = ANIMES.find(a => a.nombre === nombre);
+  if (!animeBackup) return;
+  try {
+    const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}`, {method: 'DELETE'});
+    if (!r.ok) { toast(T('error'), 'err'); return; }
+    await cargar();
+    mostrarUndoSnackbar(nombre, animeBackup);
+  } catch(e) { toast(T('error'), 'err'); }
+}
+
+function mostrarUndoSnackbar(nombre, backup) {
+  const old = document.getElementById('undo-snack');
+  if (old) old.remove();
+  const snack = document.createElement('div');
+  snack.id = 'undo-snack';
+  snack.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+    'background:var(--card);border:1px solid var(--accent);border-radius:10px;' +
+    'padding:10px 14px;display:flex;align-items:center;gap:14px;z-index:60;' +
+    'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px';
+  const txt = document.createElement('span');
+  txt.textContent = '🗑 ' + nombre + ' eliminado';
+  const btn = document.createElement('button');
+  btn.textContent = 'Deshacer';
+  btn.style.cssText = 'background:var(--accent);color:#fff;border:none;border-radius:6px;' +
+    'padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer';
+  btn.onclick = async () => {
+    try {
+      await fetch('/api/animes', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nombre: backup.nombre, fuente: backup.fuente || 'anilist'})
+      });
+      await fetch('/api/animes/' + encodeURIComponent(backup.nombre), {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          estado_usuario: backup.estado_usuario,
+          puntuacion: backup.puntuacion,
+          episodios_vistos: backup.episodios_vistos,
+          notas: backup.notas,
+          favorito: backup.favorito,
+          lista_personalizada: backup.lista_personalizada,
+        })
+      });
+      toast('↩ Restaurado');
+      await cargar();
+    } catch(_) { toast('Error al restaurar', 'err'); }
+    snack.remove();
+  };
+  snack.appendChild(txt);
+  snack.appendChild(btn);
+  document.body.appendChild(snack);
+  setTimeout(() => snack.remove(), 5000);
+}
+
+// ── Sync ──────────────────────────────────────────────────────────────────────
+async function sincronizar() {
+  const btn = document.getElementById('btn-sync');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '↑ Sincronizando…';
+  try {
+    const r = await fetch('/api/sync', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
+    const d = await r.json();
+    if (r.status === 400 && d.detail && d.detail.includes('spreadsheet_id')) {
+      toast('⚠️ ' + T('sheets_not_conf'), 'warn');
+      return;
+    }
+    if (!r.ok) { toast(d.detail || 'Error al sincronizar', 'err'); return; }
+    toast('✓ ' + (d.mensaje || 'Sincronizado'));
+  } catch(e) { toast(T('conn_error'), 'err'); }
+  finally { btn.disabled = false; btn.textContent = origText; }
+}
+
+// ── Exportar ────────────────────────────────────────────────────────────────
+function toggleExportMenu() {
+  const m = document.getElementById('export-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function closeExportMenu() {
+  const m = document.getElementById('export-menu');
+  if (m) m.style.display = 'none';
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('export-wrap')?.contains(e.target)) closeExportMenu();
+});
+async function exportarCSV() {
+  window.location.href = '/api/export/csv';
+  setTimeout(() => toast(T('export_ok')), 500);
+}
+async function exportarJSON() {
+  window.location.href = '/api/export/json';
+  setTimeout(() => toast(T('export_json_ok')), 500);
+}
+async function animeAleatorio() {
+  try {
+    const r = await fetch('/api/animes/random?estado=pendiente');
+    if (!r.ok) { toast(T('no_animes_list'), 'warn'); return; }
+    const d = await r.json();
+    const a = d.anime;
+    if (!a) { toast(T('no_animes_list'), 'warn'); return; }
+    // Mostrar info del método usado
+    let msg = '🎲 ' + a.nombre;
+    if (d.basado_en && d.basado_en.length) {
+      msg += ' · ' + T('random_genres') + ': ' + d.basado_en.slice(0,2).join(', ');
+    }
+    toast(msg);
+    // Resaltar la tarjeta buscándola
+    document.getElementById('f-nombre').value = a.nombre;
+    document.getElementById('f-estado').value = '';
+    render();
+    setTimeout(() => {
+      document.getElementById('f-nombre').value = '';
+      render();
+    }, 3500);
+  } catch(e) { toast(T('conn_error'), 'err'); }
+}
+
+// ── Modales helper ────────────────────────────────────────────────────────────
+function abrirModalEl(id) { document.getElementById(id).classList.add('open'); }
+function cerrarModal(id)   { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    cerrarModal('modal-edit');
+    cerrarModal('modal-preview');
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Backup eliminado — función no disponible
+
+// ── Autocompletado desde lista local ─────────────────────────────────────────
+let _acTimer = null;
+async function autocomplete(q) {
+  const drop = document.getElementById('autocomplete-drop');
+  if (!drop) return;
+  clearTimeout(_acTimer);
+  if (q.length < 2) { drop.style.display='none'; return; }
+  _acTimer = setTimeout
+// ── Keyboard shortcuts ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // '/' or Ctrl+K focuses search
+  if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    const el = document.getElementById('f-nombre');
+    if (el) { el.focus(); el.select(); }
+  }
+  // Esc closes modals
+  if (e.key === 'Escape') {
+    cerrarPreview();
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+  }
+  // 'N' opens add-anime input
+  if (e.key === 'n' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    const inp = document.getElementById('inp-nombre');
+    if (inp) { inp.scrollIntoView({behavior:'smooth'}); inp.focus(); }
+  }
+});
+
+// ── Search preview ───────────────────────────────────────────────────────────
+let _spTimer = null;
+const searchInput = document.getElementById('inp-nombre');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(_spTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 3) { cerrarPreview(); return; }
+    _spTimer = setTimeout(() => buscarPreview(q), 400);
+  });
+}
+
+function cerrarPreview() {
+  const sp = document.getElementById('search-preview');
+  if (sp) { sp.style.display = 'none'; sp.innerHTML = ''; }
+}
+
+async function buscarPreview(q) {
+  const sp = document.getElementById('search-preview');
+  if (!sp) return;
+  const fuente = document.getElementById('inp-fuente')?.value || 'anilist';
+  try {
+    const r = await fetch('/api/buscar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nombre: q, fuente})
+    });
+    if (!r.ok) { cerrarPreview(); return; }
+    const d = await r.json();
+    const items = d.resultados || [];
+    if (!items.length) { cerrarPreview(); return; }
+    sp.innerHTML = '';
+    items.slice(0, 6).forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'sp-item';
+
+      const img = document.createElement('img');
+      img.src = a.imagen || '';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.onerror = () => { img.style.display = 'none'; };
+
+      const info = document.createElement('div');
+      info.className = 'sp-info';
+      const tit = document.createElement('div');
+      tit.className = 'sp-title';
+      tit.textContent = a.nombre || '';
+      const met = document.createElement('div');
+      met.className = 'sp-meta';
+      met.textContent = [a.capitulos + ' eps', a.estado_anime, (a.genero||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
+      info.appendChild(tit);
+      info.appendChild(met);
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'sp-add';
+      addBtn.textContent = '+ ' + (T('add') || 'Añadir');
+      addBtn.onclick = async (e) => {
+        e.stopPropagation();
+        addBtn.disabled = true;
+        addBtn.textContent = '...';
+        try {
+          const r2 = await fetch('/api/animes', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({nombre: a.nombre, fuente})
+          });
+          const d2 = await r2.json();
+          if (r2.ok) {
+            toast(T('added_ok', {name: a.nombre, src: fuente}));
+            cerrarPreview();
+            searchInput.value = '';
+            await cargar();
+          } else {
+            toast(d2.detail || T('error'), 'err');
+            addBtn.disabled = false;
+            addBtn.textContent = '+ ' + (T('add') || 'Añadir');
+          }
+        } catch(_) { toast(T('error'), 'err'); }
+      };
+
+      item.appendChild(img);
+      item.appendChild(info);
+      item.appendChild(addBtn);
+      sp.appendChild(item);
+    });
+    sp.style.display = 'block';
+  } catch(_) { cerrarPreview(); }
+}
+
+// Close preview on outside click
+document.addEventListener('click', e => {
+  const sp = document.getElementById('search-preview');
+  if (sp && !sp.contains(e.target) && e.target.id !== 'inp-nombre') cerrarPreview();
+});
+
+// ── Table/Grid toggle ─────────────────────────────────────────────────────────
+let _tableView = false;
+function toggleView() {
+  _tableView = !_tableView;
+  const lista = document.getElementById('lista');
+  const btn = document.getElementById('btn-view-toggle');
+  if (_tableView) {
+    lista.classList.add('table-view');
+    if (btn) btn.textContent = '▦';
+  } else {
+    lista.classList.remove('table-view');
+    if (btn) btn.textContent = '≡';
+  }
+}
+
+
+// ── Drag & drop to change list ───────────────────────────────────────────────
+const listaSelect = document.getElementById('f-lista');
+if (listaSelect) {
+  listaSelect.addEventListener('dragover', e => { e.preventDefault(); listaSelect.style.outline = '2px solid var(--accent)'; });
+  listaSelect.addEventListener('dragleave', () => { listaSelect.style.outline = ''; });
+  listaSelect.addEventListener('drop', async e => {
+    e.preventDefault();
+    listaSelect.style.outline = '';
+    const nombre = e.dataTransfer.getData('text/plain');
+    const newList = listaSelect.value || 'principal';
+    if (!nombre) return;
+    try {
+      await fetch('/api/animes/' + encodeURIComponent(nombre), {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({lista_personalizada: newList})
+      });
+      toast('📂 ' + nombre + ' → ' + newList);
+      await cargar();
+    } catch(_) { toast(T('error'), 'err'); }
+  });
+}
+
+// ── Multi-select / Bulk actions ──────────────────────────────────────────────
+function toggleSelMode() {
+  const body = document.body;
+  const isActive = body.classList.toggle('sel-mode');
+  const btn = document.getElementById('btn-sel-mode');
+  if (btn) btn.style.background = isActive ? 'rgba(124,58,237,.2)' : '';
+  if (!isActive) {
+    // Exit: deselect all
+    document.querySelectorAll('.ac.selected').forEach(c => c.classList.remove('selected'));
+    document.getElementById('bulk-bar').classList.remove('show');
+  } else {
+    document.getElementById('bulk-bar').classList.add('show');
+    updateBulkCount();
+  }
+}
+
+function exitSelMode() {
+  document.body.classList.remove('sel-mode');
+  document.querySelectorAll('.ac.selected').forEach(c => c.classList.remove('selected'));
+  document.getElementById('bulk-bar').classList.remove('show');
+  const btn = document.getElementById('btn-sel-mode');
+  if (btn) btn.style.background = '';
+}
+
+function getSelectedNames() {
+  return [...document.querySelectorAll('.ac.selected')].map(c => c.dataset.nombre).filter(Boolean);
+}
+
+function updateBulkCount() {
+  const names = getSelectedNames();
+  const el = document.getElementById('bulk-count');
+  if (el) el.textContent = names.length + ' seleccionado' + (names.length !== 1 ? 's' : '');
+}
+
+async function bulkApply(field, value) {
+  const names = getSelectedNames();
+  if (!names.length) { toast('Selecciona al menos un anime', 'warn'); return; }
+  let ok = 0, fail = 0;
+  for (const nombre of names) {
+    try {
+      const r = await fetch('/api/animes/' + encodeURIComponent(nombre), {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({[field]: value})
+      });
+      if (r.ok) ok++; else fail++;
+    } catch(_) { fail++; }
+  }
+  toast('✓ ' + ok + ' actualizados' + (fail ? ', ' + fail + ' fallidos' : ''));
+  exitSelMode();
+  await cargar();
+}
+
+async function bulkEliminar() {
+  const names = getSelectedNames();
+  if (!names.length) { toast('Selecciona al menos un anime', 'warn'); return; }
+  if (!confirm('¿Eliminar ' + names.length + ' anime' + (names.length > 1 ? 's' : '') + '? No se puede deshacer.')) return;
+  let ok = 0;
+  for (const nombre of names) {
+    try {
+      const r = await fetch('/api/animes/' + encodeURIComponent(nombre), {method: 'DELETE'});
+      if (r.ok) ok++;
+    } catch(_) {}
+  }
+  toast('🗑 ' + ok + ' eliminados');
+  exitSelMode();
+  await cargar();
+}
+
+function bulkSetFavorito(val) {
+  bulkApply('favorito', val);
+}
+
+// Wire bulk selects
+document.getElementById('bulk-estado')?.addEventListener('change', function() {
+  if (this.value) { bulkApply('estado_usuario', this.value); this.value = ''; }
+});
+document.getElementById('bulk-lista')?.addEventListener('change', function() {
+  if (this.value) { bulkApply('lista_personalizada', this.value); this.value = ''; }
+});
+
+
+(async () => {
+    // Buscar primero en lista en memoria (instantáneo)
+    const matches = ANIMES.filter(a => a.nombre.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
+    if (!matches.length) { drop.style.display='none'; return; }
+    drop.innerHTML = '';
+    matches.forEach(a => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)';
+      item.textContent = a.nombre;
+      item.onmousedown = () => {
+        document.getElementById('inp-nombre').value = a.nombre;
+        cerrarAutocomplete();
+      };
+      item.onmouseenter = () => item.style.background = 'var(--card2)';
+      item.onmouseleave = () => item.style.background = '';
+      drop.appendChild(item);
+    });
+    drop.style.display = 'block';
+  }, 150);
+}
+function cerrarAutocomplete() {
+  const d = document.getElementById('autocomplete-drop');
+  if (d) d.style.display = 'none';
+}
+
+
+// ── Keyboard shortcuts ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // '/' or Ctrl+K focuses search
+  if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    const el = document.getElementById('f-nombre');
+    if (el) { el.focus(); el.select(); }
+  }
+  // Esc closes modals
+  if (e.key === 'Escape') {
+    cerrarPreview();
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+  }
+  // 'N' opens add-anime input
+  if (e.key === 'n' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    const inp = document.getElementById('inp-nombre');
+    if (inp) { inp.scrollIntoView({behavior:'smooth'}); inp.focus(); }
+  }
+});
+
+// ── Search preview ───────────────────────────────────────────────────────────
+let _spTimer = null;
+const searchInput = document.getElementById('inp-nombre');
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    clearTimeout(_spTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 3) { cerrarPreview(); return; }
+    _spTimer = setTimeout(() => buscarPreview(q), 400);
+  });
+}
+
+function cerrarPreview() {
+  const sp = document.getElementById('search-preview');
+  if (sp) { sp.style.display = 'none'; sp.innerHTML = ''; }
+}
+
+async function buscarPreview(q) {
+  const sp = document.getElementById('search-preview');
+  if (!sp) return;
+  const fuente = document.getElementById('inp-fuente')?.value || 'anilist';
+  try {
+    const r = await fetch('/api/buscar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nombre: q, fuente})
+    });
+    if (!r.ok) { cerrarPreview(); return; }
+    const d = await r.json();
+    const items = d.resultados || [];
+    if (!items.length) { cerrarPreview(); return; }
+    sp.innerHTML = '';
+    items.slice(0, 6).forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'sp-item';
+
+      const img = document.createElement('img');
+      img.src = a.imagen || '';
+      img.alt = '';
+      img.loading = 'lazy';
+      img.onerror = () => { img.style.display = 'none'; };
+
+      const info = document.createElement('div');
+      info.className = 'sp-info';
+      const tit = document.createElement('div');
+      tit.className = 'sp-title';
+      tit.textContent = a.nombre || '';
+      const met = document.createElement('div');
+      met.className = 'sp-meta';
+      met.textContent = [a.capitulos + ' eps', a.estado_anime, (a.genero||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
+      info.appendChild(tit);
+      info.appendChild(met);
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'sp-add';
+      addBtn.textContent = '+ ' + (T('add') || 'Añadir');
+      addBtn.onclick = async (e) => {
+        e.stopPropagation();
+        addBtn.disabled = true;
+        addBtn.textContent = '...';
+        try {
+          const r2 = await fetch('/api/animes', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({nombre: a.nombre, fuente})
+          });
+          const d2 = await r2.json();
+          if (r2.ok) {
+            toast(T('added_ok', {name: a.nombre, src: fuente}));
+            cerrarPreview();
+            searchInput.value = '';
+            await cargar();
+          } else {
+            toast(d2.detail || T('error'), 'err');
+            addBtn.disabled = false;
+            addBtn.textContent = '+ ' + (T('add') || 'Añadir');
+          }
+        } catch(_) { toast(T('error'), 'err'); }
+      };
+
+      item.appendChild(img);
+      item.appendChild(info);
+      item.appendChild(addBtn);
+      sp.appendChild(item);
+    });
+    sp.style.display = 'block';
+  } catch(_) { cerrarPreview(); }
+}
+
+// Close preview on outside click
+document.addEventListener('click', e => {
+  const sp = document.getElementById('search-preview');
+  if (sp && !sp.contains(e.target) && e.target.id !== 'inp-nombre') cerrarPreview();
+});
+
+// ── Table/Grid toggle ─────────────────────────────────────────────────────────
+let _tableView = false;
+function toggleView() {
+  _tableView = !_tableView;
+  const lista = document.getElementById('lista');
+  const btn = document.getElementById('btn-view-toggle');
+  if (_tableView) {
+    lista.classList.add('table-view');
+    if (btn) btn.textContent = '▦';
+  } else {
+    lista.classList.remove('table-view');
+    if (btn) btn.textContent = '≡';
+  }
+}
+
+
+// ── Drag & drop to change list ───────────────────────────────────────────────
+const listaSelect = document.getElementById('f-lista');
+if (listaSelect) {
+  listaSelect.addEventListener('dragover', e => { e.preventDefault(); listaSelect.style.outline = '2px solid var(--accent)'; });
+  listaSelect.addEventListener('dragleave', () => { listaSelect.style.outline = ''; });
+  listaSelect.addEventListener('drop', async e => {
+    e.preventDefault();
+    listaSelect.style.outline = '';
+    const nombre = e.dataTransfer.getData('text/plain');
+    const newList = listaSelect.value || 'principal';
+    if (!nombre) return;
+    try {
+      await fetch('/api/animes/' + encodeURIComponent(nombre), {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({lista_personalizada: newList})
+      });
+      toast('📂 ' + nombre + ' → ' + newList);
+      await cargar();
+    } catch(_) { toast(T('error'), 'err'); }
+  });
+}
+
+// ── Multi-select / Bulk actions ──────────────────────────────────────────────
+function toggleSelMode() {
+  const body = document.body;
+  const isActive = body.classList.toggle('sel-mode');
+  const btn = document.getElementById('btn-sel-mode');
+  if (btn) btn.style.background = isActive ? 'rgba(124,58,237,.2)' : '';
+  if (!isActive) {
+    // Exit: deselect all
+    document.querySelectorAll('.ac.selected').forEach(c => c.classList.remove('selected'));
+    document.getElementById('bulk-bar').classList.remove('show');
+  } else {
+    document.getElementById('bulk-bar').classList.add('show');
+    updateBulkCount();
+  }
+}
+
+function exitSelMode() {
+  document.body.classList.remove('sel-mode');
+  document.querySelectorAll('.ac.selected').forEach(c => c.classList.remove('selected'));
+  document.getElementById('bulk-bar').classList.remove('show');
+  const btn = document.getElementById('btn-sel-mode');
+  if (btn) btn.style.background = '';
+}
+
+function getSelectedNames() {
+  return [...document.querySelectorAll('.ac.selected')].map(c => c.dataset.nombre).filter(Boolean);
+}
+
+function updateBulkCount() {
+  const names = getSelectedNames();
+  const el = document.getElementById('bulk-count');
+  if (el) el.textContent = names.length + ' seleccionado' + (names.length !== 1 ? 's' : '');
+}
+
+async function bulkApply(field, value) {
+  const names = getSelectedNames();
+  if (!names.length) { toast('Selecciona al menos un anime', 'warn'); return; }
+  let ok = 0, fail = 0;
+  for (const nombre of names) {
+    try {
+      const r = await fetch('/api/animes/' + encodeURIComponent(nombre), {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({[field]: value})
+      });
+      if (r.ok) ok++; else fail++;
+    } catch(_) { fail++; }
+  }
+  toast('✓ ' + ok + ' actualizados' + (fail ? ', ' + fail + ' fallidos' : ''));
+  exitSelMode();
+  await cargar();
+}
+
+async function bulkEliminar() {
+  const names = getSelectedNames();
+  if (!names.length) { toast('Selecciona al menos un anime', 'warn'); return; }
+  if (!confirm('¿Eliminar ' + names.length + ' anime' + (names.length > 1 ? 's' : '') + '? No se puede deshacer.')) return;
+  let ok = 0;
+  for (const nombre of names) {
+    try {
+      const r = await fetch('/api/animes/' + encodeURIComponent(nombre), {method: 'DELETE'});
+      if (r.ok) ok++;
+    } catch(_) {}
+  }
+  toast('🗑 ' + ok + ' eliminados');
+  exitSelMode();
+  await cargar();
+}
+
+function bulkSetFavorito(val) {
+  bulkApply('favorito', val);
+}
+
+// Wire bulk selects
+document.getElementById('bulk-estado')?.addEventListener('change', function() {
+  if (this.value) { bulkApply('estado_usuario', this.value); this.value = ''; }
+});
+document.getElementById('bulk-lista')?.addEventListener('change', function() {
+  if (this.value) { bulkApply('lista_personalizada', this.value); this.value = ''; }
+});
+
+
+(async () => {
+  try {
+    await cargarIdioma();
+  } catch(e) {
+    console.warn('Idioma no disponible:', e);
+  }
+  try {
+    await cargar();
+  } catch(e) {
+    console.error('Error inicial:', e);
+    document.getElementById('empty-msg').textContent = 'Error al conectar con el servidor';
+    document.getElementById('empty-msg').style.display = 'block';
+  }
+  // Restaurar estado del botón Avisos y activar polling si corresponde
+  if ('Notification' in window) {
+    const wasEnabled = localStorage.getItem('notif_enabled') === '1';
+    if (wasEnabled && Notification.permission === 'granted' && !window._notifInterval) {
+      window._notifInterval = setInterval(checkNotificaciones, 30 * 60 * 1000);
+    }
+    actualizarBotonAvisos();
+  }
+})();
+</script>
+
+
+<!-- Bulk action bar -->
+<div id="bulk-bar">
+  <span class="bulk-count" id="bulk-count">0 seleccionados</span>
+  <select id="bulk-estado" class="bulk-select">
+    <option value="">📋 Cambiar estado...</option>
+    <option value="pendiente">⏳ Pendiente</option>
+    <option value="viendo">▶️ Viendo</option>
+    <option value="completado">✅ Completado</option>
+    <option value="abandonado">❌ Abandonado</option>
+    <option value="pausa">⏸ En pausa</option>
+  </select>
+  <select id="bulk-lista" class="bulk-select">
+    <option value="">📂 Cambiar lista...</option>
+    <option value="principal">📁 Principal</option>
+    <option value="quiero_ver">👀 Quiero ver</option>
+    <option value="completados">✅ Completados</option>
+  </select>
+  <button class="bulk-btn" onclick="bulkSetFavorito(1)" title="Marcar como favoritos">⭐ Favorito</button>
+  <button class="bulk-btn danger" onclick="bulkEliminar()" title="Eliminar seleccionados">🗑 Eliminar</button>
+  <button class="bulk-close" onclick="exitSelMode()" title="Cancelar selección">&times;</button>
+</div>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+</svg>
+</a>
+<script>
+// PWA Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+</script>
+
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
+   text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

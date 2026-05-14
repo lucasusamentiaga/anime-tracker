@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recomendaciones — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;--accent:#7c3aed;--light:#a78bfa;--card2:#12121a;--success:#34d399}
+[data-theme=light]{--bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;--light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;--success:#059669}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+header h1{font-size:16px;font-weight:700;color:var(--light);flex:1}
+.back{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;text-decoration:none}
+.back:hover{border-color:var(--accent);color:var(--light)}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;color:#4b4b6b;border-color:#d4d0ec}
+main{max-width:900px;margin:0 auto;padding:20px}
+.genre-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.genre-pill{background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.25);border-radius:99px;padding:4px 12px;font-size:11px;color:var(--light);font-weight:600}
+[data-theme=light] .genre-pill{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.rc{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s;text-decoration:none;color:inherit}
+.rc:hover{transform:translateY(-3px);border-color:var(--accent)}
+.rc .thumb{aspect-ratio:3/4;overflow:hidden}
+.rc .thumb img{width:100%;height:100%;object-fit:cover}
+.rc .info{padding:8px 10px}
+.rc .name{font-size:11px;font-weight:600;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rc .meta{font-size:10px;color:var(--muted)}
+.rc .score{color:var(--light);font-weight:700}
+[data-theme=light] .rc{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .rc:hover{border-color:#4f46e5}
+.add-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;margin-top:4px;width:100%}
+.add-btn:hover{opacity:.85}
+.add-btn:disabled{opacity:.4}
+.subtitle{font-size:12px;color:var(--muted);margin-bottom:16px}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.spin{width:24px;height:24px;border:3px solid rgba(124,58,237,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{text-align:center;padding:50px;color:var(--muted)}
+#toast{position:fixed;top:16px;right:16px;z-index:100;opacity:0;pointer-events:none;transition:opacity .3s;max-width:300px}
+#toast.show{opacity:1}
+.toast-i{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:500;color:var(--success)}
+</style>
+</head>
+<body>
+<div id="toast"><div class="toast-i" id="toast-i"></div></div>
+<header>
+  <h1>💡 Recomendaciones para ti</h1>
+  <a href="/app" class="back">← Volver</a>
+</header>
+<main>
+  <p class="subtitle" id="sub"></p>
+  <div class="genre-pills" id="pills"></div>
+  <div id="container">
+    <div class="loading"><div class="spin"></div>Buscando recomendaciones…</div>
+  </div>
+</main>
+<script>
+if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-i').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function cargar() {
+  const cont = document.getElementById('container');
+  try {
+    const r = await fetch('/api/recomendaciones');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+
+    // Genre pills
+    const pills = document.getElementById('pills');
+    (d.generos_base || []).forEach(g => {
+      const p = document.createElement('span');
+      p.className = 'genre-pill';
+      p.textContent = g;
+      pills.appendChild(p);
+    });
+    document.getElementById('sub').textContent =
+      'Basado en tus ' + (d.generos_base || []).length + ' géneros más vistos · ' +
+      (d.recomendaciones || []).length + ' animes sugeridos';
+
+    const items = d.recomendaciones || [];
+    if (!items.length) {
+      cont.innerHTML = '<div class="empty"><p>Añade y puntúa más animes para obtener recomendaciones personalizadas.</p></div>';
+      return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach(a => {
+      const card = document.createElement('a');
+      card.className = 'rc';
+      card.href = a.link || '#';
+      card.target = '_blank';
+      card.rel = 'noopener';
+
+      const thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      const img = document.createElement('img');
+      img.src = a.imagen || '';
+      img.alt = '';
+      img.loading = 'lazy';
+      thumb.appendChild(img);
+
+      const info = document.createElement('div');
+      info.className = 'info';
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = a.nombre;
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = [a.episodios + ' eps', a.estado_anime].filter(Boolean).join(' · ');
+      if (a.puntuacion_global) {
+        const sc = document.createElement('span');
+        sc.className = 'score';
+        sc.textContent = ' ⭐ ' + a.puntuacion_global.toFixed(1);
+        meta.appendChild(sc);
+      }
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-btn';
+      addBtn.textContent = '+ Añadir a mi lista';
+      addBtn.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        addBtn.disabled = true;
+        addBtn.textContent = '...';
+        try {
+          const r2 = await fetch('/api/animes', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({nombre: a.nombre, fuente: 'anilist'})
+          });
+          if (r2.ok) {
+            addBtn.textContent = '✓ Añadido';
+            addBtn.style.background = 'var(--success)';
+            toast('✓ ' + a.nombre + ' añadido');
+          } else {
+            const d2 = await r2.json();
+            addBtn.textContent = d2.detail || 'Error';
+            addBtn.style.background = 'var(--muted)';
+          }
+        } catch(_) { addBtn.textContent = 'Error'; }
+      };
+
+      info.appendChild(name);
+      info.appendChild(meta);
+      info.appendChild(addBtn);
+      card.appendChild(thumb);
+      card.appendChild(info);
+      grid.appendChild(card);
+    });
+    cont.innerHTML = '';
+    cont.appendChild(grid);
+  } catch(e) {
+    cont.innerHTML = '<div class="empty"><p>Error: ' + e.message + '</p></div>';
+  }
+}
+cargar();
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter"
+   style="position:fixed;bottom:20px;right:20px;z-index:50;
+   background:#000;color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+</a>
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

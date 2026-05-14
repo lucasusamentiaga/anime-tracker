@@ -1,0 +1,22 @@
+{
+  "appId": "com.animetracker.mobile",
+  "appName": "Anime Tracker",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "hostname": "animetracker.local"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0f0f13",
+    "minWebViewVersion": 60
+  },
+  "plugins": {
+    "StatusBar": {
+      "backgroundColor": "#0f0f13",
+      "style": "dark",
+      "overlaysWebView": false
+    }
+  }
+}

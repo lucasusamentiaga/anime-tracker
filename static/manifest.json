@@ -1,0 +1,22 @@
+{
+  "name": "Anime Tracker",
+  "short_name": "AnimeTracker",
+  "description": "Tu lista de anime personal con seguimiento de episodios, estadísticas y notificaciones",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/static/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "version": "1.0.0"
+}

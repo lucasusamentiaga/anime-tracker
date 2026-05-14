@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Importar animes — Anime Tracker</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;
+      --accent:#7c3aed;--light:#a78bfa;--success:#34d399;--danger:#f87171;--warn:#f59e0b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;
+       display:flex;align-items:center;gap:12px}
+header img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+header h1{font-size:16px;font-weight:700;color:var(--light)}
+.back{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;
+      color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+
+main{max-width:860px;margin:0 auto;padding:24px 20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:680px){main{grid-template-columns:1fr}}
+
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.panel h2{font-size:14px;font-weight:700;color:var(--light);margin-bottom:6px;
+          text-transform:uppercase;letter-spacing:.5px}
+.panel p.desc{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+
+textarea{width:100%;background:#0a0a10;border:1px solid var(--border);border-radius:10px;
+         color:var(--fg);padding:12px;font-size:13px;font-family:monospace;resize:vertical;
+         min-height:200px;line-height:1.5}
+textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;
+     font-weight:600;font-size:13px;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff;width:100%;justify-content:center;margin-top:10px}
+.btn-g{background:#252535;color:var(--muted);border:1px solid var(--border)}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+.candidates{margin-top:14px;display:flex;flex-direction:column;gap:4px;
+            max-height:320px;overflow-y:auto}
+.cand-row{display:flex;align-items:center;gap:8px;padding:7px 10px;
+          background:#0a0a10;border-radius:8px;border:1px solid var(--border)}
+.cand-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;flex-shrink:0}
+.cand-name{flex:1;font-size:13px}
+.cand-row.selected{border-color:rgba(124,58,237,.4);background:#14112a}
+
+.sel-bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.sel-bar span{font-size:12px;color:var(--muted)}
+.count-badge{background:#252535;border-radius:99px;padding:2px 10px;font-size:11px;color:var(--light);border:1px solid var(--border)}
+
+/* Progress */
+.progress-wrap{margin-top:14px;display:none}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+.prog-status{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* Results */
+.results{margin-top:14px;display:none}
+.result-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+            border-bottom:1px solid var(--border);font-size:13px}
+.result-row:last-child{border:none}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--success)}.dot-dup{background:var(--warn)}.dot-err{background:var(--danger)}
+
+/* Fuente selector */
+.fuente-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.fuente-row label{font-size:12px;color:var(--muted)}
+.fuente-row select{background:#0a0a10;border:1px solid var(--border);border-radius:8px;
+                   color:var(--fg);padding:6px 10px;font-size:13px}
+
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;
+      border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Twitter/X floating button */
+#tw-btn{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  background:#000;color:#fff;border:none;border-radius:50%;
+  width:40px;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:transform .2s,box-shadow .2s;text-decoration:none;
+  opacity:0.85;
+}
+#tw-btn:hover{transform:scale(1.12);box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:1}
+#tw-btn svg{flex-shrink:0}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .panel{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .panel h2{color:#4f46e5}
+[data-theme=light] textarea{background:#f8f7fc;border-color:#d4d0ec;color:#1e1e2e}
+[data-theme=light] .cand-row{background:#f0eef8;border-color:#d4d0ec}
+[data-theme=light] .cand-name{color:#1e1e2e}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <h1 id="h-title">Importar animes</h1>
+  <a href="/app" class="back" id="btn-back">← Volver</a>
+</header>
+
+<main>
+  <!-- Panel izquierdo: pegar texto -->
+  <div class="panel">
+    <h2 id="h-paste">1. Pega el texto de la página</h2>
+    <p class="desc" id="desc-paste">
+      Ve a tu página de animes (AnimeAV1, Crunchyroll, etc.), selecciona todo
+      con <strong>Ctrl+A</strong>, copia con <strong>Ctrl+C</strong> y pega aquí.
+      El programa detectará automáticamente los nombres.
+    </p>
+
+    <textarea id="txt-input" placeholder="Pega aquí el texto completo de la página..." spellcheck="false"></textarea>
+
+    <button class="btn btn-p" id="btn-detect" onclick="detectar()">
+      <span id="detect-txt">🔍 Detectar animes</span>
+    </button>
+  </div>
+
+  <!-- Panel derecho: candidatos y resultado -->
+  <div class="panel">
+    <h2 id="h-candidates">2. Confirma y añade</h2>
+    <p class="desc" id="desc-candidates">
+      Revisa los nombres detectados, desmarca los que no son animes, elige la
+      fuente de búsqueda y pulsa Añadir.
+    </p>
+
+    <div class="fuente-row">
+      <label id="lbl-source">Buscar en:</label>
+      <select id="sel-fuente">
+        <option value="anilist">AniList</option>
+        <option value="mal">MyAnimeList</option>
+        <option value="animeflv">AnimeFLV</option>
+        <option value="animeav1">AnimeAV1</option>
+        <option value="crunchyroll">Crunchyroll</option>
+      </select>
+    </div>
+
+    <div id="empty-hint" style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px">
+      Los animes detectados aparecerán aquí
+    </div>
+
+    <div id="candidates-wrap" style="display:none">
+      <div class="sel-bar">
+        <span id="sel-count" class="count-badge">0 seleccionados</span>
+        <button class="btn btn-g btn-sm" onclick="selectAll(true)">Todos</button>
+        <button class="btn btn-g btn-sm" onclick="selectAll(false)">Ninguno</button>
+      </div>
+      <div class="candidates" id="candidates-list"></div>
+      <button class="btn btn-p" id="btn-import" onclick="importar()" style="margin-top:12px">
+        <span id="import-txt">➕ Añadir seleccionados</span>
+      </button>
+    </div>
+
+    <!-- Progreso importación -->
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="prog-status" id="prog-status">Buscando...</div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="results" id="results-wrap">
+      <h3 style="font-size:13px;font-weight:700;color:var(--light);margin-bottom:10px" id="h-results">Resultado</h3>
+      <div id="results-list"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let TR = {}, LANG = 'es';
+let candidatos = [];
+
+async function loadLang() {
+  try {
+    const r = await fetch('/api/lang');
+    const d = await r.json();
+    LANG = d.lang || 'es';
+    TR   = d.translations || {};
+  } catch(e) {}
+}
+
+function T(k) { return TR[k] || k; }
+
+async function detectar() {
+  const txt = document.getElementById('txt-input').value.trim();
+  if (!txt) { alert('Primero pega el texto de la página'); return; }
+
+  const btn = document.getElementById('btn-detect');
+  const btxt = document.getElementById('detect-txt');
+  btn.disabled = true;
+  btxt.innerHTML = '<span class="spin"></span> ' + (TR['detecting'] || 'Detectando...');
+
+  try {
+    const r = await fetch('/api/import/detect', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({texto: txt, fuente_preferida: 'anilist'})
+    });
+    const d = await r.json();
+    candidatos = d.candidatos || [];
+    renderCandidatos();
+  } catch(e) {
+    alert('Error al detectar animes');
+  } finally {
+    btn.disabled = false;
+    btxt.textContent = '🔍 ' + (TR['detect_btn'] || 'Detectar animes');
+  }
+}
+
+function renderCandidatos() {
+  const wrap  = document.getElementById('candidates-wrap');
+  const empty = document.getElementById('empty-hint');
+  const list  = document.getElementById('candidates-list');
+
+  if (!candidatos.length) {
+    empty.textContent = 'No se detectaron nombres de anime en ese texto.';
+    empty.style.display = 'block';
+    wrap.style.display  = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  wrap.style.display  = 'block';
+
+  list.innerHTML = '';
+  candidatos.forEach((c, i) => {
+    const row = document.createElement('label');
+    row.className = 'cand-row selected';
+    row.id = 'row-' + i;
+    const chk = document.createElement('input');
+    chk.type = 'checkbox'; chk.id = 'chk-' + i; chk.checked = true;
+    chk.addEventListener('change', () => {
+      row.classList.toggle('selected', chk.checked);
+      updateCount();
+    });
+    const span = document.createElement('span');
+    span.className = 'cand-name';
+    span.textContent = c; // XSS-safe
+    row.appendChild(chk); row.appendChild(span);
+    list.appendChild(row);
+  });
+
+  updateCount();
+}
+
+function toggleRow(i) {
+  const chk = document.getElementById(`chk-${i}`);
+  const row = document.getElementById(`row-${i}`);
+  chk.checked = !chk.checked;
+  row.classList.toggle('selected', chk.checked);
+  updateCount();
+}
+
+function selectAll(val) {
+  candidatos.forEach((_, i) => {
+    document.getElementById(`chk-${i}`).checked = val;
+    document.getElementById(`row-${i}`).classList.toggle('selected', val);
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const n = candidatos.filter((_, i) => document.getElementById(`chk-${i}`)?.checked).length;
+  document.getElementById('sel-count').textContent = `${n} seleccionado${n !== 1 ? 's' : ''}`;
+}
+
+async function importar() {
+  const seleccionados = candidatos.filter((_, i) => document.getElementById(`chk-${i}`)?.checked);
+  if (!seleccionados.length) { alert('Selecciona al menos un anime'); return; }
+
+  const fuente = document.getElementById('sel-fuente').value;
+  const btn    = document.getElementById('btn-import');
+  const btxt   = document.getElementById('import-txt');
+  const progWrap = document.getElementById('progress-wrap');
+  const fill     = document.getElementById('progress-fill');
+  const status   = document.getElementById('prog-status');
+  const resWrap  = document.getElementById('results-wrap');
+  const resList  = document.getElementById('results-list');
+
+  btn.disabled = true;
+  btxt.innerHTML = '<span class="spin"></span> ' + (TR['importing'] || 'Importando...');
+  progWrap.style.display = 'block';
+  resWrap.style.display  = 'none';
+  resList.innerHTML      = '';
+
+  // Importar en lotes de 10 para mostrar progreso real
+  const BATCH = 10;
+  const añadidos = [], duplicados = [], no_encontrados = [];
+
+  for (let i = 0; i < seleccionados.length; i += BATCH) {
+    const batch = seleccionados.slice(i, i + BATCH);
+    const pct   = Math.round((i / seleccionados.length) * 100);
+    fill.style.width = pct + '%';
+    status.textContent = `${i + 1}–${Math.min(i + BATCH, seleccionados.length)} / ${seleccionados.length}`;
+
+    try {
+      const r = await fetch('/api/import/bulk', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({texto: batch.join('\n'), fuente_preferida: fuente})
+      });
+      const d = await r.json();
+      añadidos.push(...(d.añadidos || []));
+      duplicados.push(...(d.duplicados || []));
+      no_encontrados.push(...(d.no_encontrados || []));
+    } catch(e) {
+      no_encontrados.push(...batch);
+    }
+  }
+
+  fill.style.width = '100%';
+  status.textContent = TR['import_done'] || '✓ Completado';
+
+  // Mostrar resultados
+  resWrap.style.display = 'block';
+  const rows = [
+    ...añadidos.map(n      => `<div class="result-row"><div class="dot dot-ok"></div><span>${n}</span></div>`),
+    ...duplicados.map(n    => `<div class="result-row"><div class="dot dot-dup"></div><span style="color:var(--muted)">${n} (' + (TR['already_existed'] || 'ya existía') + ')</span></div>`),
+    ...no_encontrados.map(n=> `<div class="result-row"><div class="dot dot-err"></div><span style="color:var(--danger)">${n} (' + (TR['not_found_short'] || 'no encontrado') + ')</span></div>`),
+  ];
+  // Build results safely
+  const summary = document.createElement('div');
+  summary.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:8px';
+  summary.textContent = '✅ ' + añadidos.length + ' añadidos · ⚠️ ' + duplicados.length + ' duplicados · ❌ ' + no_encontrados.length + ' no encontrados';
+  resList.innerHTML = '';
+  resList.appendChild(summary);
+  rows.forEach(r => { const d = document.createElement('div'); d.innerHTML = r; resList.appendChild(d); });
+
+  btn.disabled = false;
+  btxt.textContent = '➕ ' + (TR['import_btn'] || 'Añadir seleccionados');
+}
+
+loadLang();
+</script>
+<script>
+if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+</svg>
+</a>
+
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
+   text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>
