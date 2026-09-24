@@ -422,12 +422,12 @@ def _start_enrich_unknown_eps():
     def _run():
         _time.sleep(60)  # espera para no competir con el arranque
         animes = db.listar_animes()
-        pendientes = [a for a in animes if str(a.get("capitulos") or "") in ("?", "")]
-        if not pendientes:
-            return
         anilist = SCRAPERS.get("anilist")
         if not anilist:
             return
+
+        # 1) Animes con episodios desconocidos
+        pendientes = [a for a in animes if str(a.get("capitulos") or "") in ("?", "")]
         fixed = 0
         for a in pendientes:
             try:
@@ -445,6 +445,29 @@ def _start_enrich_unknown_eps():
                 pass
         if fixed:
             _sync_log.info("Enriquecidos %d animes con eps desconocidos", fixed)
+
+        # 2) Animes con imagen rota o de AnimeFLV (hotlinking 403)
+        img_fixed = 0
+        for a in animes:
+            img = (a.get("imagen") or "").strip()
+            needs_fix = (not img
+                         or "animeflv" in img.lower()
+                         or "cdn.animeflv" in img.lower())
+            if not needs_fix:
+                continue
+            try:
+                r = anilist.buscar(a["nombre"])
+                if r and r.imagen and "animeflv" not in r.imagen.lower():
+                    cambios = {"imagen": r.imagen}
+                    if not a.get("anilist_id") and r.anilist_id:
+                        cambios["anilist_id"] = r.anilist_id
+                    db.refrescar_metadata_anime(a["nombre"], cambios)
+                    img_fixed += 1
+                _time.sleep(1)
+            except Exception:
+                pass
+        if img_fixed:
+            _sync_log.info("Reparadas %d portadas rotas/animeflv → AniList", img_fixed)
 
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 
@@ -1764,7 +1787,17 @@ async def refrescar_metadata(filtro: dict = None):
             if str(nuevo.capitulos) != str(a.get("capitulos") or ""):
                 cambios["capitulos"] = str(nuevo.capitulos)
             if nuevo.imagen and nuevo.imagen != a.get("imagen"):
-                cambios["imagen"] = nuevo.imagen
+                best_img = nuevo.imagen
+                # Preferir imagen de AniList sobre AnimeFLV (evita hotlinking 403)
+                if "animeflv" in best_img.lower() and fuente != "anilist" and "anilist" in SCRAPERS:
+                    try:
+                        alt_img = await loop.run_in_executor(
+                            executor, SCRAPERS["anilist"].buscar, a["nombre"])
+                        if alt_img and alt_img.imagen:
+                            best_img = alt_img.imagen
+                    except Exception:
+                        pass
+                cambios["imagen"] = best_img
             if nuevo.sinopsis and nuevo.sinopsis != a.get("sinopsis"):
                 cambios["sinopsis"] = nuevo.sinopsis
             if nuevo.genero:
@@ -3179,7 +3212,13 @@ async def anime_scores(nombre: str):
 async def api_recomendaciones():
     animes = db.listar_animes()
     genre_weight: Counter = Counter()
-    nombres_existentes = {a["nombre"].lower().strip() for a in animes}
+    nombres_existentes = set()
+    anilist_ids_existentes = set()
+    for a in animes:
+        nombres_existentes.add(a["nombre"].lower().strip())
+        aid = a.get("anilist_id")
+        if aid:
+            anilist_ids_existentes.add(int(aid))
     for a in animes:
         if a.get("estado_usuario") in ("completado","completed","viendo","watching"):
             bonus = 2 if (a.get("puntuacion") or 0) >= 8 else 1
@@ -3191,17 +3230,17 @@ async def api_recomendaciones():
     if not top_genres:
         top_genres = ["Action", "Adventure", "Fantasy"]
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(executor, _fetch_recomendaciones, top_genres, nombres_existentes)
+    result = await loop.run_in_executor(executor, _fetch_recomendaciones, top_genres, nombres_existentes, anilist_ids_existentes)
     return result
 
 
-def _fetch_recomendaciones(top_genres: list, existentes: set) -> dict:
+def _fetch_recomendaciones(top_genres: list, existentes: set, existentes_ids: set | None = None) -> dict:
     try:
         query = """query($genres: [String]) {
           Page(page:1, perPage:30) {
             media(sort:TRENDING_DESC, type:ANIME, genre_in:$genres,
                   status_in:[RELEASING,NOT_YET_RELEASED,FINISHED]) {
-              title { romaji english }
+              id title { romaji english }
               description(asHtml:false)
               coverImage { large }
               siteUrl genres episodes status
@@ -3215,8 +3254,15 @@ def _fetch_recomendaciones(top_genres: list, existentes: set) -> dict:
             return _recomendaciones_respaldo(top_genres, existentes, fallo)
         recos = []
         for a in items:
-            titulo = (a.get("title") or {}).get("english") or (a.get("title") or {}).get("romaji") or ""
-            if titulo.lower().strip() in existentes:
+            t = a.get("title") or {}
+            titulo_en = (t.get("english") or "").strip()
+            titulo_ro = (t.get("romaji") or "").strip()
+            titulo = titulo_en or titulo_ro
+            # Descartar si CUALQUIER variante del título o ID ya está en la biblioteca
+            if titulo_en.lower() in existentes or titulo_ro.lower() in existentes:
+                continue
+            media_id = a.get("id")
+            if existentes_ids and media_id and int(media_id) in existentes_ids:
                 continue
             desc = re.sub(r"<[^>]+>", "", (a.get("description") or ""))[:250]
             recos.append({

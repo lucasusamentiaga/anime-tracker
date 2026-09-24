@@ -16,7 +16,10 @@
 // v22 = sync bidireccional AniList: backend (anilist_sync.py, 7 endpoints),
 //        UI modal en index.html (connect/disconnect, pull/push, resolve IDs),
 //        indicador de estado en header, auto-push al editar anime.
-const CACHE_NAME = 'miraru-v25'; // fix franquicias + refresh fallback
+// v25 = fix franquicias + refresh fallback + enrichment daemon eps "?"
+// v26 = fix recomendaciones (no sugerir animes ya en lista, check por ID +
+//        título en/ro), reparación auto portadas AnimeFLV → AniList.
+const CACHE_NAME = 'miraru-v26';
 const STATIC_ASSETS = [
   '/',
   '/app',
