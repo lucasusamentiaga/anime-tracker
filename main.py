@@ -1690,6 +1690,14 @@ async def refrescar_metadata(filtro: dict = None):
             fuente = "anilist"
         try:
             nuevo = await loop.run_in_executor(executor, SCRAPERS[fuente].buscar, a["nombre"])
+            # Si la fuente original no devuelve resultado o eps desconocidos,
+            # intentar con AniList como fallback
+            if nuevo and str(nuevo.capitulos) == "?" and fuente != "anilist" and "anilist" in SCRAPERS:
+                alt = await loop.run_in_executor(executor, SCRAPERS["anilist"].buscar, a["nombre"])
+                if alt and str(alt.capitulos) != "?":
+                    nuevo = alt
+            if not nuevo and fuente != "anilist" and "anilist" in SCRAPERS:
+                nuevo = await loop.run_in_executor(executor, SCRAPERS["anilist"].buscar, a["nombre"])
             if not nuevo:
                 fallidos.append(a["nombre"])
                 continue

@@ -24,6 +24,12 @@ _SEASON_RE = re.compile(
       | \s+\d+(?:st|nd|rd|th)\s+Season       # 2nd Season
       | \s+(?:I{2,4}V?|VI{0,3})(?:\s|$)     # Roman numerals II, III, IV, V, VI
       | \s+(?:Shin|Zoku|Shin'?)(?:\s|$)      # Shin / Zoku (continuation)
+      | \s+Movie\s+\d+\b                     # Movie 1, Movie 2
+      | \s+Movie(?=\s|$|:)                   # Movie (alone or before : )
+      | \s+OVA\d*(?=\s|$|:)                  # OVA, OVA2
+      | \s+ONA\d*(?=\s|$|:)                  # ONA, ONA2
+      | \s+Specials?(?:\s+\d+)?(?=\s|$|:)    # Special, Specials, Special 2
+      | \s+Recap(?=\s|$|:)                   # Recap
       | \s+\d+$                              # trailing number: "Title 2"
     )
     """,
@@ -52,7 +58,13 @@ _ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7,
 
 def _base_name(nombre: str) -> str:
     """Extrae el nombre base quitando indicadores de temporada."""
-    base = _SEASON_RE.sub("", nombre).strip()
+    # Aplicar la regex repetidamente hasta que no haya más cambios
+    base = nombre
+    for _ in range(5):
+        nuevo = _SEASON_RE.sub("", base).strip()
+        if nuevo == base:
+            break
+        base = nuevo
     # Si quedó vacío (todo era modificadores), usar el original
     return base if base else nombre
 
