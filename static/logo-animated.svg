@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Miraru">
+  <title>Miraru</title>
+  <desc>El arco de progreso se dibuja y el play aparece — para splash e inicio.</desc>
+  <defs>
+    <linearGradient id="mgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="0.5" stop-color="#a855f7"/>
+      <stop offset="1" stop-color="#d946ef"/>
+    </linearGradient>
+    <radialGradient id="mgH" cx="0.32" cy="0.24" r="0.85">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="252" fill="url(#mgA)"/>
+  <circle cx="256" cy="256" r="252" fill="url(#mgH)"/>
+
+  <!-- Arco de progreso que se dibuja solo -->
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#ffffff" stroke-opacity="0.9"
+          stroke-width="16" stroke-linecap="round"
+          stroke-dasharray="710 1232" transform="rotate(-108 256 256)">
+    <animate attributeName="stroke-dashoffset" from="710" to="0"
+             dur="1.1s" begin="0s" fill="freeze"
+             calcMode="spline" keySplines="0.16 1 0.3 1" keyTimes="0;1"/>
+  </circle>
+
+  <!-- Play que entra con escala -->
+  <path d="M214 182 L214 330 L348 256 Z" fill="#ffffff"
+        stroke="#ffffff" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"
+        opacity="0" transform-origin="256 256">
+    <animate attributeName="opacity" from="0" to="1" dur="0.45s" begin="0.55s" fill="freeze"/>
+    <animateTransform attributeName="transform" type="scale" from="0.72" to="1"
+                      dur="0.6s" begin="0.55s" fill="freeze"
+                      calcMode="spline" keySplines="0.16 1 0.3 1" keyTimes="0;1"/>
+  </path>
+</svg>

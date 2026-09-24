@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/icon.ico">
+<title>Estadísticas — Miraru</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;--accent:#7c3aed;--light:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px}
+header img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--accent)}
+header h1{font-size:17px;font-weight:700;color:var(--light)}
+/* v2.6.1: efecto neón en el título de la página (igual estética que el menú) */
+header h1{
+  text-shadow:
+    0 0 4px rgba(183,148,255,.7),
+    0 0 10px rgba(139,92,246,.45),
+    0 0 22px rgba(124,58,237,.25),
+    0 0 38px rgba(217,70,239,.18);
+  animation:titleNeon 3.2s ease-in-out infinite alternate;
+}
+@keyframes titleNeon{
+  from{text-shadow:0 0 4px rgba(183,148,255,.55),0 0 9px rgba(139,92,246,.35),0 0 18px rgba(124,58,237,.18),0 0 32px rgba(217,70,239,.12)}
+  to  {text-shadow:0 0 6px rgba(183,148,255,.85),0 0 14px rgba(139,92,246,.6),0 0 28px rgba(124,58,237,.35),0 0 48px rgba(217,70,239,.25)}
+}
+@media (prefers-reduced-motion:reduce){header h1{animation:none}}
+.back-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+main{padding:20px;max-width:900px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
+.kpi .value{font-size:28px;font-weight:700;color:var(--light)}
+.kpi .label{font-size:12px;color:var(--muted);margin-top:4px}
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.section h2{font-size:14px;font-weight:600;color:var(--light);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-label{font-size:12px;color:var(--fg);width:100px;flex-shrink:0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.bar-track{flex:1;background:var(--border);border-radius:4px;height:14px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.bar-count{font-size:11px;color:var(--muted);width:30px;text-align:right;flex-shrink:0}
+.anime-list{display:grid;gap:8px}
+.anime-row{display:flex;gap:10px;align-items:center;padding:8px;background:#12121a;border-radius:8px}
+.anime-row img{width:36px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.anime-row .info{flex:1;min-width:0}
+.anime-row .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anime-row .meta{font-size:11px;color:var(--muted)}
+.score-badge{background:#1e1a30;color:#fbbf24;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;flex-shrink:0}
+
+/* Improved KPI cards with gradient + icon */
+.kpi{
+  background:linear-gradient(135deg, var(--card), var(--card2,#0f0f13));
+  position:relative;overflow:hidden;
+  transition:border-color .18s ease, box-shadow .18s ease;
+}
+.kpi:hover{border-color:rgba(124,58,237,.35);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.kpi-icon{font-size:22px;opacity:0.7;margin-bottom:6px}
+.kpi .value{
+  font-size:32px;font-weight:800;
+  background:linear-gradient(135deg, var(--accent), var(--light));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* Donut chart for state distribution */
+.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.donut-svg{width:160px;height:160px;flex-shrink:0}
+.donut-bg{fill:none;stroke:var(--border);stroke-width:14}
+.donut-seg{fill:none;stroke-width:14;transition:stroke-width .2s}
+.donut-seg:hover{stroke-width:18;cursor:pointer}
+.donut-center{font-size:18px;font-weight:700;fill:var(--light);text-anchor:middle;dominant-baseline:central}
+.donut-center-sub{font-size:9px;fill:var(--muted);text-anchor:middle;dominant-baseline:central}
+.donut-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:6px}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.donut-legend-item .swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.donut-legend-item .lbl{flex:1;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.donut-legend-item .pct{color:var(--muted);font-size:11px;font-weight:600}
+
+/* Bar with percentage label */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-label{font-size:12px;color:var(--fg);width:110px;flex-shrink:0;font-weight:500;
+  text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.bar-track{flex:1;background:var(--border);border-radius:6px;height:18px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.16,1,.3,1);
+  background:linear-gradient(90deg, var(--accent), var(--light))}
+.bar-count{font-size:11px;color:var(--fg);width:50px;text-align:right;flex-shrink:0;font-weight:600}
+
+/* Genre tags as pills with size by count */
+.genre-cloud{display:flex;flex-wrap:wrap;gap:8px}
+.genre-pill{
+  background:linear-gradient(135deg, rgba(124,58,237,.15), rgba(167,139,250,.1));
+  border:1px solid rgba(124,58,237,.25);
+  border-radius:99px;padding:5px 14px;font-size:13px;color:var(--light);
+  font-weight:500;display:inline-flex;align-items:center;gap:6px;
+  transition:border-color .18s ease;
+}
+.genre-pill:hover{border-color:var(--accent)}
+.genre-pill .count{font-size:10px;opacity:0.7;font-weight:700}
+
+/* Empty state */
+.empty-state{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px}
+.empty-state .icon{font-size:32px;margin-bottom:8px;opacity:.5}
+
+/* Twitter/X floating button */
+#tw-btn{
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  background:#000;color:#fff;border:none;border-radius:50%;
+  width:40px;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+  transition:opacity .18s ease,box-shadow .18s ease;text-decoration:none;
+  opacity:0.85;
+}
+#tw-btn:hover{opacity:1;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+#tw-btn svg{flex-shrink:0}
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .kpi{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .section{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .section h2{color:#4f46e5}
+[data-theme=light] .bar-label{color:#1e1e2e}
+[data-theme=light] .bar-count{color:#64648c}
+[data-theme=light] .bar-track{background:#e5e4f0}
+[data-theme=light] .anime-row{background:#f0eef8}
+[data-theme=light] .anime-row .name{color:#1e1e2e}
+[data-theme=light] .score-badge{background:#eef2ff;color:#4338ca}
+[data-theme=light] .genre-pill{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}
+[data-theme=light] .donut-center{fill:#4f46e5}
+[data-theme=light] .back-btn{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+
+/* Tooltip para logros */
+.logro-item{text-align:center;position:relative;cursor:default}
+.logro-tip{
+  visibility:hidden;opacity:0;
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;width:max-content;max-width:180px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:10;pointer-events:none;
+  transition:opacity .15s ease,visibility .15s ease;
+}
+.logro-item:hover .logro-tip{visibility:visible;opacity:1}
+.logro-tip .tip-name{font-size:12px;font-weight:700;color:var(--light);margin-bottom:2px}
+.logro-tip .tip-desc{font-size:11px;color:var(--muted);line-height:1.3}
+.logro-tip::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:var(--border);
+}
+@media(prefers-reduced-motion:reduce){.logro-tip{transition:none}}
+</style>
+<!-- Sistema visual unificado (theme.css) -->
+<link rel="stylesheet" href="/static/theme.css">
+<script src="/static/customize.js"></script>
+</head>
+<body>
+<header>
+  <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  <h1 id="h-stats">Estadísticas</h1>
+  <a href="/api/export/share" id="btn-compartir" class="back-btn" style="margin-left:auto"
+     title="Descarga una página HTML con toda tu biblioteca para compartir o subir a GitHub Pages">🔗 Compartir biblioteca</a>
+  <a href="/app" id="btn-volver" class="back-btn" style="margin-left:8px">← Volver</a>
+</header>
+<main>
+  <div class="grid" id="kpis">
+    <div class="kpi">
+      <div class="kpi-icon">📺</div>
+      <div class="value" id="k-total">–</div>
+      <div class="label" id="lbl-total">Total animes</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">▶️</div>
+      <div class="value" id="k-eps">–</div>
+      <div class="label" id="lbl-eps">Episodios vistos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">⏱️</div>
+      <div class="value" id="k-hours">–</div>
+      <div class="label" id="lbl-hours">Horas vistas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">⭐</div>
+      <div class="value" id="k-score">–</div>
+      <div class="label" id="lbl-score">Puntuación media</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🎭</div>
+      <div class="value" id="k-genre" style="font-size:16px;line-height:1.3">–</div>
+      <div class="label" id="lbl-genre">Género favorito</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🏆</div>
+      <div class="value" id="k-completed">–</div>
+      <div class="label" id="lbl-completed">Completados</div>
+    </div>
+  </div>
+
+  <!-- v2.2: heatmap de actividad estilo GitHub contributions -->
+  <div class="section" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">🔥 Actividad — episodios vistos por día</h2>
+      <div style="display:flex;gap:14px;align-items:center;font-size:12px;color:var(--muted)">
+        <span>Racha: <strong id="streak-actual" style="color:var(--light)">–</strong></span>
+        <span>Máx: <strong id="streak-max" style="color:var(--light)">–</strong></span>
+        <span>Eps últ. año: <strong id="heatmap-total" style="color:var(--light)">–</strong></span>
+        <!-- v2.3: exportar tarjeta del año como imagen -->
+        <button onclick="exportarWrapped()" style="background:var(--grad-accent);color:#fff;border:none;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer" title="Descargar mi resumen anual como imagen PNG">📸 Mi año en anime</button>
+      </div>
+    </div>
+    <div id="heatmap" style="overflow-x:auto"></div>
+    <p id="heatmap-empty" style="display:none;color:var(--muted);font-size:13px;text-align:center;padding:20px">
+      Sin actividad registrada todavía. Marca un +1 episodio para empezar a ver el heatmap.
+    </p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="section">
+      <h2 id="lbl-by-state">Por estado</h2>
+      <div id="chart-state" class="donut-wrap"></div>
+    </div>
+    <div class="section">
+      <h2 id="lbl-by-src">Por fuente</h2>
+      <div id="chart-src"></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-bottom:16px">
+    <h2 id="lbl-genres">Géneros</h2>
+    <div id="chart-genres" class="genre-cloud"></div>
+  </div>
+
+  <!-- Nivel, XP y racha de apertura -->
+  <div class="section" id="gami-section" style="margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div id="gami-level" style="font-size:26px;font-weight:800;color:var(--light);white-space:nowrap">Nivel 1</div>
+      <div style="flex:1;min-width:200px">
+        <div style="height:12px;background:var(--card2);border:1px solid var(--border);border-radius:99px;overflow:hidden">
+          <div id="gami-xpbar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:99px;transition:width .8s cubic-bezier(.16,1,.3,1)"></div>
+        </div>
+        <div id="gami-xptext" style="font-size:11px;color:var(--muted);margin-top:5px"></div>
+      </div>
+      <div style="background:var(--grad-accent-soft,rgba(124,58,237,.12));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:8px 14px;text-align:center">
+        <div id="gami-open-streak" style="font-size:20px;font-weight:800;color:var(--light)">🔥 0</div>
+        <div style="font-size:10px;color:var(--muted)">días seguidos</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rango ninja -->
+  <div class="section" id="rango-section" style="margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <img id="rango-img" src="" alt="" width="72" height="72" style="filter:drop-shadow(0 4px 16px rgba(124,58,237,.5))">
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:2px">Rango Ninja</div>
+        <div id="rango-nombre" style="font-size:26px;font-weight:800;color:var(--light)"></div>
+        <div id="rango-desc" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+        <div id="rango-bar-wrap" style="display:none">
+          <div style="height:8px;background:var(--card2);border:1px solid var(--border);border-radius:99px;overflow:hidden">
+            <div id="rango-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444,#7c3aed);border-radius:99px;transition:width .8s cubic-bezier(.16,1,.3,1)"></div>
+          </div>
+          <div id="rango-next" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logros / emblemas (idea portada de Brasa/Lumbre) -->
+  <div class="section" id="logros-section" style="margin-bottom:16px;display:none">
+    <h2 id="lbl-logros">🏅 Logros
+      <span id="logros-count" style="font-size:13px;color:var(--muted);font-weight:500"></span></h2>
+    <div id="logros-grid"
+         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:16px;margin-top:12px"></div>
+  </div>
+
+  <!-- v2.4: tiempo hasta completar (derivado de ep_log) -->
+  <div class="section" id="completion-section" style="margin-bottom:16px;display:none">
+    <h2 id="lbl-completion">⏱ Tiempo hasta completar</h2>
+    <div class="anime-list" id="list-completion"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="section">
+      <h2 id="lbl-top">Mejor valorados</h2>
+      <div class="anime-list" id="list-top"></div>
+    </div>
+    <div class="section">
+      <h2 id="lbl-recent">Añadidos recientemente</h2>
+      <div class="anime-list" id="list-recent"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let TR = {};
+function T(k, vars={}) {
+  let txt = TR[k] || k;
+  Object.entries(vars).forEach(([key,val]) => { txt = txt.replace(`{${key}}`, val); });
+  return txt;
+}
+
+function _thumbUrl(url) { return url ? url.replace('/cover/large/', '/cover/medium/') : ''; }
+
+const COLORS = ['#7c3aed','#059669','#d97706','#dc2626','#0891b2','#9333ea','#65a30d'];
+
+function makeBar(label, value, max, color) {
+  const pct = max > 0 ? Math.round(value / max * 100) : 0;
+  return `<div class="bar-row">
+    <span class="bar-label" title="${label}">${label}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="bar-count">${value}</span>
+  </div>`;
+}
+
+function makeAnimeRow(a, showScore=false) {
+  // DOM-safe: no innerHTML with user data
+  const row = document.createElement('div');
+  row.className = 'anime-row';
+
+  const img = document.createElement('img');
+  // src="" haría que el navegador se bajase esta misma página como imagen.
+  if (a.imagen) { img.src = _thumbUrl(a.imagen); img.loading = 'lazy'; }
+  else { img.style.display = 'none'; }
+  img.alt = '';
+  img.onerror = () => { img.style.display='none'; };
+  row.appendChild(img);
+
+  const info = document.createElement('div');
+  info.className = 'info';
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = a.nombre || '';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = a.fuente || '';
+  info.appendChild(name);
+  info.appendChild(meta);
+  row.appendChild(info);
+
+  if (showScore && a.puntuacion) {
+    const sc = document.createElement('span');
+    sc.className = 'score-badge';
+    sc.textContent = '⭐ ' + a.puntuacion;
+    row.appendChild(sc);
+  }
+  return row;
+}
+
+function renderDonut(container, items) {
+  const total = items.reduce((s,i) => s + i.value, 0);
+  if (!total) { container.innerHTML = ''; return; }
+
+  const SVG = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('class', 'donut-svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+
+  const bg = document.createElementNS(SVG, 'circle');
+  bg.setAttribute('class', 'donut-bg');
+  bg.setAttribute('cx', '50'); bg.setAttribute('cy', '50'); bg.setAttribute('r', '40');
+  svg.appendChild(bg);
+
+  const C = 2 * Math.PI * 40;
+  let offset = 0;
+  items.forEach(it => {
+    const len = (it.value / total) * C;
+    const seg = document.createElementNS(SVG, 'circle');
+    seg.setAttribute('class', 'donut-seg');
+    seg.setAttribute('cx', '50'); seg.setAttribute('cy', '50'); seg.setAttribute('r', '40');
+    seg.setAttribute('stroke', it.color);
+    seg.setAttribute('stroke-dasharray', `${len} ${C - len}`);
+    seg.setAttribute('stroke-dashoffset', -offset);
+    seg.setAttribute('transform', 'rotate(-90 50 50)');
+    seg.setAttribute('stroke-linecap', 'butt');
+    svg.appendChild(seg);
+    offset += len;
+  });
+
+  // Center text
+  const ct = document.createElementNS(SVG, 'text');
+  ct.setAttribute('class', 'donut-center');
+  ct.setAttribute('x', '50'); ct.setAttribute('y', '47');
+  ct.textContent = total;
+  svg.appendChild(ct);
+  const cs = document.createElementNS(SVG, 'text');
+  cs.setAttribute('class', 'donut-center-sub');
+  cs.setAttribute('x', '50'); cs.setAttribute('y', '60');
+  cs.textContent = 'TOTAL';
+  svg.appendChild(cs);
+
+  // Legend
+  const legend = document.createElement('div');
+  legend.className = 'donut-legend';
+  items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'donut-legend-item';
+    const sw = document.createElement('span'); sw.className = 'swatch'; sw.style.background = it.color;
+    const lb = document.createElement('span'); lb.className = 'lbl'; lb.textContent = it.label;
+    const pc = document.createElement('span'); pc.className = 'pct';
+    pc.textContent = Math.round(it.value / total * 100) + '% (' + it.value + ')';
+    row.appendChild(sw); row.appendChild(lb); row.appendChild(pc);
+    legend.appendChild(row);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+  container.appendChild(legend);
+}
+
+async function loadStats() {
+  // Idioma
+  const lr = await fetch('/api/lang');
+  const ld = await lr.json();
+  TR = ld.translations || {};
+
+  // Aplicar textos
+  document.getElementById('h-stats').textContent    = T('stats_title');
+  document.getElementById('lbl-total').textContent  = T('total_animes');
+  document.getElementById('lbl-eps').textContent    = T('total_episodes');
+  document.getElementById('lbl-score').textContent  = T('avg_score');
+  document.getElementById('lbl-genre').textContent  = T('favorite_genre');
+  const lblHours = document.getElementById('lbl-hours');
+  if (lblHours) lblHours.textContent = T('hours_watched') || 'Horas vistas';
+  const lblComp = document.getElementById('lbl-completed');
+  if (lblComp) lblComp.textContent = T('completed_count') || 'Completados';
+  document.getElementById('lbl-by-state').textContent = T('by_state');
+  document.getElementById('lbl-by-src').textContent   = T('by_source');
+  document.getElementById('lbl-genres').textContent   = T('genres');
+  document.getElementById('lbl-top').textContent      = T('top_rated');
+  document.getElementById('lbl-recent').textContent   = T('recently_added');
+  // Por id, no por '.back-btn': querySelector coge el PRIMERO con esa clase y
+  // desde que existe el botón de compartir ese es el de compartir, no el de
+  // volver. Le reescribía la etiqueta a "Cerrar" dejando el href de descarga,
+  // así que pulsarlo bajaba un .html en lugar de volver a la lista.
+  document.getElementById('btn-volver').textContent = '← ' + T('close');
+
+  // Restore saved theme
+  try { if (localStorage.getItem('theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch(_) {}
+
+  const r = await fetch('/api/stats');
+  const d = await r.json();
+
+  document.getElementById('k-total').textContent = d.total || 0;
+  document.getElementById('k-eps').textContent   = d.total_episodes || 0;
+  document.getElementById('k-score').textContent = d.avg_score || '–';
+  document.getElementById('k-genre').textContent = d.favorite_genre || '–';
+
+  // Horas vistas: usar el cálculo exacto del backend (incluye películas) si está
+  const horas = (d.total_hours != null)
+    ? Math.round(d.total_hours)
+    : Math.round((d.total_episodes || 0) * 24 / 60);
+  document.getElementById('k-hours').textContent = horas;
+
+  // Completados
+  const completados = (d.by_state || {}).completado || (d.by_state || {}).completed || 0;
+  document.getElementById('k-completed').textContent = completados;
+
+  // Estado — donut chart
+  const stateKeys = {
+    'pendiente': T('pending'), 'pending': T('pending'),
+    'viendo': T('watching'),   'watching': T('watching'),
+    'completado': T('completed'), 'completed': T('completed'),
+    'abandonado': T('dropped'),   'dropped': T('dropped'),
+    'pausa': T('paused'),         'paused': T('paused'),
+  };
+  const stateEntries = Object.entries(d.by_state || {});
+  const stateContainer = document.getElementById('chart-state');
+  if (!stateEntries.length) {
+    stateContainer.innerHTML = '<div class="empty-state"><div class="icon">📊</div>Sin datos aún</div>';
+  } else {
+    renderDonut(stateContainer, stateEntries.map(([k,v],i) => ({
+      label: stateKeys[k] || k, value: v, color: COLORS[i % COLORS.length],
+    })));
+  }
+
+  // Fuente
+  const srcEntries = Object.entries(d.by_source || {});
+  const maxSrc = srcEntries.length ? Math.max(...srcEntries.map(([,v])=>v)) : 1;
+  document.getElementById('chart-src').innerHTML = srcEntries.length
+    ? srcEntries.map(([k,v],i) => makeBar(k, v, maxSrc, COLORS[i%COLORS.length])).join('')
+    : '<p style="color:var(--muted);font-size:13px">Sin datos aún</p>';
+
+  // Géneros — pills coloridas
+  const genreEntries = Object.entries(d.genres || {}).sort((a,b) => b[1]-a[1]);
+  const genreCloud = document.getElementById('chart-genres');
+  genreCloud.innerHTML = '';
+  if (!genreEntries.length) {
+    genreCloud.innerHTML = '<div class="empty-state"><div class="icon">🎭</div>Sin géneros aún</div>';
+  } else {
+    genreEntries.slice(0, 20).forEach(([g, count]) => {
+      const pill = document.createElement('span');
+      pill.className = 'genre-pill';
+      const txt = document.createTextNode(g + ' ');
+      const cnt = document.createElement('span');
+      cnt.className = 'count';
+      cnt.textContent = '×' + count;
+      pill.appendChild(txt);
+      pill.appendChild(cnt);
+      genreCloud.appendChild(pill);
+    });
+  }
+
+  // Top
+  // Top rated
+  const listTop = document.getElementById('list-top');
+  listTop.innerHTML = '';
+  if (d.top_rated && d.top_rated.length) {
+    d.top_rated.forEach(a => listTop.appendChild(makeAnimeRow(a, true)));
+  } else {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);font-size:13px';
+    p.textContent = 'Sin datos aún';
+    listTop.appendChild(p);
+  }
+
+  // Recientes
+  const listRecent = document.getElementById('list-recent');
+  listRecent.innerHTML = '';
+  if (d.recently_added && d.recently_added.length) {
+    d.recently_added.forEach(a => listRecent.appendChild(makeAnimeRow(a)));
+  } else {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);font-size:13px';
+    p.textContent = 'Sin datos aún';
+    listRecent.appendChild(p);
+  }
+}
+
+// `loadStats` no tenía try/catch: si /api/stats fallaba (servidor reiniciándose,
+// un corte de red), la excepción abortaba la función a medias y la página se
+// quedaba con guiones en todos los indicadores, para siempre y sin decir por
+// qué. Ahora el fallo se ve y se puede reintentar.
+async function arrancarStats() {
+  try {
+    await loadStats();
+  } catch (e) {
+    const aviso = document.createElement('div');
+    aviso.style.cssText = 'background:var(--card);border:1px solid var(--border);'
+      + 'border-radius:12px;padding:18px;margin-bottom:18px;text-align:center';
+    const txt = document.createElement('div');
+    txt.style.cssText = 'color:var(--muted);font-size:13px;margin-bottom:10px';
+    txt.textContent = 'No se pudieron cargar las estadísticas. '
+      + (e && e.message ? '(' + e.message + ')' : '');
+    const btn = document.createElement('button');
+    btn.className = 'back-btn';
+    btn.textContent = '↻ Reintentar';
+    btn.onclick = () => { aviso.remove(); arrancarStats(); };
+    aviso.appendChild(txt);
+    aviso.appendChild(btn);
+    const main = document.querySelector('main');
+    if (main) main.prepend(aviso);
+  }
+}
+
+arrancarStats();
+
+// v2.4: tiempo hasta completar — derivado de ep_log (primer vs último visionado)
+async function loadCompletion() {
+  const sec = document.getElementById('completion-section');
+  const list = document.getElementById('list-completion');
+  if (!sec || !list) return;
+  const lbl = document.getElementById('lbl-completion');
+  if (lbl) lbl.textContent = '⏱ ' + (T('completion_title') || 'Tiempo hasta completar');
+  try {
+    const r = await fetch('/api/stats/completion');
+    if (!r.ok) return;
+    const d = await r.json();
+    const items = d.animes || [];
+    if (!items.length) return;       // sin datos → la sección queda oculta
+    list.innerHTML = '';
+    items.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'anime-row';
+      const img = document.createElement('img');
+      // src="" haría que el navegador se bajase esta misma página como imagen.
+      if (a.imagen) { img.src = _thumbUrl(a.imagen); img.loading = 'lazy'; }
+      else { img.style.display = 'none'; }
+      img.alt = '';
+      img.onerror = () => { img.style.display = 'none'; };
+      row.appendChild(img);
+      const info = document.createElement('div');
+      info.className = 'info';
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = a.nombre || '';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const dias = a.dias || 0;
+      const span = dias === 0 ? 'en 1 día' : (dias === 1 ? '1 día' : dias + ' días');
+      meta.textContent = a.episodios + ' eps · ' + span;
+      info.appendChild(name);
+      info.appendChild(meta);
+      row.appendChild(info);
+      const badge = document.createElement('span');
+      badge.className = 'score-badge';
+      badge.textContent = dias === 0 ? '⚡' : '📅 ' + dias + 'd';
+      row.appendChild(badge);
+      list.appendChild(row);
+    });
+    sec.style.display = 'block';
+  } catch(_) {}
+}
+loadCompletion();
+
+// v2.2: Heatmap de actividad estilo GitHub contributions
+async function loadHeatmap() {
+  const wrap = document.getElementById('heatmap');
+  const empty = document.getElementById('heatmap-empty');
+  if (!wrap) return;
+  try {
+    const [hmRes, stRes] = await Promise.all([
+      fetch('/api/heatmap?dias=365'),
+      fetch('/api/streak'),
+    ]);
+    const hm = await hmRes.json();
+    const st = await stRes.json();
+
+    document.getElementById('streak-actual').textContent = (st.actual || 0) + ' días';
+    document.getElementById('streak-max').textContent    = (st.max    || 0) + ' días';
+    document.getElementById('heatmap-total').textContent = (hm.total  || 0);
+
+    if (!hm.dias || hm.dias.length === 0) {
+      wrap.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    // Construir 53 semanas x 7 días terminando hoy
+    const byDate = Object.fromEntries(hm.dias.map(d => [d.fecha, d.count]));
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    // Buscar el sábado anterior o el día actual (semana terminada)
+    const end = new Date(today);
+    // Empezamos 52 semanas (364 días) atrás
+    const start = new Date(today); start.setDate(start.getDate() - 363);
+    // Alinear start al lunes
+    while (start.getDay() !== 1) start.setDate(start.getDate() - 1);
+
+    // Calcular máximo para escalar colores
+    const maxCount = Math.max(1, ...Object.values(byDate));
+
+    // El heatmap usa el color de acento elegido en Apariencia (customize.js fija
+    // --accent-rgb). Antes era violeta fijo e ignoraba la personalización.
+    const ACC = (getComputedStyle(document.documentElement)
+                  .getPropertyValue('--accent-rgb').trim()) || '124,58,237';
+    function colorFor(c) {
+      if (!c) return `rgba(${ACC},.06)`;
+      const lvl = Math.ceil((c / maxCount) * 4);
+      const opacities = [0.22, 0.45, 0.68, 0.95];
+      return `rgba(${ACC},${opacities[Math.min(lvl, 4) - 1]})`;
+    }
+
+    // Generar SVG (escala mejor que divs)
+    const CELL = 12, GAP = 3, OFFSET_LEFT = 28, OFFSET_TOP = 18;
+    const weeks = [];
+    let curWeek = [];
+    let cursor = new Date(start);
+    while (cursor <= end) {
+      curWeek.push(new Date(cursor));
+      if (curWeek.length === 7) { weeks.push(curWeek); curWeek = []; }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    if (curWeek.length) weeks.push(curWeek);
+
+    const w = OFFSET_LEFT + weeks.length * (CELL + GAP);
+    const h = OFFSET_TOP + 7 * (CELL + GAP);
+    let svg = `<svg width="${w}" height="${h}" style="display:block">`;
+
+    // Etiquetas de mes (solo cuando el mes cambia)
+    let lastMonth = -1;
+    weeks.forEach((wk, wi) => {
+      const m = wk[0].getMonth();
+      if (m !== lastMonth) {
+        const lbl = wk[0].toLocaleDateString(undefined, {month: 'short'});
+        svg += `<text x="${OFFSET_LEFT + wi*(CELL+GAP)}" y="12" font-size="10" fill="#6b6b88">${lbl}</text>`;
+        lastMonth = m;
+      }
+    });
+
+    // Etiquetas de día de la semana (lun, mié, vie)
+    ['L','','M','','V','',''].forEach((d, i) => {
+      if (d) svg += `<text x="0" y="${OFFSET_TOP + i*(CELL+GAP) + 10}" font-size="9" fill="#6b6b88">${d}</text>`;
+    });
+
+    // v2.2 fix: usar fecha LOCAL, no UTC. `toISOString()` da fecha en UTC,
+    // y la BD guarda con `datetime('now')` en hora local → mismatch entre
+    // los rects pintados y las fechas reales.
+    const localISO = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${da}`;
+    };
+
+    // Celdas
+    weeks.forEach((wk, wi) => {
+      wk.forEach((day, di) => {
+        const iso = localISO(day);
+        const c = byDate[iso] || 0;
+        const future = day > today;
+        const fill = future ? 'transparent' : colorFor(c);
+        const title = future
+          ? iso
+          : (c === 1 ? `${iso}: 1 episodio` : `${iso}: ${c} episodios`);
+        svg += `<rect x="${OFFSET_LEFT + wi*(CELL+GAP)}" y="${OFFSET_TOP + di*(CELL+GAP)}" `
+             + `width="${CELL}" height="${CELL}" rx="2" fill="${fill}">`
+             + `<title>${title}</title></rect>`;
+      });
+    });
+
+    svg += '</svg>';
+    wrap.innerHTML = svg;
+    empty.style.display = 'none';
+  } catch(e) {
+    console.warn('heatmap:', e);
+  }
+}
+loadHeatmap();
+
+// v2.3: exportar "Mi año en anime" como imagen PNG via Canvas
+// — sin libs externas. Datos vienen de /api/stats/wrapped (ya existe).
+async function exportarWrapped() {
+  const btn = event && event.target;
+  if (btn) btn.disabled = true;
+  try {
+    // v2.3: el wrapped ahora filtra por año actual (usa ep_log)
+    const yr = new Date().getFullYear();
+    const r = await fetch('/api/stats/wrapped?year=' + yr);
+    if (!r.ok) throw new Error('No data');
+    const d = await r.json();
+
+    const W = 1080, H = 1080;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo: gradiente morado oscuro
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#1e1a30');
+    bg.addColorStop(1, '#0a0814');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Halo decorativo — con el color de acento elegido por el usuario
+    const ACC = (getComputedStyle(document.documentElement)
+                  .getPropertyValue('--accent-rgb').trim()) || '124,58,237';
+    const halo = ctx.createRadialGradient(W/2, 200, 0, W/2, 200, 500);
+    halo.addColorStop(0, `rgba(${ACC},.35)`);
+    halo.addColorStop(1, `rgba(${ACC},0)`);
+    ctx.fillStyle = halo;
+    ctx.fillRect(0, 0, W, 600);
+
+    // Título (la tarjeta compartible seguía con la marca antigua)
+    ctx.fillStyle = `rgba(${ACC},1)`;
+    ctx.font = '700 28px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('MIRARU', W/2, 100);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 64px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText('Mi año en anime', W/2, 200);
+
+    const year = new Date().getFullYear();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.font = '400 22px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText(String(year), W/2, 240);
+
+    // Stats principales
+    const bigStat = (x, y, value, label) => {
+      ctx.fillStyle = `rgba(${ACC},1)`;
+      ctx.font = '800 86px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(String(value), x, y);
+      ctx.fillStyle = 'rgba(255,255,255,.65)';
+      ctx.font = '500 18px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(label, x, y + 36);
+    };
+    bigStat(W*0.20, 380, d.total_animes    || 0, 'Animes');
+    bigStat(W*0.50, 380, d.total_episodios || 0, 'Episodios');
+    // v2.3: horas con 1 decimal explícito (antes mostraba "0" feo cuando era 0.0)
+    const horas = Number(d.horas_estimadas || 0);
+    bigStat(W*0.80, 380, horas.toFixed(1).replace('.0', ''), 'Horas');
+
+    // Top géneros (barras)
+    const tg = d.top_generos || [];
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 26px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText('Tus géneros favoritos', 80, 540);
+    const maxCount = Math.max(1, ...tg.map(g => g.count));
+    tg.slice(0, 5).forEach((g, i) => {
+      const y = 580 + i * 50;
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.font = '600 18px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(g.genero, 80, y + 22);
+      // Barra
+      const barX = 280, barW = W - 280 - 80, h = 22;
+      ctx.fillStyle = `rgba(${ACC},.2)`;
+      ctx.fillRect(barX, y + 4, barW, h);
+      const fill = barW * (g.count / maxCount);
+      const grad = ctx.createLinearGradient(barX, 0, barX + fill, 0);
+      grad.addColorStop(0, `rgba(${ACC},.75)`);
+      grad.addColorStop(1, `rgba(${ACC},1)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(barX, y + 4, fill, h);
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 16px "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(String(g.count), W - 88, y + 22);
+      ctx.textAlign = 'left';
+    });
+
+    // Top 5 mejor valorados
+    const tv = d.mejor_valorados || [];
+    ctx.fillStyle = '#fff';
+    ctx.font = '700 26px "Segoe UI", system-ui, sans-serif';
+    ctx.fillText('Mejor valorados', 80, 880);
+    tv.slice(0, 3).forEach((a, i) => {
+      const y = 920 + i * 36;
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '700 18px "Segoe UI", system-ui, sans-serif';
+      ctx.fillText('★ ' + (a.puntuacion || 0).toFixed(1), 80, y);
+      ctx.fillStyle = '#fff';
+      ctx.font = '500 18px "Segoe UI", system-ui, sans-serif';
+      const name = a.nombre.length > 50 ? a.nombre.slice(0, 47) + '…' : a.nombre;
+      ctx.fillText(name, 180, y);
+    });
+
+    // Pie
+    ctx.fillStyle = 'rgba(255,255,255,.3)';
+    ctx.font = '400 14px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W/2, H - 40);
+
+    // Descargar
+    const link = document.createElement('a');
+    link.download = `mi-año-en-anime-${year}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('No se pudo generar la imagen: ' + (e.message || 'error'));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+</script>
+
+<script>
+// Gamificación: nivel + XP + racha de apertura + logros (idea de Brasa/Lumbre).
+(async function loadGami(){
+  // 1) registrar la apertura de hoy (racha diaria) — idempotente por día
+  try { await fetch('/api/streak/checkin', {method:'POST'}); } catch(_){}
+  // 2) pintar estado de gamificación
+  try{
+    const r = await fetch('/api/gamificacion');
+    if(!r.ok) return;
+    const d = await r.json();
+    const gs = document.getElementById('gami-section');
+    if(gs){
+      const xp = d.xp || {};
+      const lvl = d.nivel || 1;
+      document.getElementById('gami-level').textContent = 'Nivel ' + lvl;
+      document.getElementById('gami-xpbar').style.width = Math.round((xp.progreso||0)*100) + '%';
+      document.getElementById('gami-xptext').textContent =
+        (xp.xp||0) + ' XP · faltan ' + (xp.falta||0) + ' para nivel ' + (lvl+1);
+      const os = (d.racha_apertura||{}).actual || 0;
+      document.getElementById('gami-open-streak').textContent = '🔥 ' + os;
+      gs.style.display = 'block';
+    }
+    // Rango ninja
+    var rn = d.rango_ninja;
+    if(rn){
+      var rs = document.getElementById('rango-section');
+      if(rs){
+        document.getElementById('rango-img').src = '/static/emblems/'+rn.emblema+'.svg';
+        document.getElementById('rango-nombre').textContent = rn.nombre;
+        document.getElementById('rango-desc').textContent = rn.desc + ' — ' + rn.horas + 'h vistas';
+        if(rn.siguiente){
+          document.getElementById('rango-bar-wrap').style.display = 'block';
+          document.getElementById('rango-bar').style.width = Math.round(rn.progreso*100)+'%';
+          document.getElementById('rango-next').textContent =
+            'Siguiente: '+rn.siguiente+' ('+rn.siguiente_umbral+'h)';
+        }
+        rs.style.display = 'block';
+      }
+    }
+    const lg = d.logros || {};
+    const grid = document.getElementById('logros-grid');
+    const sec  = document.getElementById('logros-section');
+    if(grid && sec){
+      const cnt = document.getElementById('logros-count');
+      if(cnt) cnt.textContent = (lg.desbloqueados||0) + '/' + (lg.total||0);
+      // Emblemas conseguidos desde la última visita → se resaltan con un latido
+      var vistos = [];
+      try { vistos = (JSON.parse(localStorage.getItem('miraru_gami_seen')||'{}').ids) || []; } catch(_) {}
+      grid.innerHTML = (lg.logros||[]).map(function(l){
+        var nuevo = l.unlocked && vistos.length && vistos.indexOf(l.id) === -1;
+        var dim = l.unlocked ? '' : 'opacity:.32;filter:grayscale(1)';
+        var glow = l.unlocked ? 'filter:drop-shadow(0 4px 14px rgba(var(--accent-rgb),.5))' : '';
+        var col = l.unlocked ? 'var(--light)' : 'var(--muted)';
+        var estado = l.unlocked ? '✅' : '🔒';
+        return '<div class="logro-item" style="'+dim+'">'
+          + '<div class="logro-tip"><div class="tip-name">'+estado+' '+l.nombre+'</div>'
+          + '<div class="tip-desc">'+l.desc+'</div></div>'
+          + (nuevo ? '<span style="position:absolute;top:-3px;right:6px;background:var(--accent);color:#fff;'
+                   + 'font-size:8px;font-weight:800;letter-spacing:.4px;border-radius:99px;padding:2px 6px;'
+                   + 'box-shadow:var(--shadow-accent)">NUEVO</span>' : '')
+          + '<img class="'+(nuevo?'emblem-new':'')+'" src="/static/emblems/'+l.emblema+'.svg" alt="" width="60" height="60" style="'+glow+'">'
+          + '<div style="font-size:10px;margin-top:5px;color:'+col+';font-weight:600;line-height:1.2">'+l.nombre+'</div>'
+          + '</div>';
+      }).join('');
+      sec.style.display = 'block';
+    }
+  }catch(_){}
+})();
+</script>
+
+<!-- Twitter/X button -->
+<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+</svg>
+</a>
+
+<!-- Instagram button -->
+<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
+   style="position:fixed;bottom:20px;right:68px;z-index:50;
+   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
+   display:flex;align-items:center;justify-content:center;
+   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
+   text-decoration:none;opacity:0.85">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+  </svg>
+</a>
+</body>
+</html>

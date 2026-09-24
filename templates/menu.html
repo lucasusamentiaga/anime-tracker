@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/static/icon.ico">
+<title>Miraru</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-serif;height:100vh;overflow:hidden}
+#bg{position:fixed;inset:0;z-index:0}
+#glow{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* UI central */
+.ui{position:relative;z-index:10;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+
+/* Logo más grande */
+.logo-wrap{margin-bottom:24px;opacity:0;animation:fadeUp 1s .1s cubic-bezier(.16,1,.3,1) forwards}
+.logo-wrap img{
+  width:160px;height:160px;
+  border-radius:50%;object-fit:cover;
+  border:4px solid rgba(167,139,250,.85);
+  box-shadow:0 0 0 0 rgba(124,58,237,.6);
+  animation:pring 2.8s ease 1.4s infinite;
+}
+@keyframes pring{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.6)}50%{box-shadow:0 0 0 22px rgba(124,58,237,0)}}
+
+/* SVG título */
+#title-svg{width:min(680px,92vw);height:auto;margin-bottom:10px;overflow:visible;
+  filter:drop-shadow(0 0 4px rgba(183,148,255,.9)) drop-shadow(0 0 12px rgba(139,92,246,.7)) drop-shadow(0 0 28px rgba(124,58,237,.5)) drop-shadow(0 0 48px rgba(217,70,239,.32));
+  animation:neonPulse 2.8s ease-in-out infinite alternate}
+@keyframes neonPulse{
+  from{filter:drop-shadow(0 0 4px rgba(183,148,255,.85)) drop-shadow(0 0 10px rgba(139,92,246,.6)) drop-shadow(0 0 22px rgba(124,58,237,.4)) drop-shadow(0 0 40px rgba(217,70,239,.28))}
+  to{filter:drop-shadow(0 0 7px rgba(183,148,255,1)) drop-shadow(0 0 17px rgba(139,92,246,.85)) drop-shadow(0 0 36px rgba(124,58,237,.6)) drop-shadow(0 0 62px rgba(217,70,239,.45))}
+}
+@media (prefers-reduced-motion:reduce){#title-svg{animation:none}}
+#title-svg text{font-family:"Segoe UI",system-ui,sans-serif;font-weight:800;font-size:76px;letter-spacing:-2px;fill:none;stroke:url(#tg);stroke-width:1.5;stroke-linecap:round}
+#title-fill{font-family:"Segoe UI",system-ui,sans-serif;font-weight:800;font-size:76px;letter-spacing:-2px;fill:url(#tgf);opacity:0}
+
+/* Subtítulo */
+.subtitle-wrap{height:26px;overflow:hidden;margin-bottom:34px}
+.sw{display:inline-block;font-size:12px;letter-spacing:3.5px;text-transform:uppercase;color:rgba(167,139,250,.75);opacity:0;transform:translateY(100%)}
+
+/* Botón */
+.enter-btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;padding:13px 34px;border-radius:99px;font-size:15px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:none;text-decoration:none;box-shadow:0 0 28px rgba(124,58,237,.4),0 4px 20px rgba(0,0,0,.5);transition:transform .2s,box-shadow .2s;opacity:0;animation:fadeUp .8s .95s cubic-bezier(.16,1,.3,1) forwards;position:relative;overflow:hidden}
+.enter-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);border-radius:99px}
+.enter-btn:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 0 50px rgba(124,58,237,.65),0 8px 30px rgba(0,0,0,.5)}
+.enter-btn:active{transform:scale(.97)}
+.arrow{font-size:18px;transition:transform .2s}.enter-btn:hover .arrow{transform:translateX(5px)}
+
+/* Stats */
+.stats-row{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;justify-content:center;opacity:0;animation:fadeUp .8s 1.15s cubic-bezier(.16,1,.3,1) forwards}
+.stat-pill{background:rgba(26,26,36,.8);border:1px solid rgba(124,58,237,.3);border-radius:99px;padding:4px 13px;font-size:11px;color:#a78bfa;backdrop-filter:blur(8px)}
+
+/* Lang */
+.lang-bar{position:fixed;top:18px;right:18px;z-index:20;display:flex;gap:5px;opacity:0;animation:fadeDown .8s .5s ease forwards}
+.lang-btn{background:rgba(15,15,20,.85);border:1px solid rgba(124,58,237,.3);border-radius:7px;color:#a78bfa;padding:5px 9px;font-size:11px;cursor:pointer;backdrop-filter:blur(10px);transition:all .15s}
+.lang-btn:hover,.lang-btn.active{background:rgba(124,58,237,.35);border-color:rgba(124,58,237,.7);color:#fff}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Modo claro ─────────────────────────────────────────────────────────── */
+[data-theme=light] body{background:#f0eff8;color:#1e1b2e}
+[data-theme=light] .stat-pill{background:rgba(255,255,255,.9);border-color:rgba(79,70,229,.2);color:#1e1b2e}
+[data-theme=light] .lang-btn{background:rgba(255,255,255,.9);border-color:rgba(79,70,229,.2);color:#1e1b2e}
+[data-theme=light] .lang-btn:hover,[data-theme=light] .lang-btn.active{background:rgba(79,70,229,.12);border-color:rgba(79,70,229,.5)}
+[data-theme=light] .enter-btn{background:linear-gradient(135deg,#4f46e5,#7c3aed)}
+</style>
+<!-- Sistema visual unificado (theme.css) -->
+<link rel="stylesheet" href="/static/theme.css">
+<script src="/static/customize.js"></script>
+</head>
+<body>
+<script>try{if(localStorage.getItem('theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(_){}</script>
+
+<canvas id="bg"></canvas>
+<div id="glow"></div>
+
+<div class="lang-bar">
+  <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+  <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" data-lang="fr" onclick="setLang('fr')">FR</button>
+  <button class="lang-btn" data-lang="de" onclick="setLang('de')">DE</button>
+  <button class="lang-btn" id="btn-salir" onclick="salirDeMiraru()"
+          title="Cierra Miraru por completo (el servidor deja de correr)">⏻ Salir</button>
+</div>
+
+<div class="ui">
+  <div class="logo-wrap">
+    <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+  </div>
+
+  <svg id="title-svg" viewBox="0 0 680 90" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="tg"  x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#ffffff"/>
+        <stop offset="50%"  stop-color="#a78bfa"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+      <linearGradient id="tgf" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#ffffff"/>
+        <stop offset="50%"  stop-color="#a78bfa"/>
+        <stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+    </defs>
+    <text id="title-stroke" x="50%" y="76" text-anchor="middle">Miraru</text>
+    <text id="title-fill"   x="50%" y="76" text-anchor="middle">Miraru</text>
+  </svg>
+
+  <div class="subtitle-wrap" id="sub-wrap"></div>
+
+  <a href="/app" class="enter-btn">
+    <span id="enter-txt">Entrar</span>
+    <span class="arrow">→</span>
+  </a>
+
+  <div class="stats-row" id="stats-row"></div>
+  <div style="margin-top:12px;opacity:0;animation:fadeUp .8s 1.3s cubic-bezier(.16,1,.3,1) forwards">
+    <a href="/novedades" style="display:inline-flex;align-items:center;gap:6px;color:var(--light);font-size:12px;text-decoration:none;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);padding:5px 14px;border-radius:99px">🎬 Ver novedades</a>
+  </div>
+  <!-- v2.4: widget "Continuar viendo" — gancho diario, solo si hay animes en curso -->
+  <div id="home-continue" style="margin-top:20px;width:min(540px,94vw);display:none;opacity:0;transition:opacity .7s"></div>
+</div>
+
+<!-- v6: acceso a Películas y Series (abajo izquierda) -->
+<a href="/peliculas" id="media-tab" title="Películas y Series (no-anime)">
+  <span style="font-size:17px">🎬</span>
+  <span class="media-tab-label">Películas y Series</span>
+</a>
+<style>
+#media-tab{position:fixed;bottom:20px;left:20px;z-index:50;display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:14px;text-decoration:none;color:#fff;font-size:13px;font-weight:700;
+  background:linear-gradient(135deg,#7c3aed,#a855f7,#d946ef);box-shadow:0 6px 22px rgba(124,58,237,.4);
+  transition:transform .2s,box-shadow .2s;animation:fadeUp .8s 1.5s cubic-bezier(.16,1,.3,1) backwards}
+#media-tab:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 10px 30px rgba(217,70,239,.5)}
+.media-tab-label{white-space:nowrap}
+@media (max-width:560px){.media-tab-label{display:none}#media-tab{padding:12px;border-radius:50%}}
+</style>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<script>
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const TX = {
+  es:{sub:"ANIME · SERIES · PELÍCULAS", enter:"Entrar",    t:"{n} títulos", w:"{n} viendo",    c:"{n} completados", cont:"Continuar viendo"},
+  en:{sub:"ANIME · SERIES · MOVIES",    enter:"Enter",     t:"{n} titles", w:"{n} watching",  c:"{n} completed",   cont:"Continue watching"},
+  fr:{sub:"ANIME · SÉRIES · FILMS",     enter:"Entrer",    t:"{n} titres", w:"{n} en cours",  c:"{n} terminés",    cont:"Continuer"},
+  de:{sub:"ANIME · SERIEN · FILME",     enter:"Eintreten", t:"{n} Titel",  w:"{n} am Schauen",c:"{n} fertig",      cont:"Weiterschauen"},
+};
+let LANG = 'es';
+const T = (k, n = 0) => ((TX[LANG] || TX.es)[k] || k).replace('{n}', n);
+
+async function setLang(l) {
+  LANG = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+  await fetch('/api/lang', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lang:l})}).catch(()=>{});
+  document.getElementById('enter-txt').textContent = T('enter');
+  buildSub();
+}
+
+// ── Salir de Miraru ───────────────────────────────────────────────────────────
+// Miraru se lanza sin consola, así que este es el modo de apagarlo del todo.
+// Sin esto el servidor se quedaría corriendo de fondo sin forma clara de pararlo.
+async function salirDeMiraru() {
+  if (!confirm('¿Cerrar Miraru?\n\nSe cerrará el servidor y esta pestaña dejará de funcionar.'))
+    return;
+  const btn = document.getElementById('btn-salir');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }
+  try {
+    await fetch('/api/apagar', {method: 'POST'});
+  } catch (_) {
+    // El servidor puede morir antes de contestar; es el resultado esperado.
+  }
+  document.body.innerHTML =
+    '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;'
+  + 'justify-content:center;gap:10px;font-family:system-ui;color:#a78bfa;text-align:center">'
+  + '<div style="font-size:44px">⏻</div>'
+  + '<div style="font-size:18px;font-weight:700">Miraru se ha cerrado</div>'
+  + '<div style="font-size:13px;color:#6b6b88">Ya puedes cerrar esta pestaña.<br>'
+  + 'Para volver a abrirlo, doble clic en <b>Miraru.vbs</b> en la carpeta del proyecto.</div></div>';
+}
+
+// ── Canvas interactivo ────────────────────────────────────────────────────────
+(function() {
+  const cv = document.getElementById('bg');
+  const cx = cv.getContext('2d');
+  const glow = document.getElementById('glow');
+  let W, H, mx = 400, my = 300;
+
+  // Color de las partículas = acento elegido por el usuario (customize.js fija
+  // --accent-rgb en :root). Se relee al cambiarlo desde el panel de apariencia.
+  let ACC = '167,139,250';
+  const leerAcento = () => {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim();
+    if (v) ACC = v;
+  };
+  leerAcento();
+  new MutationObserver(leerAcento).observe(document.documentElement,
+    {attributes: true, attributeFilter: ['style', 'data-theme']});
+
+  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  window.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    glow.style.background = `radial-gradient(600px circle at ${mx}px ${my}px, rgba(${ACC},.13) 0%, transparent 70%)`;
+  }, {passive:true});
+
+  // Partículas — inicializar con posición real del canvas
+  const N = 90;
+  const ps = Array.from({length: N}, () => {
+    const a = Math.random() * .45 + .08;
+    return {
+      x: Math.random() * (innerWidth  || 1920),
+      y: Math.random() * (innerHeight || 1080),
+      vx: (Math.random() - .5) * .3,
+      vy: -(Math.random() * .35 + .08),
+      r:  Math.random() * 1.3 + .3,
+      a, ba: a,
+    };
+  });
+
+  let raf;
+  function frame() {
+    cx.clearRect(0, 0, W, H);
+
+    // Actualizar y dibujar partículas
+    for (const p of ps) {
+      const dx = p.x - mx, dy = p.y - my;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 130 * 130) {
+        const d = Math.sqrt(d2);
+        const f = (130 - d) / 130;
+        if (d > 0) { p.x += dx / d * f * 2; p.y += dy / d * f * 2; }
+        p.a = Math.min(.95, p.ba + f * .8);
+      } else {
+        p.a += (p.ba - p.a) * .06;
+      }
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -8)  { p.x = Math.random() * W; p.y = H + 5; }
+      if (p.x < 0)   p.x = W;
+      if (p.x > W)   p.x = 0;
+      cx.beginPath();
+      cx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      cx.fillStyle = `rgba(${ACC},${p.a.toFixed(2)})`;
+      cx.fill();
+    }
+
+    // Líneas de conexión cerca del cursor (optimizado: sólo las cercanas)
+    const near = ps.filter(p => {
+      const dx = p.x - mx, dy = p.y - my;
+      return dx * dx + dy * dy < 160 * 160;
+    });
+    for (let i = 0; i < near.length; i++) {
+      for (let j = i + 1; j < near.length; j++) {
+        const dx = near[i].x - near[j].x, dy = near[i].y - near[j].y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 90 * 90) {
+          cx.beginPath();
+          cx.moveTo(near[i].x, near[i].y);
+          cx.lineTo(near[j].x, near[j].y);
+          cx.strokeStyle = `rgba(${ACC},${(.35 * (1 - Math.sqrt(d2) / 90)).toFixed(2)})`;
+          cx.lineWidth = .6;
+          cx.stroke();
+        }
+      }
+    }
+
+    raf = requestAnimationFrame(frame);
+  }
+  frame();
+
+  // Pausar animación cuando la pestaña está oculta (ahorro CPU)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cancelAnimationFrame(raf);
+    else frame();
+  });
+})();
+
+// ── Subtítulo ─────────────────────────────────────────────────────────────────
+function buildSub() {
+  const wrap = document.getElementById('sub-wrap');
+  const words = T('sub').split(' ');
+  wrap.innerHTML = words.map((w, i) => `<span class="sw" id="sw${i}">${w}&nbsp;</span>`).join('');
+  if (window.anime) {
+    anime({
+      targets: '.sw',
+      translateY: ['100%', '0%'],
+      opacity: [0, 1],
+      duration: 550,
+      delay: anime.stagger(75, {start: 350}),
+      easing: 'cubicBezier(.16,1,.3,1)',
+    });
+  } else {
+    document.querySelectorAll('.sw').forEach((el, i) => {
+      setTimeout(() => {
+        el.style.transition = 'opacity .5s, transform .5s';
+        el.style.opacity = 1;
+        el.style.transform = 'translateY(0)';
+      }, 350 + i * 75);
+    });
+  }
+}
+
+// ── Título SVG drawable ───────────────────────────────────────────────────────
+function animTitle() {
+  const s = document.getElementById('title-stroke');
+  const f = document.getElementById('title-fill');
+  if (!s) return;
+  const LEN = 2200;
+  s.style.strokeDasharray  = LEN;
+  s.style.strokeDashoffset = LEN;
+  if (window.anime) {
+    anime({
+      targets: s,
+      strokeDashoffset: [LEN, 0],
+      duration: 1700,
+      delay: 150,
+      easing: 'easeInOutQuad',
+      complete() {
+        anime({targets: f, opacity: [0, 1], duration: 550, easing: 'easeOutQuad'});
+        anime({targets: s, opacity: [1, 0], duration: 350, delay: 250, easing: 'easeInQuad'});
+      }
+    });
+  } else {
+    s.style.strokeDashoffset = 0;
+    f.style.opacity = 1;
+  }
+}
+
+
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const {animes = []} = await (await fetch('/api/animes/slim')).json();
+    const w = animes.filter(a => ['viendo','watching'].includes(a.estado_usuario)).length;
+    const c = animes.filter(a => ['completado','completed'].includes(a.estado_usuario)).length;
+    let html = '';
+    if (animes.length){
+      html = `<span class="stat-pill">${T('t', animes.length)}</span>
+       <span class="stat-pill">${T('w', w)}</span>
+       <span class="stat-pill">${T('c', c)}</span>`;
+    }
+    // v2.6: incluir pelis/series si hay
+    try {
+      const ms = await (await fetch('/api/media/stats')).json();
+      if (ms && ms.total > 0){
+        html += `<span class="stat-pill">🎬 ${ms.peliculas} · 📺 ${ms.series}</span>`;
+      }
+    } catch(_) {}
+    // Racha de apertura diaria: registra la apertura de hoy y muestra la racha
+    try {
+      const rk = await (await fetch('/api/streak/checkin', {method:'POST'})).json();
+      if (rk && rk.actual > 0){
+        html += `<span class="stat-pill" title="Días seguidos abriendo Miraru">🔥 ${rk.actual} ${rk.actual === 1 ? 'día' : 'días'}</span>`;
+      }
+    } catch(_) {}
+    if (html) document.getElementById('stats-row').innerHTML = html;
+  } catch(_) {}
+}
+
+// ── Continuar viendo ───────────────────────────────────────────────────────────
+async function loadContinue() {
+  const wrap = document.getElementById('home-continue');
+  if (!wrap) return;
+  try {
+    const r = await fetch('/api/continuar');
+    if (!r.ok) return;
+    const d = await r.json();
+    const items = (d.animes || []).slice(0, 4);
+    if (!items.length) return;
+
+    wrap.innerHTML = '';
+    const head = document.createElement('div');
+    head.textContent = '▶ ' + T('cont');
+    head.style.cssText = 'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(167,139,250,.75);margin-bottom:10px';
+    wrap.appendChild(head);
+
+    const strip = document.createElement('div');
+    strip.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap';
+    items.forEach(a => {
+      const card = document.createElement('div');
+      card.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(26,26,36,.8);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:6px 8px;backdrop-filter:blur(8px);cursor:pointer;max-width:230px';
+      card.onclick = () => location.href = '/app';
+
+      const img = document.createElement('img');
+      miraruPortada(img, a.imagen);
+      img.style.cssText = 'width:30px;height:42px;object-fit:cover;border-radius:5px;flex-shrink:0;background:#1a1a24';
+      img.onerror = () => { img.onerror = null; img.removeAttribute('src'); img.style.background = '#1a1a24'; };
+
+      const info = document.createElement('div');
+      info.style.cssText = 'text-align:left;min-width:0';
+      const name = document.createElement('div');
+      name.style.cssText = 'font-size:12px;font-weight:600;color:#e2e2e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px';
+      name.textContent = a.nombre;
+      const next = document.createElement('div');
+      next.style.cssText = 'font-size:10px;color:#a78bfa';
+      const total = parseInt(a.capitulos) || '?';
+      next.textContent = 'Ep ' + ((a.episodios_vistos || 0) + 1) + (total !== '?' ? ' / ' + total : '');
+      info.appendChild(name);
+      info.appendChild(next);
+
+      const plus = document.createElement('button');
+      plus.textContent = '+1';
+      plus.style.cssText = 'background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0';
+      plus.onclick = async (e) => {
+        e.stopPropagation();
+        plus.disabled = true;
+        try { await fetch('/api/animes/' + encodeURIComponent(a.nombre) + '/plus1', {method:'POST'}); } catch(_) {}
+        loadContinue();
+        loadStats();
+      };
+
+      card.appendChild(img);
+      card.appendChild(info);
+      card.appendChild(plus);
+      strip.appendChild(card);
+    });
+    wrap.appendChild(strip);
+    wrap.style.display = 'block';
+    requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+  } catch(_) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const {lang} = await (await fetch('/api/setup/status')).json();
+    if (lang) LANG = lang;
+  } catch(_) {}
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === LANG));
+  document.getElementById('enter-txt').textContent = T('enter');
+  buildSub();
+  animTitle();
+  loadStats();
+  loadContinue();
+}
+init();
+
+// v2.4: Enter entra a la app (salvo si el foco está en un botón/enlace/campo).
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' &&
+      !['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+    location.href = '/app';
+  }
+});
+</script>
+<div style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(167,139,250,.4)">v2.4.0</div>
+</body>
+</html>

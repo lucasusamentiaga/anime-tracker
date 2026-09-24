@@ -1,0 +1,169 @@
+name: Miraru CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Linting rápido: Ruff detecta imports muertos, variables sin usar y
+  #    bugs sutiles en milisegundos. Config en pyproject.toml.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: check --output-format=github
+
+  # ── Secretos: evita que credentials.json o claves de TMDB/Gmail acaben en
+  #    el historial (una filtración en repo público es irreversible).
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # gitleaks necesita el historial completo
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  syntax-check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Check Python syntax
+        run: |
+          set -e
+          echo "Checking all Python files..."
+          python -m py_compile main.py
+          python -m py_compile core.py
+          python -m py_compile database.py
+          python -m py_compile migrations.py
+          python -m py_compile stats_util.py
+          python -m py_compile share_page.py
+          python -m py_compile achievements.py
+          python -m py_compile gamificacion.py
+          python -m py_compile gateway_anime.py
+          python -m py_compile noticias.py
+          python -m py_compile themes_api.py
+          python -m py_compile personajes_api.py
+          python -m py_compile discord_presence.py
+          python -m py_compile fuentes_respaldo.py
+          python -m py_compile sheets_sync.py
+          python -m py_compile i18n.py
+          python -m py_compile launcher.py
+          python -m py_compile build.py
+          for f in scrapers/*.py routers/*.py; do
+            python -m py_compile "$f"
+          done
+          echo "All files compile successfully"
+
+      # cmd.exe lee los .bat por desplazamiento de bytes MIENTRAS los ejecuta.
+      # Un caracter multibyte (una tilde, una linea de recuadro) o un "chcp" a
+      # mitad de archivo le hacen perder la posicion: en vez de fallar limpio,
+      # ejecuta fragmentos sueltos de linea y el lanzador no arranca. Ya paso
+      # una vez con Miraru.bat, asi que aqui se queda vigilado.
+      - name: Los .bat deben ser ASCII puro y sin chcp
+        run: |
+          set -e
+          fallo=0
+          for f in *.bat; do
+            [ -e "$f" ] || continue
+            if LC_ALL=C grep -qP '[^\x00-\x7F]' "$f"; then
+              echo "ERROR: $f contiene bytes no-ASCII:"
+              LC_ALL=C grep -nP '[^\x00-\x7F]' "$f" | head -5
+              fallo=1
+            fi
+            if grep -qi '^\s*chcp' "$f"; then
+              echo "ERROR: $f usa chcp (descoloca el parser de cmd.exe)"
+              fallo=1
+            fi
+          done
+          [ "$fallo" -eq 0 ] && echo "Los .bat estan limpios"
+          exit $fallo
+
+      - name: Verify no duplicate routes
+        run: |
+          python << 'EOF'
+          import glob, re
+          from collections import Counter
+          # main.py usa @app.<verbo>("/ruta"); los routers usan @router con prefix.
+          rutas = []
+          src = open('main.py').read()
+          rutas += [(m, p) for m, p in re.findall(r'@app\.(\w+)\("([^"]+)"', src)]
+          for f in glob.glob('routers/*.py'):
+              s = open(f).read()
+              pref = re.search(r'APIRouter\([^)]*prefix\s*=\s*"([^"]*)"', s)
+              pref = pref.group(1) if pref else ''
+              rutas += [(m, pref + p) for m, p in re.findall(r'@router\.(\w+)\("([^"]*)"', s)]
+          dupes = {k: v for k, v in Counter(f"{m}:{p}" for m, p in rutas).items() if v > 1}
+          assert not dupes, f"Duplicate routes: {dupes}"
+          print(f"OK: {len(rutas)} routes (main + routers), no duplicates")
+          EOF
+
+      - name: Verify schema consistency
+        run: |
+          python << 'EOF'
+          db = open('database.py').read()
+          sheets = open('sheets_sync.py').read()
+          main = open('main.py').read()
+          for col in ['temporada', 'lista_personalizada', 'favorito', 'notif_activa']:
+              assert col in db, f"{col} missing from database.py"
+              assert col in sheets, f"{col} missing from sheets_sync.py"
+              assert col in main, f"{col} missing from main.py"
+          print("Schema consistency OK")
+          EOF
+
+      - name: Verify all JS onclick functions defined
+        run: |
+          python << 'EOF'
+          import re
+          idx = open('templates/index.html').read()
+          called = set(re.findall(r"(?:onclick|onchange|oninput|onkeydown)=['\"][^'\"]*?\b([a-zA-Z_]\w*)\(", idx))
+          called -= {'event','this','if','confirm','parseInt','parseFloat','encodeURIComponent','setTimeout','clearTimeout','Date','Math'}
+          defined = set(re.findall(r'(?:async )?function ([a-zA-Z_]\w*)\s*\(', idx))
+          defined |= set(re.findall(r'(?:const|let|var)\s+([a-zA-Z_]\w*)\s*=\s*(?:async\s*)?\(', idx))
+          missing = called - defined
+          assert not missing, f"Undefined JS functions: {missing}"
+          print(f"OK: {len(defined)} JS functions defined")
+          EOF
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Lo mínimo para que los tests corran: pytest + libs que importan los
+          # scrapers (requests, beautifulsoup4). Los tests NO importan main, así
+          # que no hace falta FastAPI/uvicorn ni las libs de Google.
+          pip install pytest requests beautifulsoup4
+
+      - name: Run unit tests
+        run: pytest tests/ -v --tb=short

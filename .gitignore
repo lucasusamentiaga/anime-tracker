@@ -1,0 +1,40 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.spec
+
+# Build output
+dist/
+_build_tmp/
+build/
+
+# App móvil (Expo/React Native)
+node_modules/
+mobile-expo/.expo/
+mobile-expo/android/
+mobile-expo/ios/
+
+# Runtime data (personal, generated)
+.miraru_acceso_creado
+arranque.log
+anime_tracker.db
+credentials.json
+avatar.*
+*.log
+backups/
+
+# Dev only
+make_release.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+.pytest_cache/
+tests/__pycache__/
+*.rar
+*.zip

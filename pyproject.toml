@@ -1,0 +1,46 @@
+[tool.ruff]
+target-version = "py39"          # el CI compila desde 3.9
+line-length = 110
+exclude = [
+    "venv", ".venv", "dist", "_build_tmp", "build",
+    "mobile-expo", ".pytest_cache", "__pycache__",
+]
+
+[tool.ruff.lint]
+# Conjunto pragmático: errores reales y limpieza, sin imponer un estilo que
+# obligue a reescribir el proyecto entero.
+select = [
+    "E",    # pycodestyle (errores)
+    "F",    # pyflakes: imports/variables sin usar, nombres indefinidos
+    "W",    # avisos de espacios en blanco
+    "I",    # orden de imports
+    "UP",   # modernizaciones de sintaxis
+    "B",    # flake8-bugbear: bugs sutiles (argumentos mutables por defecto…)
+    "C4",   # comprensiones innecesarias
+    "SIM",  # simplificaciones
+]
+ignore = [
+    "E501",   # longitud de línea: ya la controla el formateador
+    "E402",   # imports no al principio: necesario tras crear `app` en main.py
+    "B008",   # llamadas en argumentos por defecto: patrón normal en FastAPI (Depends/File)
+    "SIM105", # contextlib.suppress no siempre es más legible que try/except: pass
+
+    # ── Estilo que NO se aplica a este proyecto ───────────────────────────────
+    # UP045/UP007 quieren `str | None` en vez de `Optional[str]`. Aquí sería un
+    # error: Pydantic evalúa las anotaciones en tiempo de ejecución y el objetivo
+    # incluye Python 3.9, donde esa sintaxis revienta fuera de `annotations`.
+    "UP045", "UP007",
+    "E701", "E702",   # one-liners compactos usados a propósito (mapas, guardas)
+    "E741",           # `l` como variable de bucle en comprensiones cortas
+    "E731",           # lambdas asignadas: usadas como helpers locales breves
+    "B904",           # raise ... from: el detalle interno no aporta al usuario
+]
+
+[tool.ruff.lint.per-file-ignores]
+# En los tests se permiten imports "sin usar" (fixtures) y asserts largos.
+"tests/*" = ["F401", "E731"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Evita que pytest recorra venv/dist buscando tests.
+norecursedirs = ["venv", ".venv", "dist", "_build_tmp", "mobile-expo", "node_modules"]

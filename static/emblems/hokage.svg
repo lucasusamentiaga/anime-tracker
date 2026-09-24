@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="hokage">
+<defs>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#f59e0b"/><stop offset=".5" stop-color="#ef4444"/><stop offset="1" stop-color="#7c3aed"/>
+</linearGradient>
+<radialGradient id="h" cx=".32" cy=".26" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs>
+<circle cx="32" cy="32" r="30" fill="url(#g)"/>
+<circle cx="32" cy="32" r="30" fill="url(#h)"/>
+<path d="M32 12l3 8 8-3-4 7 7 4-8 3 3 8-6-6-6 6 3-8-8-3 7-4-4-7 8 3z" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/>
+<text x="32" y="52" text-anchor="middle" fill="#fff" font-size="8" font-weight="800" font-family="sans-serif" letter-spacing=".5">火</text>
+</svg>

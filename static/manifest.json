@@ -1,0 +1,40 @@
+{
+  "name": "Miraru",
+  "short_name": "Miraru",
+  "description": "Tu biblioteca personal de anime, series y películas: seguimiento de episodios, estadísticas y notificaciones",
+  "lang": "es",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0812",
+  "theme_color": "#7c3aed",
+  "categories": ["entertainment", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/static/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Mi biblioteca",   "url": "/app" },
+    { "name": "Estadísticas",    "url": "/stats" },
+    { "name": "Recomendaciones", "url": "/recomendaciones" },
+    { "name": "Pelis y series",  "url": "/peliculas" }
+  ],
+  "version": "2.8.4"
+}

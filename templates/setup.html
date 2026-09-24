@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/static/icon.ico">
+<title>Miraru — Setup</title>
+<style>
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a38;--fg:#e2e2e8;--muted:#6b6b88;--accent:#7c3aed;--light:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.wizard{width:100%;max-width:640px}
+.header{text-align:center;margin-bottom:20px;opacity:0;animation:fadeUp .8s .1s ease forwards}
+.header img{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin-bottom:10px}
+.header h1{font-size:22px;font-weight:700;color:var(--light)}
+.header p{color:var(--muted);font-size:13px;margin-top:4px}
+.lang-bar{display:flex;justify-content:center;gap:8px;margin-bottom:14px;opacity:0;animation:fadeUp .8s .2s ease forwards}
+.lang-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 13px;font-size:13px;cursor:pointer;transition:all .15s}
+.lang-btn.active,.lang-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.steps-bar{display:flex;gap:4px;margin-bottom:18px;opacity:0;animation:fadeUp .8s .3s ease forwards}
+.steps-bar .s{flex:1;height:4px;background:#252535;border-radius:2px;transition:background .3s}
+.steps-bar .s.done{background:var(--accent)}.steps-bar .s.active{background:var(--light)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;opacity:0;animation:fadeUp .8s .35s ease forwards}
+.step{display:none}.step.active{display:block}
+h2{font-size:17px;font-weight:600;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.6}
+.inst{background:#12121a;border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.inst .n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#3d2d70;color:var(--light);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.inst p{font-size:13px;line-height:1.7;color:#c4c4d8}
+.inst a{color:var(--light);text-decoration:none}.inst a:hover{text-decoration:underline}
+.inst code{background:#252535;border-radius:4px;padding:1px 5px;font-family:monospace;font-size:12px}
+.inst strong{color:#e2e2e8}
+.iw{display:inline;opacity:0;transform:translateY(6px);transition:none}
+.hl{background:#1e1a30;border:1px solid #3d2d70;border-radius:10px;padding:11px 14px;margin:12px 0;font-size:13px;color:#c4b5fd}
+.hl strong{color:var(--light)}
+.email-box{background:#12121a;border:1px solid #3d2d70;border-radius:8px;padding:8px 13px;font-family:monospace;font-size:13px;color:#c4b5fd;word-break:break-all;margin:10px 0;user-select:all}
+.drop{border:2px dashed #3a3a50;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-top:6px}
+.drop:hover,.drop.over{border-color:var(--accent);background:#1e1a30}
+.drop .icon{font-size:24px;margin-bottom:6px}
+.drop p{color:var(--muted);font-size:13px}
+.drop p span{color:var(--light)}
+.drop.ok{border-color:#059669;background:#0a1f18}.drop.ok p{color:#34d399}
+label.lbl{display:block;font-size:12px;color:#a0a0b8;margin-bottom:4px;margin-top:12px}
+input[type=text]{width:100%;background:#12121a;border:1px solid #3a3a50;border-radius:8px;color:var(--fg);padding:9px 12px;font-size:14px}
+input[type=text]:focus{outline:2px solid var(--accent);border-color:transparent}
+.actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;border:none;transition:background .18s ease,opacity .18s ease}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn:active{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:#a0a0b8;border:1px solid #3a3a50}
+.btn-g:hover{border-color:var(--accent);color:var(--light)}
+.err{color:#f87171;font-size:13px;margin-top:6px;display:none}
+.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.done-icon{font-size:46px;text-align:center;margin:8px 0 14px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* Light theme — readability overrides */
+[data-theme=light]{
+  --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
+  --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+[data-theme=light] header{background:#fff;border-color:#d4d0ec}
+[data-theme=light] .back{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
+[data-theme=light] .back:hover{border-color:#4f46e5;color:#4338ca}
+[data-theme=light] body{background:var(--bg);color:var(--fg)}
+[data-theme=light] .card{background:#fff;border-color:#d4d0ec}
+[data-theme=light] h2{color:#4f46e5}
+[data-theme=light] .step{background:#f0eef8;border-color:#d4d0ec}
+[data-theme=light] .drop{background:#f8f7fc;border-color:#c7d2fe;color:#4338ca}
+[data-theme=light] .btn-g{background:#eef2ff;color:#4b4b6b;border-color:#d4d0ec}
+[data-theme=light] code{background:#eef2ff;color:#4338ca}
+</style>
+<script>try{if(localStorage.getItem('theme')==='light')document.documentElement.dataset.theme='light';}catch(_){}</script>
+<!-- Sistema visual unificado (theme.css) -->
+<link rel="stylesheet" href="/static/theme.css">
+<script src="/static/customize.js"></script>
+</head>
+<body>
+<div class="wizard">
+
+  <div class="header">
+    <img src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
+    <h1>Miraru</h1>
+    <p id="h-sub"></p>
+  </div>
+
+  <div class="lang-bar">
+    <button class="lang-btn active" data-lang="es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" data-lang="en"        onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="fr"        onclick="setLang('fr')">FR</button>
+    <button class="lang-btn" data-lang="de"        onclick="setLang('de')">DE</button>
+  </div>
+
+  <div class="steps-bar">
+    <div class="s active" id="b1"></div>
+    <div class="s" id="b2"></div>
+    <div class="s" id="b3"></div>
+    <div class="s" id="b4"></div>
+  </div>
+
+  <div class="card">
+
+    <!-- Pasos — contenido inyectado dinámicamente por JS -->
+    <div class="step active" id="s1"></div>
+    <div class="step" id="s2"></div>
+    <div class="step" id="s3"></div>
+    <div class="step" id="s4"></div>
+
+    <div class="step" id="s-done">
+      <div class="done-icon">✅</div>
+      <h2 id="done-t" style="text-align:center"></h2>
+      <p class="sub" id="done-s" style="text-align:center;margin-top:8px"></p>
+      <div class="actions" style="justify-content:center;margin-top:20px">
+        <a href="/app" class="btn btn-p" id="btn-goto"></a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<script>
+// ── Traducciones completas — todos los textos en los 4 idiomas ────────────────
+const TX = {
+  es: {
+    sub:    "Configuración inicial — solo una vez",
+    s1t:    "Paso 1 — Crear proyecto en Google Cloud",
+    s1sub:  "Proyecto gratuito, sin tarjeta de crédito.",
+    s1i1:   'Ve a <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> e inicia sesión con tu cuenta de Google.',
+    s1i2:   'Selector de proyectos → <strong>Proyecto nuevo</strong> → escribe el nombre <code>anime-tracker</code> y créalo.',
+    s1i3:   'Ve a <strong>APIs y servicios → Biblioteca</strong>, busca <code>Google Sheets API</code> y pulsa <strong>Habilitar</strong>.',
+    s2t:    "Paso 2 — Crear cuenta de servicio",
+    s2sub:  "Acceso seguro sin iniciar sesión cada vez.",
+    s2i1:   'Ve a <strong>APIs y servicios → Credenciales</strong>.',
+    s2i2:   'Pulsa <strong>+ Crear credenciales → Cuenta de servicio</strong>. Ponle nombre <code>anime-bot</code> y pulsa <strong>Crear y continuar</strong>. Los pasos 2 y 3 son opcionales, omítelos.',
+    s2i3:   'Haz clic en la cuenta → pestaña <strong>Claves → Agregar clave → Crear clave nueva → JSON</strong>. Se descargará un <code>.json</code>. <strong>Guárdalo.</strong>',
+    s3t:    "Paso 3 — Subir credenciales",
+    s3sub:  "Sube el archivo JSON descargado en el paso anterior.",
+    s3note: "El archivo se guarda solo en tu PC, dentro de la carpeta de la aplicación.",
+    s4t:    "Paso 4 — Conectar hoja de cálculo",
+    s4sub:  "Crea una hoja de Google Sheets y compártela.",
+    s4i1:   'Ve a <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> y crea una hoja nueva en blanco.',
+    s4i2:   'Pulsa <strong>Compartir</strong> (arriba derecha) y añade este email como editor:',
+    s4i3:   'Copia el <strong>ID de la hoja</strong> desde la URL: <code style="font-size:11px">docs.google.com/spreadsheets/d/<strong style="color:var(--light)">ID_AQUI</strong>/edit</code>',
+    done_t: "¡Todo listo!",
+    done_s: "Conectado a Google Sheets correctamente.",
+    go:     "Ir a la app →",
+    skip:   "Saltar — usar sin Excel",
+    skip_note: "Puedes configurarlo más tarde en Ajustes. Tu lista se guardará solo en este PC.",
+    already: "¿Ya configurado? Ir a la app →",
+    next:   "Siguiente →",
+    back:   "← Atrás",
+    verify: "Verificar y finalizar",
+    verifying: "Verificando…",
+    drop:   "Haz clic para seleccionar",
+    sid:    "ID de la hoja",
+    conn_err: "Error de conexión",
+  },
+  en: {
+    sub:    "Initial setup — only once",
+    s1t:    "Step 1 — Create a Google Cloud project",
+    s1sub:  "Free project, no credit card required.",
+    s1i1:   'Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and sign in with your Google account.',
+    s1i2:   'Project selector → <strong>New Project</strong> → type the name <code>anime-tracker</code> and create it.',
+    s1i3:   'Go to <strong>APIs & Services → Library</strong>, search for <code>Google Sheets API</code> and click <strong>Enable</strong>.',
+    s2t:    "Step 2 — Create a service account",
+    s2sub:  "Secure access without signing in every time.",
+    s2i1:   'Go to <strong>APIs & Services → Credentials</strong>.',
+    s2i2:   'Click <strong>+ Create Credentials → Service Account</strong>. Name it <code>anime-bot</code> and click <strong>Create and Continue</strong>. Steps 2 and 3 are optional, skip them.',
+    s2i3:   'Click the account → tab <strong>Keys → Add Key → Create New Key → JSON</strong>. A <code>.json</code> file will be downloaded. <strong>Save it.</strong>',
+    s3t:    "Step 3 — Upload credentials",
+    s3sub:  "Upload the JSON file downloaded in the previous step.",
+    s3note: "The file is saved only on your PC, inside the application folder.",
+    s4t:    "Step 4 — Connect your spreadsheet",
+    s4sub:  "Create a Google Sheets spreadsheet and share it.",
+    s4i1:   'Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> and create a new blank spreadsheet.',
+    s4i2:   'Click <strong>Share</strong> (top right) and add this email as an editor:',
+    s4i3:   'Copy the <strong>Spreadsheet ID</strong> from the URL: <code style="font-size:11px">docs.google.com/spreadsheets/d/<strong style="color:var(--light)">ID_HERE</strong>/edit</code>',
+    done_t: "All done!",
+    done_s: "Successfully connected to Google Sheets.",
+    go:     "Go to app →",
+    skip:   "Skip — use without Excel",
+    skip_note: "You can configure it later in Settings. Your list will be saved locally.",
+    already: "Already configured? Go to app →",
+    next:   "Next →",
+    back:   "← Back",
+    verify: "Verify & finish",
+    verifying: "Verifying…",
+    drop:   "Click to select",
+    sid:    "Spreadsheet ID",
+    conn_err: "Connection error",
+  },
+  fr: {
+    sub:    "Configuration initiale — une seule fois",
+    s1t:    "Étape 1 — Créer un projet Google Cloud",
+    s1sub:  "Projet gratuit, sans carte bancaire.",
+    s1i1:   'Allez sur <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> et connectez-vous avec votre compte Google.',
+    s1i2:   'Sélecteur de projets → <strong>Nouveau projet</strong> → saisissez le nom <code>anime-tracker</code> et créez-le.',
+    s1i3:   'Allez dans <strong>API et services → Bibliothèque</strong>, cherchez <code>Google Sheets API</code> et cliquez sur <strong>Activer</strong>.',
+    s2t:    "Étape 2 — Créer un compte de service",
+    s2sub:  "Accès sécurisé sans se connecter à chaque fois.",
+    s2i1:   'Allez dans <strong>API et services → Identifiants</strong>.',
+    s2i2:   'Cliquez sur <strong>+ Créer des identifiants → Compte de service</strong>. Nommez-le <code>anime-bot</code> et cliquez sur <strong>Créer et continuer</strong>. Les étapes 2 et 3 sont optionnelles.',
+    s2i3:   'Cliquez sur le compte → onglet <strong>Clés → Ajouter une clé → Créer une clé → JSON</strong>. Un fichier <code>.json</code> sera téléchargé. <strong>Gardez-le.</strong>',
+    s3t:    "Étape 3 — Importer les identifiants",
+    s3sub:  "Importez le fichier JSON téléchargé à l'étape précédente.",
+    s3note: "Le fichier est enregistré uniquement sur votre PC.",
+    s4t:    "Étape 4 — Connecter la feuille de calcul",
+    s4sub:  "Créez une feuille Google Sheets et partagez-la.",
+    s4i1:   'Allez sur <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> et créez une nouvelle feuille vierge.',
+    s4i2:   'Cliquez sur <strong>Partager</strong> (en haut à droite) et ajoutez cet email comme éditeur :',
+    s4i3:   'Copiez l\'<strong>ID de la feuille</strong> depuis l\'URL : <code style="font-size:11px">docs.google.com/spreadsheets/d/<strong style="color:var(--light)">ID_ICI</strong>/edit</code>',
+    done_t: "Tout est prêt !",
+    done_s: "Connecté à Google Sheets avec succès.",
+    go:     "Aller à l'app →",
+    skip:   "Passer — utiliser sans Excel",
+    skip_note: "Vous pouvez le configurer plus tard dans Paramètres.",
+    already: "Déjà configuré ? Aller à l'app →",
+    next:   "Suivant →",
+    back:   "← Retour",
+    verify: "Vérifier et terminer",
+    verifying: "Vérification…",
+    drop:   "Cliquez pour sélectionner",
+    sid:    "ID de la feuille",
+    conn_err: "Erreur de connexion",
+  },
+  de: {
+    sub:    "Ersteinrichtung — nur einmal nötig",
+    s1t:    "Schritt 1 — Google Cloud Projekt erstellen",
+    s1sub:  "Kostenloses Projekt, keine Kreditkarte nötig.",
+    s1i1:   'Gehe zu <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> und melde dich mit deinem Google-Konto an.',
+    s1i2:   'Projektauswahl → <strong>Neues Projekt</strong> → gib den Namen <code>anime-tracker</code> ein und erstelle es.',
+    s1i3:   'Gehe zu <strong>APIs & Dienste → Bibliothek</strong>, suche nach <code>Google Sheets API</code> und klicke auf <strong>Aktivieren</strong>.',
+    s2t:    "Schritt 2 — Dienstkonto erstellen",
+    s2sub:  "Sicherer Zugriff ohne jedes Mal einzuloggen.",
+    s2i1:   'Gehe zu <strong>APIs & Dienste → Anmeldedaten</strong>.',
+    s2i2:   'Klicke auf <strong>+ Anmeldedaten erstellen → Dienstkonto</strong>. Benenne es <code>anime-bot</code> und klicke auf <strong>Erstellen und weiter</strong>. Schritte 2 und 3 sind optional.',
+    s2i3:   'Klicke auf das Konto → Reiter <strong>Schlüssel → Schlüssel hinzufügen → Neuen Schlüssel erstellen → JSON</strong>. Eine <code>.json</code>-Datei wird heruntergeladen. <strong>Speichere sie.</strong>',
+    s3t:    "Schritt 3 — Anmeldedaten hochladen",
+    s3sub:  "Lade die im vorherigen Schritt heruntergeladene JSON-Datei hoch.",
+    s3note: "Die Datei wird nur auf deinem PC gespeichert.",
+    s4t:    "Schritt 4 — Tabelle verbinden",
+    s4sub:  "Erstelle eine Google-Tabelle und teile sie.",
+    s4i1:   'Gehe zu <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> und erstelle eine neue leere Tabelle.',
+    s4i2:   'Klicke auf <strong>Teilen</strong> (oben rechts) und füge diese E-Mail als Bearbeiter hinzu:',
+    s4i3:   'Kopiere die <strong>Tabellen-ID</strong> aus der URL: <code style="font-size:11px">docs.google.com/spreadsheets/d/<strong style="color:var(--light)">ID_HIER</strong>/edit</code>',
+    done_t: "Alles bereit!",
+    done_s: "Erfolgreich mit Google Sheets verbunden.",
+    go:     "Zur App →",
+    skip:   "Überspringen — ohne Excel nutzen",
+    skip_note: "Sie können es später in den Einstellungen konfigurieren.",
+    already: "Bereits konfiguriert? Zur App →",
+    next:   "Weiter →",
+    back:   "← Zurück",
+    verify: "Überprüfen & abschließen",
+    verifying: "Überprüfe…",
+    drop:   "Klicken zum Auswählen",
+    sid:    "Tabellen-ID",
+    conn_err: "Verbindungsfehler",
+  },
+};
+
+let LANG = 'es';
+const T = k => (TX[LANG] || TX.es)[k] || '';
+
+// ── Renderizar paso completo ──────────────────────────────────────────────────
+function renderSteps() {
+  // Paso 1
+  document.getElementById('s1').innerHTML = `
+    <h2>${T('s1t')}</h2>
+    <p class="sub">${T('s1sub')}</p>
+    <div class="inst" data-anim><div class="n">1</div><p>${T('s1i1')}</p></div>
+    <div class="inst" data-anim><div class="n">2</div><p>${T('s1i2')}</p></div>
+    <div class="inst" data-anim><div class="n">3</div><p>${T('s1i3')}</p></div>
+    <div class="actions" style="flex-direction:column;align-items:stretch;gap:8px">
+      <button class="btn btn-p" id="b1n" onclick="ir(2)">${T('next')}</button>
+      <a href="/app" class="btn btn-g" style="justify-content:center;text-decoration:none;font-size:12px">${T('skip')}</a>
+    </div>
+    <p style="color:var(--muted);font-size:11px;margin-top:8px;text-align:center;line-height:1.5">${T('skip_note')}</p>`;
+
+  // Paso 2
+  document.getElementById('s2').innerHTML = `
+    <h2>${T('s2t')}</h2>
+    <p class="sub">${T('s2sub')}</p>
+    <div class="inst" data-anim><div class="n">1</div><p>${T('s2i1')}</p></div>
+    <div class="inst" data-anim><div class="n">2</div><p>${T('s2i2')}</p></div>
+    <div class="inst" data-anim><div class="n">3</div><p>${T('s2i3')}</p></div>
+    <div class="actions">
+      <button class="btn btn-g" onclick="ir(1)">${T('back')}</button>
+      <button class="btn btn-p" onclick="ir(3)">${T('next')}</button>
+    </div>`;
+
+  // Paso 3
+  document.getElementById('s3').innerHTML = `
+    <h2>${T('s3t')}</h2>
+    <p class="sub">${T('s3sub')}</p>
+    <div class="drop" id="drop" onclick="document.getElementById('fi').click()"
+         ondragover="event.preventDefault();this.classList.add('over')"
+         ondragleave="this.classList.remove('over')"
+         ondrop="dropF(event)">
+      <div class="icon">📄</div>
+      <p><span id="drop-hint">${T('drop')}</span></p>
+    </div>
+    <input type="file" id="fi" accept=".json" style="display:none" onchange="subir(this.files[0])">
+    <p class="err" id="e3"></p>
+    <div class="hl">${T('s3note')}</div>
+    <div class="actions">
+      <button class="btn btn-g" onclick="ir(2)">${T('back')}</button>
+      <button class="btn btn-p" id="b3n" onclick="ir(4)" disabled>${T('next')}</button>
+    </div>`;
+
+  // Paso 4
+  document.getElementById('s4').innerHTML = `
+    <h2>${T('s4t')}</h2>
+    <p class="sub">${T('s4sub')}</p>
+    <div class="inst" data-anim><div class="n">1</div><p>${T('s4i1')}</p></div>
+    <div class="inst" data-anim><div class="n">2</div><p>${T('s4i2')}</p></div>
+    <div class="email-box" id="email-box">…</div>
+    <div class="inst" data-anim><div class="n">3</div><p>${T('s4i3')}</p></div>
+    <label class="lbl">${T('sid')}</label>
+    <input type="text" id="sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+    <p class="err" id="e4"></p>
+    <div class="actions">
+      <button class="btn btn-g" onclick="ir(3)">${T('back')}</button>
+      <button class="btn btn-p" id="b4v" onclick="verificar()">
+        <span id="vtxt">${T('verify')}</span>
+      </button>
+    </div>`;
+
+  // Pantalla de éxito
+  document.getElementById('done-t').textContent  = T('done_t');
+  document.getElementById('done-s').textContent  = T('done_s');
+  document.getElementById('btn-goto').textContent = T('go');
+  document.getElementById('h-sub').textContent    = T('sub');
+}
+
+// ── Cambiar idioma ────────────────────────────────────────────────────────────
+async function setLang(l) {
+  LANG = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
+  await fetch('/api/lang', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lang:l})}).catch(()=>{});
+  // Guardar qué paso estaba activo
+  const active = document.querySelector('.step.active');
+  const activeId = active ? active.id : 's1';
+  renderSteps();
+  // Restaurar paso activo
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(activeId).classList.add('active');
+  // Reanimar instrucciones del paso actual
+  if (activeId.startsWith('s') && activeId !== 's-done') {
+    animateInstructions(activeId);
+  }
+}
+
+// ── Animación de palabras ─────────────────────────────────────────────────────
+function animateInstructions(stepId) {
+  const step = document.getElementById(stepId);
+  if (!step) return;
+  step.querySelectorAll('[data-anim]').forEach(inst => {
+    const p = inst.querySelector('p');
+    if (!p || p.dataset.wrapped) return;
+    p.dataset.wrapped = '1';
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) nodes.push(node);
+    nodes.forEach(tn => {
+      const parts = tn.textContent.split(/(\s+)/);
+      const frag  = document.createDocumentFragment();
+      parts.forEach(w => {
+        if (/^\s+$/.test(w)) {
+          frag.appendChild(document.createTextNode(w));
+        } else if (w) {
+          const sp = document.createElement('span');
+          sp.className = 'iw';
+          sp.textContent = w;
+          frag.appendChild(sp);
+        }
+      });
+      tn.replaceWith(frag);
+    });
+  });
+
+  if (!window.anime) return;
+  const spans = step.querySelectorAll('.iw');
+  anime({
+    targets: Array.from(spans),
+    opacity: [0, 1],
+    translateY: [6, 0],
+    duration: 380,
+    delay: anime.stagger(15, {start: 80}),
+    easing: 'easeOutQuad',
+  });
+}
+
+// ── Navegación ────────────────────────────────────────────────────────────────
+function ir(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(n <= 4 ? `s${n}` : 's-done').classList.add('active');
+  for (let i = 1; i <= 4; i++) {
+    const b = document.getElementById(`b${i}`);
+    if (b) b.className = 's ' + (i < n ? 'done' : i === n ? 'active' : '');
+  }
+  if (n === 4) loadEmail();
+  if (n <= 4) animateInstructions(`s${n}`);
+}
+
+async function loadEmail() {
+  try {
+    const {service_account_email} = await (await fetch('/api/setup/status')).json();
+    const el = document.getElementById('email-box');
+    if (el) {
+      el.textContent = service_account_email || '—';
+      el.style.color = service_account_email ? '' : '#f87171';
+    }
+  } catch(_) {}
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+function dropF(e) {
+  e.preventDefault();
+  document.getElementById('drop').classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) subir(f);
+}
+
+async function subir(file) {
+  const err = document.getElementById('e3');
+  if (!err) return;
+  err.style.display = 'none';
+  if (!file || !file.name.endsWith('.json')) {
+    err.textContent = T('conn_err') || 'JSON requerido';
+    err.style.display = 'block';
+    return;
+  }
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const r = await fetch('/api/setup/upload-credentials', {method:'POST', body:form});
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.detail || 'Error'; err.style.display = 'block'; return; }
+    const drop = document.getElementById('drop');
+    drop.classList.add('ok');
+    const safeName = document.createTextNode(file.name);
+    const pEl = document.createElement('p');
+    pEl.appendChild(safeName);
+    drop.innerHTML = '<div class="icon">✅</div>';
+    drop.appendChild(pEl);
+    const b3n = document.getElementById('b3n');
+    if (b3n) b3n.disabled = false;
+  } catch(_) {
+    err.textContent = T('conn_err');
+    err.style.display = 'block';
+  }
+}
+
+async function verificar() {
+  const sid = (document.getElementById('sheet-id')?.value || '').trim();
+  const err = document.getElementById('e4');
+  const btn = document.getElementById('b4v');
+  const txt = document.getElementById('vtxt');
+  if (!err || !btn || !txt) return;
+  err.style.display = 'none';
+  if (!sid) { err.textContent = T('sid') + ' requerido'; err.style.display = 'block'; return; }
+  btn.disabled = true;
+  txt.innerHTML = `<span class="spin"></span> ${T('verifying')}`;
+  try {
+    const r = await fetch('/api/setup/verify', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({spreadsheet_id: sid})
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      err.textContent = d.detail || 'Error';
+      err.style.display = 'block';
+      btn.disabled = false;
+      txt.textContent = T('verify');
+      return;
+    }
+    ir(5);
+  } catch(_) {
+    err.textContent = T('conn_err');
+    err.style.display = 'block';
+    btn.disabled = false;
+    txt.textContent = T('verify');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const {lang} = await (await fetch('/api/setup/status')).json();
+    if (lang && TX[lang]) LANG = lang;
+  } catch(_) {}
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === LANG));
+  renderSteps();
+  setTimeout(() => animateInstructions('s1'), 450);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/static/icon.ico">
+<title>Películas y Series · Miraru</title>
+<style>
+:root{
+  --bg:#0a0a0e;--card:#15151f;--card2:#0e0e16;--border:#24243a;--fg:#ececf2;--muted:#7a7a98;
+  --accent:#7c3aed;--accent2:#a855f7;--accent3:#d946ef;--light:#b794ff;
+  --success:#34d399;--danger:#fb7185;--warn:#fbbf24;
+  --grad-accent:linear-gradient(135deg,#7c3aed 0%,#a855f7 50%,#d946ef 100%);
+  --grad-accent-soft:linear-gradient(135deg,rgba(124,58,237,.18),rgba(217,70,239,.10));
+  --select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b794ff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme=light]{--bg:#f0eff8;--card:#fff;--card2:#f6f5fc;--border:#d9d5ee;--fg:#1e1b2e;--muted:#64648c}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',"Segoe UI",system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(820px circle at 10% 4%,rgba(124,58,237,.11),transparent 44%),radial-gradient(720px circle at 92% 10%,rgba(217,70,239,.07),transparent 40%),radial-gradient(960px circle at 50% 108%,rgba(139,92,246,.06),transparent 52%)}
+a{text-decoration:none;color:inherit}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+header{display:flex;align-items:center;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--card),rgba(21,21,31,.96));backdrop-filter:blur(12px);position:sticky;top:0;z-index:20;flex-wrap:wrap}
+.app-title{font-size:16px;font-weight:800;letter-spacing:-.4px;background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 4px rgba(183,148,255,.5)) drop-shadow(0 0 10px rgba(139,92,246,.35));
+  animation:appTitleGlow 3s ease-in-out infinite alternate}
+@keyframes appTitleGlow{
+  from{filter:drop-shadow(0 0 3px rgba(183,148,255,.4)) drop-shadow(0 0 8px rgba(139,92,246,.28))}
+  to  {filter:drop-shadow(0 0 6px rgba(183,148,255,.75)) drop-shadow(0 0 14px rgba(139,92,246,.5)) drop-shadow(0 0 24px rgba(217,70,239,.3))}
+}
+@media (prefers-reduced-motion:reduce){.app-title{animation:none}}
+.back-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:10px;background:var(--card2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.back-btn:hover{border-color:var(--accent2);color:var(--light);background:var(--grad-accent-soft)}
+.head-stats{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.pill{background:var(--grad-accent-soft);border:1px solid rgba(168,85,247,.25);border-radius:99px;padding:3px 11px;font-size:11px;color:var(--light);font-weight:500}
+
+.toolbar{padding:14px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);background:var(--card)}
+.search-input{flex:1;min-width:200px;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--fg);padding:10px 14px;font-size:13px;font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;border:none;font-family:inherit;transition:background .18s ease,color .18s ease,opacity .18s ease;white-space:nowrap}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;box-shadow:0 0 0 4px rgba(124,58,237,.15)}
+.btn:active{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid transparent}
+.btn-ghost:hover{background:rgba(124,58,237,.08);border-color:var(--border);color:var(--light)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+.seg{display:inline-flex;background:var(--card2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.seg button{background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;padding:9px 15px;cursor:pointer;font-family:inherit;transition:all .15s}
+.seg button.active{background:var(--grad-accent-soft);color:var(--light)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;padding:20px}
+.mcard{position:relative;background:linear-gradient(160deg,var(--card),var(--card2));border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease}
+.mcard:hover{border-color:rgba(124,58,237,.4);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+@media (prefers-reduced-motion:reduce){.mcard{transition:none}}
+.mcard .poster{width:100%;aspect-ratio:2/3;object-fit:cover;background:var(--card2);display:block}
+.mcard .poster-fallback{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:34px;background:var(--grad-accent-soft)}
+.mcard .body{padding:10px 11px}
+.mcard .ttl{font-size:12.5px;font-weight:700;line-height:1.3;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:32px}
+.mcard .sub{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.type-badge{position:absolute;top:8px;left:8px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px;backdrop-filter:blur(6px);text-transform:uppercase;letter-spacing:.3px}
+.type-pelicula{background:rgba(124,58,237,.85);color:#fff}
+.type-serie{background:rgba(217,70,239,.85);color:#fff}
+.estado-chip{font-size:9.5px;padding:2px 7px;border-radius:99px;font-weight:600}
+.e-pendiente{background:rgba(122,122,152,.2);color:var(--muted)}
+.e-viendo{background:rgba(52,211,153,.18);color:var(--success)}
+.e-completado{background:rgba(124,58,237,.2);color:var(--light)}
+.e-abandonado{background:rgba(251,113,133,.18);color:var(--danger)}
+.e-pausa{background:rgba(251,191,36,.18);color:var(--warn)}
+.fav-star{position:absolute;top:8px;right:8px;font-size:14px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+
+.empty{text-align:center;padding:70px 20px;max-width:480px;margin:0 auto}
+.empty .ico{font-size:52px;margin-bottom:14px;filter:drop-shadow(0 4px 16px rgba(139,92,246,.4))}
+.empty h2{font-size:20px;font-weight:800;background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.empty p{font-size:13px;color:var(--muted);line-height:1.6}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.modal h3{font-size:16px;margin-bottom:16px;color:var(--light)}
+.row{display:flex;gap:12px;padding:11px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s;align-items:center}
+.row:hover{border-color:var(--accent2);background:var(--grad-accent-soft)}
+.row img{width:48px;height:68px;object-fit:cover;border-radius:7px;flex-shrink:0;background:var(--card2)}
+.row .info{flex:1;min-width:0}
+.row .info .t{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .info .s{font-size:11px;color:var(--muted);margin-top:2px}
+.row .tb{flex-shrink:0;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px;text-transform:uppercase}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+select,.modal input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--fg);padding:9px 12px;font-size:13px;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+select{background-image:var(--select-arrow);background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+select:focus,.modal input:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.modal-actions .btn{flex:1;justify-content:center}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.center-load{text-align:center;padding:40px;color:var(--muted)}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:12px 20px;font-size:13px;z-index:200;opacity:0;transition:all .3s;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+.keybox{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:18px;margin:20px;max-width:560px}
+.keybox h3{font-size:15px;color:var(--light);margin-bottom:10px}
+.keybox p{font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.keybox ol{font-size:12.5px;color:var(--muted);line-height:1.8;padding-left:20px;margin-bottom:14px}
+.keybox a{color:var(--light);text-decoration:underline}
+.keybox .key-row{display:flex;gap:10px}
+.keybox input{flex:1}
+.keybox .warn-box{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.35);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--fg);line-height:1.5;margin-bottom:14px}
+.keybox code{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:11px;font-family:ui-monospace,monospace}
+</style>
+<!-- Sistema visual unificado (theme.css) -->
+<link rel="stylesheet" href="/static/theme.css">
+<script src="/static/customize.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="/app" class="back-btn">← <span>Anime</span></a>
+  <span class="app-title">🎬 Películas y Series</span>
+  <div class="head-stats" id="head-stats"></div>
+  <a href="/" class="back-btn" title="Menú principal">⌂ Inicio</a>
+</header>
+
+<div class="toolbar">
+  <input type="text" class="search-input" id="search" placeholder="Buscar película o serie en TMDB..."
+         onkeydown="if(event.key==='Enter')buscarTMDB()">
+  <button class="btn btn-primary" id="btn-search" onclick="buscarTMDB()">🔍 Buscar</button>
+  <button class="btn btn-ghost" onclick="verTendencias()" title="Descubrir tendencias">🔥 Tendencias</button>
+</div>
+<div class="toolbar" id="collection-bar" style="border-top:none;padding-top:0">
+  <input type="text" class="search-input" id="filter-local" placeholder="🔎 Filtrar mi colección..." oninput="render()">
+  <div class="seg" id="filter-seg">
+    <button class="active" data-f="all" onclick="setFilter('all',this)">Todo</button>
+    <button data-f="pelicula" onclick="setFilter('pelicula',this)">🎬 Películas</button>
+    <button data-f="serie" onclick="setFilter('serie',this)">📺 Series</button>
+  </div>
+  <select id="sort-by" onchange="render()" style="width:auto;min-width:150px">
+    <option value="reciente">Más reciente</option>
+    <option value="titulo">Título (A-Z)</option>
+    <option value="anio">Año (nuevo→viejo)</option>
+    <option value="punt_tmdb">Nota TMDB</option>
+    <option value="punt_mia">Mi puntuación</option>
+  </select>
+  <select id="filter-estado" onchange="render()" style="width:auto;min-width:140px">
+    <option value="all">Todos los estados</option>
+    <option value="pendiente">⏳ Pendiente</option>
+    <option value="viendo">▶️ Viendo</option>
+    <option value="completado">✅ Completado</option>
+    <option value="abandonado">❌ Abandonado</option>
+    <option value="pausa">⏸ En pausa</option>
+  </select>
+  <button class="btn btn-ghost" id="fav-toggle" onclick="toggleFavFilter()" title="Solo favoritos">⭐</button>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <a class="btn btn-ghost" href="/api/media/export/csv" title="Exportar CSV">⬇ CSV</a>
+    <button class="btn btn-ghost" onclick="abrirAjustesKey()" title="Configurar TMDB">⚙️</button>
+  </div>
+</div>
+
+<div id="content"></div>
+
+<!-- Modal: resultados de búsqueda -->
+<div class="modal-bg" id="modal-search" onclick="if(event.target===this)cerrar('modal-search')">
+  <div class="modal">
+    <h3>Resultados de TMDB</h3>
+    <div id="search-loading" class="center-load" style="display:none"><span class="spin"></span></div>
+    <div id="search-results"></div>
+    <div id="search-empty" style="display:none;text-align:center;padding:20px;color:var(--danger)"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cerrar('modal-search')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: editar item guardado -->
+<div class="modal-bg" id="modal-edit" onclick="if(event.target===this)cerrar('modal-edit')">
+  <div class="modal">
+    <h3 id="edit-title">Editar</h3>
+    <div class="row" style="cursor:default;border-color:var(--border)" id="edit-header"></div>
+    <div class="field">
+      <label>Estado</label>
+      <select id="edit-estado">
+        <option value="pendiente">⏳ Pendiente</option>
+        <option value="viendo">▶️ Viendo</option>
+        <option value="completado">✅ Completado</option>
+        <option value="abandonado">❌ Abandonado</option>
+        <option value="pausa">⏸ En pausa</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Mi puntuación (0-10)</label>
+      <input type="number" id="edit-punt" min="0" max="10" step="0.5" placeholder="Sin puntuar">
+    </div>
+    <div class="field" id="edit-eps-field" style="display:none">
+      <label>Episodios vistos <span id="edit-eps-total" style="color:var(--muted)"></span></label>
+      <input type="number" id="edit-eps" min="0" step="1" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Re-visionados (rewatches) 🔁</label>
+      <input type="number" id="edit-rewatch" min="0" step="1" placeholder="0">
+    </div>
+    <div class="field">
+      <label>Notas</label>
+      <input type="text" id="edit-notas" placeholder="Notas personales...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="guardarEdicion()">Guardar</button>
+      <button class="btn btn-ghost" onclick="toggleFav()" id="btn-fav">⭐ Favorito</button>
+    </div>
+    <div class="modal-actions" style="margin-top:10px">
+      <button class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="borrarItem()">🗑 Eliminar de mi lista</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let MEDIA = [];
+let FILTER = 'all';
+let FAV_ONLY = false;
+let _editId = null;
+let _hasKey = false;
+const BLANK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E';
+
+// Tema heredado de la app
+(function(){
+  try {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light') document.documentElement.dataset.theme = 'light';
+  } catch(_) {}
+})();
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+function abrir(id){ document.getElementById(id).classList.add('open'); }
+function cerrar(id){ document.getElementById(id).classList.remove('open'); }
+function esc(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+function _thumbUrl(url) { return url ? url.replace('/cover/large/', '/cover/medium/') : ''; }
+
+async function cargar(){
+  try{
+    const r = await fetch('/api/media');
+    const d = await r.json();
+    MEDIA = d.media || [];
+  }catch(e){ MEDIA = []; }
+  render();
+  cargarStats();
+}
+
+async function cargarStats(){
+  try{
+    const r = await fetch('/api/media/stats');
+    const s = await r.json();
+    document.getElementById('head-stats').innerHTML =
+      `<span class="pill">${s.total} títulos</span>`+
+      `<span class="pill">🎬 ${s.peliculas}</span>`+
+      `<span class="pill">📺 ${s.series}</span>`;
+  }catch(e){}
+}
+
+function setFilter(f, btn){
+  FILTER = f;
+  document.querySelectorAll('#filter-seg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+function toggleFavFilter(){
+  FAV_ONLY = !FAV_ONLY;
+  const b = document.getElementById('fav-toggle');
+  b.style.background = FAV_ONLY ? 'var(--grad-accent-soft)' : '';
+  b.style.borderColor = FAV_ONLY ? 'var(--accent2)' : 'var(--border)';
+  render();
+}
+
+function render(){
+  const c = document.getElementById('content');
+  const bar = document.getElementById('collection-bar');
+
+  if (MEDIA.length === 0){
+    if (bar) bar.style.display = 'none';
+    c.innerHTML = `<div class="empty"><div class="ico">🎬</div>
+      <h2>Tu colección está vacía</h2>
+      <p>Busca películas y series (no-anime) arriba, o pulsa <b>🔥 Tendencias</b> para descubrir qué ver. Datos de The Movie Database (TMDB).</p></div>`;
+    return;
+  }
+  if (bar) bar.style.display = 'flex';
+
+  // Filtrar
+  const q = (document.getElementById('filter-local')?.value || '').toLowerCase().trim();
+  const estadoF = document.getElementById('filter-estado')?.value || 'all';
+  let items = MEDIA.filter(m => {
+    if (FILTER !== 'all' && m.tipo !== FILTER) return false;
+    if (FAV_ONLY && !m.favorito) return false;
+    if (estadoF !== 'all' && (m.estado_usuario||'pendiente') !== estadoF) return false;
+    if (q && !(m.titulo||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  // Ordenar
+  const sort = document.getElementById('sort-by')?.value || 'reciente';
+  items.sort((a,b)=>{
+    if (sort==='titulo') return (a.titulo||'').localeCompare(b.titulo||'');
+    if (sort==='anio')   return (parseInt(b.anio)||0)-(parseInt(a.anio)||0);
+    if (sort==='punt_tmdb') return (b.puntuacion_tmdb||0)-(a.puntuacion_tmdb||0);
+    if (sort==='punt_mia')  return (b.puntuacion||0)-(a.puntuacion||0);
+    return (b.id||0)-(a.id||0); // reciente
+  });
+
+  if (items.length === 0){
+    c.innerHTML = `<div class="empty"><div class="ico">🔭</div><h2>Sin resultados</h2><p>Ningún título coincide con los filtros.</p></div>`;
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  items.forEach(m=>{
+    const card = document.createElement('div');
+    card.className = 'mcard';
+    card.onclick = ()=>abrirEdit(m.id);
+
+    const posterHtml = m.imagen
+      ? `<img class="poster" src="${esc(_thumbUrl(m.imagen))}" alt="" onerror="this.outerHTML='<div class=\\'poster-fallback\\'>${m.tipo==='serie'?'📺':'🎬'}</div>'">`
+      : `<div class="poster-fallback">${m.tipo==='serie'?'📺':'🎬'}</div>`;
+
+    const estado = m.estado_usuario || 'pendiente';
+    // Si no se conoce la duración/nº de episodios no mostramos nada
+    // (antes salía un feo "0 ep" en series sin datos de TMDB).
+    const eps = m.duracion ? m.duracion+' ep' : '';
+    const dur = m.tipo==='pelicula'
+      ? (m.duracion ? m.duracion+' min' : '')
+      : (m.temporadas ? [m.temporadas+' temp', eps].filter(Boolean).join(' · ') : eps);
+
+    // Barra de progreso para series en curso
+    let progreso = '';
+    if (m.tipo==='serie' && m.duracion>0 && m.episodios_vistos>0){
+      const pct = Math.min(100, Math.round(m.episodios_vistos/m.duracion*100));
+      progreso = `<div style="margin-top:6px;height:4px;background:var(--card2);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--grad-accent)"></div></div>
+        <div style="font-size:9.5px;color:var(--muted);margin-top:3px">${m.episodios_vistos}/${m.duracion} ep</div>`;
+    }
+    const rew = (m.rewatches>0) ? `<span title="Re-visionados">🔁${m.rewatches}</span>` : '';
+
+    card.innerHTML =
+      `<span class="type-badge type-${m.tipo}">${m.tipo==='serie'?'Serie':'Película'}</span>`+
+      (m.favorito ? `<span class="fav-star">⭐</span>` : '')+
+      posterHtml+
+      `<div class="body">
+        <div class="ttl">${esc(m.titulo)}</div>
+        <div class="sub">
+          <span class="estado-chip e-${estado}">${estadoLabel(estado)}</span>
+          ${m.anio?`<span>${esc(m.anio)}</span>`:''}
+        </div>
+        <div class="sub" style="margin-top:5px">
+          ${m.puntuacion_tmdb?`<span>⭐ ${m.puntuacion_tmdb}</span>`:''}
+          ${m.puntuacion?`<span title="Mi nota">· 👤${m.puntuacion}</span>`:''}
+          ${rew}
+          ${dur?`<span>· ${dur}</span>`:''}
+        </div>
+        ${progreso}
+      </div>`;
+    grid.appendChild(card);
+  });
+  c.innerHTML = '';
+  c.appendChild(grid);
+}
+
+function estadoLabel(e){
+  return {pendiente:'Pendiente',viendo:'Viendo',completado:'Completado',abandonado:'Abandonado',pausa:'En pausa'}[e]||e;
+}
+
+// ── Búsqueda en TMDB ──────────────────────────────────────────────────────────
+async function buscarTMDB(){
+  const q = document.getElementById('search').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('btn-search');
+  btn.disabled = true;
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('search-empty').style.display = 'none';
+  document.getElementById('search-loading').style.display = 'block';
+  abrir('modal-search');
+  try{
+    const r = await fetch('/api/media/buscar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query:q})
+    });
+    const d = await r.json();
+    document.getElementById('search-loading').style.display = 'none';
+    if (d.mensaje === 'no_key'){
+      cerrar('modal-search');
+      abrirAjustesKey(true);
+      return;
+    }
+    if (!d.ok || !d.resultados || !d.resultados.length){
+      const em = document.getElementById('search-empty');
+      em.style.display = 'block';
+      em.textContent = 'Sin resultados en TMDB para "'+q+'"';
+      return;
+    }
+    renderResultados(d.resultados);
+  }catch(e){
+    document.getElementById('search-loading').style.display = 'none';
+    const em = document.getElementById('search-empty');
+    em.style.display = 'block'; em.textContent = 'Error al buscar';
+  }finally{ btn.disabled = false; }
+}
+
+function renderResultados(resultados){
+  const cont = document.getElementById('search-results');
+  cont.innerHTML = '';
+  resultados.forEach(m=>{
+    const row = document.createElement('div');
+    row.className = 'row';
+    const dur = m.tipo==='pelicula' ? '' : '';
+    row.innerHTML =
+      (m.imagen?`<img src="${esc(_thumbUrl(m.imagen))}" onerror="this.style.visibility='hidden'">`:`<div style="width:48px;height:68px;border-radius:7px;background:var(--grad-accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${m.tipo==='serie'?'📺':'🎬'}</div>`)+
+      `<div class="info">
+        <div class="t">${esc(m.titulo)}</div>
+        <div class="s">${m.anio||'—'} ${m.puntuacion_tmdb?'· ⭐ '+m.puntuacion_tmdb:''}</div>
+      </div>
+      <span class="tb type-${m.tipo}">${m.tipo==='serie'?'Serie':'Película'}</span>`;
+    row.onclick = ()=>anadir(m, row);
+    cont.appendChild(row);
+  });
+}
+
+async function anadir(m, rowEl){
+  if (rowEl){ rowEl.style.opacity='.5'; rowEl.style.pointerEvents='none'; }
+  try{
+    const r = await fetch('/api/media', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tmdb_id:m.tmdb_id, tipo:m.tipo})
+    });
+    if (r.status === 409){ toast('Ya está en tu lista'); if(rowEl){rowEl.style.opacity='';rowEl.style.pointerEvents='';} return; }
+    if (!r.ok){ toast('Error al añadir'); if(rowEl){rowEl.style.opacity='';rowEl.style.pointerEvents='';} return; }
+    toast('✓ Añadido: '+m.titulo);
+    cerrar('modal-search');
+    document.getElementById('search').value = '';
+    await cargar();
+  }catch(e){ toast('Error de conexión'); if(rowEl){rowEl.style.opacity='';rowEl.style.pointerEvents='';} }
+}
+
+// ── Editar item guardado ──────────────────────────────────────────────────────
+function abrirEdit(id){
+  const m = MEDIA.find(x=>x.id===id);
+  if (!m) return;
+  _editId = id;
+  document.getElementById('edit-title').textContent = m.titulo;
+  const genero = (()=>{ try{ return JSON.parse(m.genero||'[]'); }catch(_){ return []; } })();
+  document.getElementById('edit-header').innerHTML =
+    (m.imagen?`<img src="${esc(_thumbUrl(m.imagen))}" onerror="this.style.visibility='hidden'">`:`<div style="width:48px;height:68px;border-radius:7px;background:var(--grad-accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px">${m.tipo==='serie'?'📺':'🎬'}</div>`)+
+    `<div class="info"><div class="t">${esc(m.titulo)}</div><div class="s">${m.anio||''} · ${genero.slice(0,3).join(', ')}</div><div class="s" style="margin-top:3px">${esc((m.sinopsis||'').slice(0,90))}${(m.sinopsis||'').length>90?'…':''}</div></div>`;
+  document.getElementById('edit-estado').value = m.estado_usuario || 'pendiente';
+  document.getElementById('edit-punt').value = m.puntuacion || '';
+  document.getElementById('edit-notas').value = m.notas || '';
+  document.getElementById('edit-rewatch').value = m.rewatches || '';
+  // Progreso de episodios solo para series
+  const epsField = document.getElementById('edit-eps-field');
+  if (m.tipo === 'serie' && m.duracion > 0){
+    epsField.style.display = 'block';
+    document.getElementById('edit-eps').value = m.episodios_vistos || '';
+    document.getElementById('edit-eps').max = m.duracion;
+    document.getElementById('edit-eps-total').textContent = '/ ' + m.duracion + ' totales';
+  } else {
+    epsField.style.display = 'none';
+  }
+  const fb = document.getElementById('btn-fav');
+  fb.style.background = m.favorito ? 'var(--grad-accent-soft)' : '';
+  fb.textContent = m.favorito ? '★ Favorito' : '⭐ Favorito';
+  abrir('modal-edit');
+}
+
+async function guardarEdicion(){
+  if (_editId == null) return;
+  const punt = document.getElementById('edit-punt').value;
+  const rew = document.getElementById('edit-rewatch').value;
+  const eps = document.getElementById('edit-eps').value;
+  const payload = {
+    estado_usuario: document.getElementById('edit-estado').value,
+    notas: document.getElementById('edit-notas').value,
+  };
+  if (punt !== '') payload.puntuacion = parseFloat(punt);
+  if (rew !== '') payload.rewatches = parseInt(rew) || 0;
+  const epsField = document.getElementById('edit-eps-field');
+  if (epsField.style.display !== 'none' && eps !== '') payload.episodios_vistos = parseInt(eps) || 0;
+  try{
+    const r = await fetch('/api/media/'+_editId, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok){ toast('Error al guardar'); return; }
+    toast('✓ Guardado');
+    cerrar('modal-edit');
+    await cargar();
+  }catch(e){ toast('Error de conexión'); }
+}
+
+async function toggleFav(){
+  if (_editId == null) return;
+  const m = MEDIA.find(x=>x.id===_editId);
+  const nuevo = m && m.favorito ? 0 : 1;
+  try{
+    await fetch('/api/media/'+_editId, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({favorito:nuevo})
+    });
+    if (m) m.favorito = nuevo;
+    const fb = document.getElementById('btn-fav');
+    fb.style.background = nuevo ? 'var(--grad-accent-soft)' : '';
+    fb.textContent = nuevo ? '★ Favorito' : '⭐ Favorito';
+    toast(nuevo ? '⭐ Marcado favorito' : 'Quitado de favoritos');
+  }catch(e){ toast('Error'); }
+}
+
+async function borrarItem(){
+  if (_editId == null) return;
+  if (!confirm('¿Eliminar de tu lista? No se puede deshacer.')) return;
+  try{
+    const r = await fetch('/api/media/'+_editId, {method:'DELETE'});
+    if (!r.ok){ toast('Error al eliminar'); return; }
+    toast('🗑 Eliminado');
+    cerrar('modal-edit');
+    await cargar();
+  }catch(e){ toast('Error de conexión'); }
+}
+
+// ── Tendencias / descubrimiento ───────────────────────────────────────────────
+async function verTendencias(){
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('search-empty').style.display = 'none';
+  document.getElementById('search-loading').style.display = 'block';
+  document.querySelector('#modal-search h3').textContent = '🔥 Tendencias esta semana';
+  abrir('modal-search');
+  try{
+    const r = await fetch('/api/media/tendencias');
+    const d = await r.json();
+    document.getElementById('search-loading').style.display = 'none';
+    if (d.mensaje === 'no_key'){ cerrar('modal-search'); abrirAjustesKey(); return; }
+    if (!d.ok || !d.resultados || !d.resultados.length){
+      const em = document.getElementById('search-empty'); em.style.display='block'; em.textContent='No se pudieron cargar las tendencias'; return;
+    }
+    renderResultados(d.resultados);
+  }catch(e){
+    document.getElementById('search-loading').style.display='none';
+    const em = document.getElementById('search-empty'); em.style.display='block'; em.textContent='Error al cargar tendencias';
+  }
+}
+
+// ── API key de TMDB ───────────────────────────────────────────────────────────
+function abrirAjustesKey(){
+  // Si ya hay clave, mostrar panel de gestión SIN borrar la colección de la vista.
+  if (_hasKey){
+    const c = document.getElementById('content');
+    const bar = document.getElementById('collection-bar');
+    if (bar) bar.style.display = 'none';
+    c.innerHTML = `<div class="keybox">
+      <h3>⚙️ Ajustes de TMDB</h3>
+      <p>✅ Tu clave de TMDB está configurada y funcionando.</p>
+      <div class="key-row">
+        <input type="text" id="key-input" placeholder="Pega una clave nueva para reemplazarla">
+        <button class="btn btn-primary" id="key-save-btn" onclick="guardarKey()">Reemplazar</button>
+      </div>
+      <div id="key-status" style="margin-top:10px;font-size:12.5px;min-height:18px"></div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="cargar()">← Volver a mi colección</button>
+        <button class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="borrarKey()">Desconectar TMDB</button>
+      </div>
+    </div>`;
+    return;
+  }
+  document.getElementById('content').innerHTML = renderKeyBox();
+}
+
+async function borrarKey(){
+  if (!confirm('¿Desconectar TMDB? Tendrás que volver a meter la clave para buscar.')) return;
+  try{
+    await fetch('/api/media/tmdb-key', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({api_key:''})});
+    _hasKey = false;
+    toast('TMDB desconectado');
+    document.getElementById('content').innerHTML = renderKeyBox();
+  }catch(e){ toast('Error'); }
+}
+
+function renderKeyBox(){
+  return `<div class="keybox">
+    <h3>🔑 Conecta The Movie Database (TMDB)</h3>
+    <p>Esta sección usa <b>TMDB</b> (gratis para uso personal) para buscar películas y series. Necesitas tu propia API key — se saca en 2 minutos y se guarda solo en tu equipo:</p>
+    <ol>
+      <li>Crea una cuenta gratis en <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org/signup</a> y verifica tu email.</li>
+      <li>Abre <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org/settings/api</a> (Ajustes → API).</li>
+      <li>Pulsa <b>"Crear" / "Request an API Key"</b> y elige el tipo <b>"Developer"</b>. Acepta los términos y rellena el formulario (puedes poner datos básicos: nombre de la app "Miraru", uso personal, una URL cualquiera como <code>http://localhost</code>).</li>
+      <li>Verás dos valores. Copia el de abajo, <b>"Clave de la API"</b> — es la <b>corta</b> (32 caracteres, tipo <code>20f6...8644</code>).</li>
+    </ol>
+    <div class="warn-box">⚠️ <b>Importante:</b> copia la <b>"Clave de la API"</b> (la corta), <u>no</u> el <b>"Token de acceso de lectura"</b> (el largo que empieza por <code>eyJ...</code>). Esta app usa la clave v3.</div>
+    <div class="key-row">
+      <input type="text" id="key-input" placeholder="Pega aquí tu Clave de la API (v3)" onkeydown="if(event.key==='Enter')guardarKey()">
+      <button class="btn btn-primary" id="key-save-btn" onclick="guardarKey()">Conectar</button>
+    </div>
+    <div id="key-status" style="margin-top:10px;font-size:12.5px;min-height:18px"></div>
+    <p style="margin-top:6px;font-size:11px">La clave se guarda solo en tu base de datos local. No se comparte ni sale de tu equipo.</p>
+  </div>`;
+}
+
+async function guardarKey(){
+  const key = document.getElementById('key-input').value.trim();
+  const status = document.getElementById('key-status');
+  const btn = document.getElementById('key-save-btn');
+  if (!key){ status.innerHTML = '<span style="color:var(--warn)">Pega tu Clave de la API primero.</span>'; return; }
+  // Aviso si pegan el token largo por error
+  if (key.startsWith('eyJ') || key.length > 60){
+    status.innerHTML = '<span style="color:var(--danger)">Eso parece el <b>Token de acceso de lectura</b> (el largo). Necesito la <b>"Clave de la API"</b> corta (~32 caracteres).</span>';
+    return;
+  }
+  btn.disabled = true;
+  status.innerHTML = '<span class="spin" style="width:13px;height:13px;border-width:2px"></span> <span style="color:var(--muted)">Validando con TMDB...</span>';
+  try{
+    const r = await fetch('/api/media/tmdb-key', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({api_key:key})
+    });
+    const d = await r.json();
+    if (d.valid){
+      _hasKey = true;
+      status.innerHTML = '<span style="color:var(--success)">✓ Clave válida y conectada. Cargando...</span>';
+      toast('✓ TMDB conectado');
+      setTimeout(()=>cargar(), 500);
+    } else {
+      status.innerHTML = '<span style="color:var(--danger)">✗ TMDB rechazó esa clave. Revisa que copiaste la <b>"Clave de la API"</b> completa (sin espacios).</span>';
+      btn.disabled = false;
+    }
+  }catch(e){
+    status.innerHTML = '<span style="color:var(--danger)">Error de conexión. ¿Tienes internet?</span>';
+    btn.disabled = false;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async()=>{
+  try{
+    const r = await fetch('/api/media/tmdb-key');
+    const d = await r.json();
+    _hasKey = !!d.configured;
+    if (!_hasKey){
+      document.getElementById('content').innerHTML = renderKeyBox();
+      document.getElementById('collection-bar').style.display = 'none';
+      cargarStats();
+      return;
+    }
+  }catch(e){}
+  await cargar();
+})();
+</script>
+</body>
+</html>

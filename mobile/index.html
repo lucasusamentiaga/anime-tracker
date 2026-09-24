@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0812">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Miraru</title>
+<style>
+:root{
+  /* Paleta alineada con el sistema visual de Miraru (theme.css) */
+  --bg:#0a0812;--card:#181426;--border:#2b2542;--fg:#edecf4;
+  --muted:#a49dc0;--accent:#7c3aed;--light:#c4b1ff;
+  --success:#34d399;--danger:#fb7185;--warn:#fbbf24;--card2:#110e1c;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);
+     font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:15px;
+     padding-top:var(--safe-top)}
+input,select,textarea,button{font-family:inherit}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── Pantallas ── */
+.screen{position:fixed;inset:0;top:var(--safe-top);display:flex;flex-direction:column;
+        background:var(--bg);transition:opacity .2s,transform .2s;will-change:opacity}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
+
+/* ═══════════════════════════════════════════════════════
+   PANTALLA CONEXIÓN
+═══════════════════════════════════════════════════════ */
+#s-connect{align-items:center;justify-content:center;padding:28px;overflow-y:auto}
+.c-logo{width:90px;height:90px;border-radius:50%;object-fit:cover;
+        border:3px solid rgba(167,139,250,.75);margin-bottom:20px;
+        box-shadow:0 0 40px rgba(124,58,237,.4)}
+.c-logo-placeholder{width:90px;height:90px;border-radius:50%;background:var(--card);
+                     border:3px solid rgba(167,139,250,.4);margin-bottom:20px;
+                     display:flex;align-items:center;justify-content:center;font-size:36px}
+.c-title{font-size:26px;font-weight:800;background:linear-gradient(135deg,#fff,#a78bfa);
+         -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+         background-clip:text;margin-bottom:6px}
+.c-sub{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.5}
+.form-g{width:100%;max-width:340px;margin-bottom:16px}
+.form-g label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;
+              font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.form-g input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;
+              color:var(--fg);padding:13px 16px;font-size:15px;transition:border .15s}
+.form-g input:focus{outline:none;border-color:var(--accent)}
+.c-btn{width:100%;max-width:340px;padding:15px;border-radius:14px;
+       background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;
+       font-size:16px;font-weight:700;border:none;cursor:pointer;
+       box-shadow:0 4px 20px rgba(124,58,237,.4);letter-spacing:.3px}
+.c-btn:active{transform:scale(.97)}
+.c-err{color:var(--danger);font-size:13px;text-align:center;margin-top:10px;min-height:18px;line-height:1.4}
+.c-hint{font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.5}
+.c-hint a{color:var(--light);text-decoration:none}
+
+/* ═══════════════════════════════════════════════════════
+   APP PRINCIPAL
+═══════════════════════════════════════════════════════ */
+#s-app{display:flex;flex-direction:column}
+
+/* Header */
+.app-header{background:var(--card);border-bottom:1px solid var(--border);
+            padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.app-header .h-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;
+                       border:2px solid var(--accent);cursor:pointer;flex-shrink:0}
+.app-header h1{font-size:15px;font-weight:700;color:var(--light);flex:1;
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-header .h-user{font-size:11px;color:var(--muted);margin-top:1px}
+.hbtn{background:var(--card2);border:1px solid var(--border);border-radius:8px;
+      color:var(--muted);padding:7px 10px;font-size:13px;cursor:pointer;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center}
+.hbtn:active{opacity:.6}
+
+/* Content area */
+.content-area{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+
+/* ═══════════════════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════════════════ */
+.tab-bar{display:flex;background:var(--card);border-top:1px solid var(--border);
+         flex-shrink:0;padding-bottom:var(--safe-bot)}
+.tab-item{flex:1;padding:10px 0 8px;text-align:center;cursor:pointer;
+          border-top:2px solid transparent;transition:all .15s}
+.tab-item.on{color:var(--light);border-top-color:var(--accent)}
+.tab-item .ti{font-size:20px;display:block;margin-bottom:2px}
+.tab-item .tl{font-size:10px;color:var(--muted)}
+.tab-item.on .tl{color:var(--light)}
+
+.tab-pane{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.tab-pane.on{display:flex;flex-direction:column}
+.tab-scroll{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+
+/* ═══════════════════════════════════════════════════════
+   LISTA
+═══════════════════════════════════════════════════════ */
+.search-row{position:sticky;top:0;background:var(--bg);padding:12px 14px 8px;
+            border-bottom:1px solid var(--border);z-index:5;flex-shrink:0}
+.search-inp{width:100%;background:var(--card);border:1px solid var(--border);
+            border-radius:10px;color:var(--fg);padding:10px 14px;font-size:14px}
+.search-inp:focus{outline:none;border-color:var(--accent)}
+
+.filters{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fb{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:99px;
+    color:var(--muted);padding:5px 12px;font-size:12px;cursor:pointer;font-weight:500}
+.fb.on{background:rgba(124,58,237,.15);border-color:var(--accent);color:var(--light)}
+.fb:active{opacity:.7}
+
+.count-row{padding:6px 14px;font-size:12px;color:var(--muted);flex-shrink:0}
+
+.anime-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+            display:flex;gap:10px;padding:10px;margin-bottom:8px;cursor:pointer;
+            transition:border-color .1s;position:relative}
+.anime-card:active{border-color:var(--accent);background:#1e1e2c}
+.anime-card .ac-img{width:48px;height:66px;border-radius:6px;object-fit:cover;flex-shrink:0}
+.anime-card .ac-body{flex:1;min-width:0}
+.ac-name{font-size:14px;font-weight:600;margin-bottom:2px;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-info{font-size:11px;color:var(--muted);margin-bottom:4px}
+.badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700}
+.bv,.bw{background:#1e3a5f;color:#60a5fa}
+.bc,.bco{background:#14342a;color:#34d399}
+.bp,.bpe{background:#2d2520;color:#f59e0b}
+.ba,.bdr{background:#2d1c1c;color:#f87171}
+.bpa{background:#1a2a1a;color:#86efac}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.ep-count{font-size:10px;color:var(--muted);margin-top:2px}
+.p1-btn{position:absolute;top:8px;right:8px;background:rgba(20,52,42,.9);color:var(--success);
+        border:none;border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.p1-btn:active{opacity:.7}
+
+/* ═══════════════════════════════════════════════════════
+   MODAL EDICIÓN (bottom sheet)
+═══════════════════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;
+         display:none;align-items:flex-end;backdrop-filter:blur(4px);
+         -webkit-backdrop-filter:blur(4px)}
+.overlay.on{display:flex}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;padding:0;
+       width:100%;max-height:92vh;overflow-y:auto;
+       padding-bottom:calc(20px + var(--safe-bot))}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;
+              margin:12px auto 16px;cursor:pointer}
+.sheet-body{padding:0 18px 8px}
+.sheet-preview{display:flex;gap:12px;margin-bottom:16px;
+               padding-bottom:14px;border-bottom:1px solid var(--border)}
+.sheet-preview img{width:54px;height:76px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.sp-name{font-size:15px;font-weight:700;margin-bottom:4px;line-height:1.3}
+.sp-info{font-size:12px;color:var(--muted)}
+.f-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;
+         font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.f-row{margin-bottom:14px}
+.f-select,.f-input,.f-textarea{width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;color:var(--fg);padding:11px 13px;font-size:14px}
+.f-select:focus,.f-input:focus,.f-textarea:focus{outline:none;border-color:var(--accent)}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.f-textarea{resize:none;min-height:72px}
+.sheet-actions{display:flex;gap:10px;padding:0 18px;margin-top:6px}
+.btn-save{flex:1;background:var(--accent);color:#fff;padding:14px;border-radius:12px;
+          font-weight:700;font-size:15px;border:none;cursor:pointer}
+.btn-save:active{opacity:.85}
+.btn-can{background:var(--card2);color:var(--muted);border:1px solid var(--border);
+         padding:14px 20px;border-radius:12px;font-size:14px;border:none;cursor:pointer}
+
+/* ═══════════════════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════════════════ */
+.kpi-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;
+     padding:14px;text-align:center}
+.kpi-v{font-size:28px;font-weight:700;color:var(--light)}
+.kpi-l{font-size:11px;color:var(--muted);margin-top:3px}
+.bar-sec{background:var(--card);border:1px solid var(--border);border-radius:12px;
+         padding:14px;margin-bottom:10px}
+.bar-sec h3{font-size:12px;font-weight:700;color:var(--light);margin-bottom:10px;
+            text-transform:uppercase;letter-spacing:.5px}
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.blabel{font-size:12px;width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btrack{flex:1;background:var(--border);border-radius:3px;height:10px;overflow:hidden}
+.bfill{height:100%;background:var(--accent);border-radius:3px}
+.bnum{font-size:11px;color:var(--muted);width:24px;text-align:right}
+
+/* ═══════════════════════════════════════════════════════
+   PERFIL
+═══════════════════════════════════════════════════════ */
+.profile-header{display:flex;flex-direction:column;align-items:center;
+                padding:28px 20px 20px;background:var(--card);
+                border-bottom:1px solid var(--border);flex-shrink:0}
+.profile-avatar-wrap{position:relative;margin-bottom:12px}
+.profile-avatar{width:84px;height:84px;border-radius:50%;object-fit:cover;
+                border:3px solid var(--accent);box-shadow:0 0 20px rgba(124,58,237,.4)}
+.avatar-edit{position:absolute;bottom:0;right:0;background:var(--accent);border:none;
+             border-radius:50%;width:26px;height:26px;cursor:pointer;
+             display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.profile-name{font-size:19px;font-weight:700;color:var(--light);text-align:center}
+.profile-email{font-size:12px;color:var(--muted);margin-top:3px}
+
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px}
+.pcard h3{font-size:13px;font-weight:700;color:var(--light);margin-bottom:12px;
+          text-transform:uppercase;letter-spacing:.5px}
+.p-field{margin-bottom:12px}
+.p-label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;
+         font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.p-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+         color:var(--fg);padding:10px 12px;font-size:14px}
+.p-input:focus{outline:none;border-color:var(--accent)}
+.p-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;
+       padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px}
+.p-btn:active{opacity:.85}
+.p-btn.danger{background:#2d1c1c;color:var(--danger);border:1px solid #5a2020}
+.p-note{font-size:11px;color:var(--muted);line-height:1.5;margin-top:6px}
+
+/* ═══════════════════════════════════════════════════════
+   LOADING & TOAST
+═══════════════════════════════════════════════════════ */
+.loading{display:flex;flex-direction:column;align-items:center;
+         justify-content:center;padding:50px;color:var(--muted);flex:1}
+.spin{width:28px;height:28px;border:3px solid rgba(124,58,237,.2);border-top-color:var(--accent);
+      border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#toast{position:fixed;bottom:calc(76px + var(--safe-bot));left:50%;
+       transform:translateX(-50%);z-index:200;
+       opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap;
+       max-width:calc(100vw - 32px)}
+#toast.on{opacity:1}
+.ti{background:var(--card);border:1px solid #1d6b50;border-radius:10px;
+    padding:10px 18px;font-size:13px;font-weight:500;color:var(--success)}
+.ti.err{border-color:#5a2020;color:var(--danger)}
+.ti.warn{border-color:#7a4a00;color:var(--warn)}
+</style>
+</head>
+<body>
+
+<!-- ══ PANTALLA CONEXIÓN ════════════════════════════════════ -->
+<div class="screen" id="s-connect">
+  <div class="c-logo-placeholder" id="conn-logo-ph">🎌</div>
+  <div class="c-title">Miraru</div>
+  <div class="c-sub">Conéctate al servidor de tu PC<br>en la misma red WiFi</div>
+
+  <div class="form-g">
+    <label>IP del PC (ejemplo: 192.168.1.5:8765)</label>
+    <input type="text" id="inp-ip" placeholder="192.168.1.5:8765"
+           inputmode="url" autocomplete="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter')conectar()">
+  </div>
+  <div class="form-g">
+    <label>PIN de acceso</label>
+    <input type="password" id="inp-pin" placeholder="••••"
+           inputmode="numeric" maxlength="8"
+           onkeydown="if(event.key==='Enter')conectar()">
+  </div>
+
+  <button class="c-btn" id="btn-conn" onclick="conectar()">Conectar</button>
+  <div class="c-err" id="conn-err"></div>
+  <div class="c-hint">
+    Activa el acceso móvil en la app de PC<br>
+    (botón 📱 en la cabecera)
+  </div>
+</div>
+
+<!-- ══ APP PRINCIPAL ════════════════════════════════════════ -->
+<div class="screen hidden" id="s-app">
+
+  <div class="app-header">
+    <div id="h-avatar-wrap">
+      <div id="h-avatar-ph" class="c-logo-placeholder" style="width:34px;height:34px;font-size:16px;margin:0;cursor:pointer" onclick="switchTab('perfil')">🎌</div>
+    </div>
+    <div style="flex:1;min-width:0">
+      <div class="h-user" id="h-username">Miraru</div>
+    </div>
+    <button class="hbtn" onclick="recargar()" title="Actualizar">⟳</button>
+    <button class="hbtn" onclick="desconectar()" title="Desconectar" style="margin-left:4px">✕</button>
+  </div>
+
+  <div class="content-area">
+    <!-- Tab: Lista -->
+    <div class="tab-pane on" id="tp-lista">
+      <div class="search-row">
+        <input class="search-inp" id="search" type="search" placeholder="Buscar en mi lista…"
+               oninput="filtrar()" autocomplete="off">
+      </div>
+      <div class="filters" id="filtros">
+        <button class="fb on" data-f="" onclick="setF(this,'')">Todos</button>
+        <button class="fb" data-f="viendo"    onclick="setF(this,'viendo')">Viendo</button>
+        <button class="fb" data-f="pendiente" onclick="setF(this,'pendiente')">Pendiente</button>
+        <button class="fb" data-f="completado"onclick="setF(this,'completado')">Completado</button>
+        <button class="fb" data-f="abandonado"onclick="setF(this,'abandonado')">Abandonado</button>
+        <button class="fb" data-f="pausa"     onclick="setF(this,'pausa')">Pausa</button>
+      </div>
+      <div class="count-row" id="count-row"></div>
+      <div class="tab-scroll" id="lista-cont">
+        <div class="loading"><div class="spin"></div>Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Tab: Stats -->
+    <div class="tab-pane" id="tp-stats">
+      <div class="tab-scroll">
+        <div id="stats-cont">
+          <div class="loading"><div class="spin"></div>Cargando…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Perfil -->
+    <div class="tab-pane" id="tp-perfil">
+      <div id="perfil-cont">
+        <div class="loading"><div class="spin"></div>Cargando…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab-item on"  onclick="switchTab('lista')">  <span class="ti">📋</span><span class="tl">Lista</span></div>
+    <div class="tab-item"     onclick="switchTab('stats')">  <span class="ti">📊</span><span class="tl">Stats</span></div>
+    <div class="tab-item"     onclick="switchTab('perfil')"> <span class="ti">👤</span><span class="tl">Perfil</span></div>
+  </div>
+
+</div>
+
+<!-- ══ MODAL EDICIÓN ════════════════════════════════════════ -->
+<div class="overlay" id="modal" onclick="if(event.target===this)cerrarModal()">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle" onclick="cerrarModal()"></div>
+    <div class="sheet-body">
+      <div class="sheet-preview">
+        <img id="m-img" src="" alt="" width="54" height="76"
+             onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0">
+          <div class="sp-name" id="m-name"></div>
+          <div class="sp-info" id="m-info"></div>
+        </div>
+      </div>
+      <input type="hidden" id="m-nombre">
+      <div class="f-row">
+        <label class="f-label">Estado</label>
+        <select class="f-select" id="m-estado">
+          <option value="pendiente">Pendiente</option>
+          <option value="viendo">Viendo</option>
+          <option value="completado">Completado</option>
+          <option value="abandonado">Abandonado</option>
+          <option value="pausa">En pausa</option>
+        </select>
+      </div>
+      <div class="f-grid">
+        <div>
+          <label class="f-label">Puntuación (0-10)</label>
+          <input class="f-input" type="number" id="m-score" min="0" max="10" step="0.5" placeholder="—">
+        </div>
+        <div>
+          <label class="f-label">Eps vistos</label>
+          <input class="f-input" type="number" id="m-vistos" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="f-row">
+        <label class="f-label">Notas</label>
+        <textarea class="f-textarea" id="m-notas" rows="3" placeholder="Notas personales…"></textarea>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-save" onclick="guardar()">Guardar</button>
+      <button class="btn-can" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><div class="ti" id="ti"></div></div>
+
+<script>
+'use strict';
+// ── Config ────────────────────────────────────────────────────────────────────
+const SK = 'at_mob_v2';
+let CFG = (() => { try { return JSON.parse(localStorage.getItem(SK)||'{}'); } catch(_){return{};} })();
+
+// State
+let ANIMES = [], fEstado = '', fBusca = '', activeTab = 'lista';
+let PERFIL = {nombre_usuario:'', email_notif:'', tiene_avatar: false};
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const BLANK = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect fill='%231a1a24' width='1' height='1'/></svg>";
+
+function toast(msg, tipo='ok') {
+  const el=$('toast'), ti=$('ti');
+  ti.className='ti '+(tipo==='err'?'err':tipo==='warn'?'warn':'');
+  ti.textContent=msg; el.classList.add('on');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),3000);
+}
+
+function api(path, opts={}) {
+  const h={'Content-Type':'application/json'};
+  if(CFG.token) h['X-Mobile-Token']=CFG.token;
+  return fetch(`http://${CFG.host}${path}`, {...opts, headers:{...h,...(opts.headers||{})}});
+}
+
+function imgUrl(url) {
+  if(!url) return BLANK;
+  if(url.startsWith('http')) return url;
+  return `http://${CFG.host}${url}`;
+}
+
+// ── Conexión ──────────────────────────────────────────────────────────────────
+async function conectar() {
+  const host = $('inp-ip').value.trim().replace(/^https?:\/\//,'');
+  const pin  = $('inp-pin').value.trim();
+  const err  = $('conn-err');
+  err.textContent='';
+  if(!host||!pin){err.textContent='Introduce la IP y el PIN.';return;}
+
+  const btn=$('btn-conn');
+  btn.disabled=true; btn.textContent='Conectando…';
+
+  try {
+    const ctrl = new AbortController();
+    setTimeout(()=>ctrl.abort(), 6000);
+
+    const ping = await fetch(`http://${host}/api/mobile/ping`, {signal:ctrl.signal});
+    if(!ping.ok) throw new Error('El servidor no responde');
+    const pd = await ping.json();
+    // Acepta el identificador histórico y el nuevo (rebrand a Miraru)
+    if(pd.app !== 'AnimeTracker' && pd.app !== 'Miraru') throw new Error('Servidor no reconocido');
+    // Solo rechazamos servidores realmente antiguos (v1): el contrato de auth y
+    // el salt del PIN cambiaron en la v2. Antes se exigía "2." y esto habría
+    // rechazado por error cualquier versión futura (3.x, 4.x…).
+    if(pd.version && String(pd.version).startsWith('1.')) {
+      err.textContent='El PC corre una versión antigua de Miraru. Actualízalo.';
+      btn.disabled=false; btn.textContent='Conectar';
+      return;
+    }
+
+    const auth = await fetch(`http://${host}/api/mobile/auth`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pin}),
+    });
+    const ad = await auth.json();
+    if(!auth.ok){err.textContent=ad.detail||'PIN incorrecto';return;}
+
+    CFG={host, token:ad.token};
+    localStorage.setItem(SK, JSON.stringify(CFG));
+    await arrancarApp();
+
+  } catch(e) {
+    err.textContent = e.name==='AbortError'||e.name==='TimeoutError'
+      ? 'Tiempo agotado. ¿PC encendido y misma WiFi?'
+      : 'No se pudo conectar: '+(e.message||'error');
+  } finally {
+    btn.disabled=false; btn.textContent='Conectar';
+  }
+}
+
+async function arrancarApp() {
+  $('s-connect').classList.add('hidden');
+  $('s-app').classList.remove('hidden');
+  await Promise.all([cargarAnimes(), cargarPerfil()]);
+}
+
+function desconectar() {
+  CFG={}; localStorage.removeItem(SK);
+  ANIMES=[]; PERFIL={};
+  $('s-connect').classList.remove('hidden');
+  $('s-app').classList.add('hidden');
+  $('lista-cont').innerHTML='<div class="loading"><div class="spin"></div>Cargando…</div>';
+}
+
+async function intentarAutoconect() {
+  if(!CFG.host||!CFG.token) return;
+  try {
+    const ctrl=new AbortController();
+    setTimeout(()=>ctrl.abort(),4000);
+    const r=await fetch(`http://${CFG.host}/api/mobile/animes`,
+      {headers:{'X-Mobile-Token':CFG.token},signal:ctrl.signal});
+    if(r.status===401){CFG={};localStorage.removeItem(SK);return;}
+    if(r.ok){
+      const d=await r.json();
+      ANIMES=d.animes||[];
+      await cargarPerfil();
+      $('s-connect').classList.add('hidden');
+      $('s-app').classList.remove('hidden');
+      renderLista();
+    }
+  } catch(_){CFG={};localStorage.removeItem(SK);}
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab=tab;
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('on'));
+  $(`tp-${tab}`).classList.add('on');
+  const idx={lista:0,stats:1,perfil:2}[tab]||0;
+  document.querySelectorAll('.tab-item')[idx].classList.add('on');
+  if(tab==='stats') cargarStats();
+  if(tab==='perfil') renderPerfil();
+}
+
+// ── Cargar datos ──────────────────────────────────────────────────────────────
+async function cargarAnimes() {
+  try {
+    const r=await api('/api/mobile/animes');
+    if(r.status===401){desconectar();return;}
+    const d=await r.json();
+    ANIMES=d.animes||[];
+    renderLista();
+  } catch(e){ toast('Error de conexión','err'); }
+}
+
+async function recargar() {
+  toast('Actualizando…','warn');
+  await cargarAnimes();
+  toast('Lista actualizada');
+}
+
+// ── Filtros ───────────────────────────────────────────────────────────────────
+function filtrar(){ fBusca=$('search').value.toLowerCase().trim(); renderLista(); }
+function setF(btn,f){
+  fEstado=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.toggle('on',b===btn));
+  renderLista();
+}
+
+// ── Render lista ──────────────────────────────────────────────────────────────
+const ESTADO_LABEL = {pendiente:'Pendiente',viendo:'Viendo',completado:'Completado',
+                      abandonado:'Abandonado',pausa:'En pausa'};
+const ESTADO_CLS   = {pendiente:'bp',viendo:'bv',completado:'bc',abandonado:'ba',pausa:'bpa'};
+
+function renderLista() {
+  const lista = ANIMES.filter(a=>{
+    if(fEstado && a.estado_usuario!==fEstado) return false;
+    if(fBusca  && !a.nombre.toLowerCase().includes(fBusca)) return false;
+    return true;
+  });
+  $('count-row').textContent = lista.length + ' anime' + (lista.length!==1?'s':'');
+
+  const cont=$('lista-cont');
+  if(!lista.length){
+    cont.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">Sin resultados</div>';
+    return;
+  }
+
+  const frag=document.createDocumentFragment();
+  lista.forEach(a=>{
+    const cap  = parseInt(a.capitulos)||0;
+    const vis  = a.episodios_vistos||0;
+    const pct  = cap>0 ? Math.min(100,Math.round(vis/cap*100)) : 0;
+    const cls  = ESTADO_CLS[a.estado_usuario]||'bp';
+    const lbl  = ESTADO_LABEL[a.estado_usuario]||a.estado_usuario;
+    const enc  = encodeURIComponent(a.nombre);
+
+    const card=document.createElement('div');
+    card.className='anime-card';
+    card.addEventListener('click',()=>abrirModal(a));
+    // v2.3: swipe gestures — derecha = +1 ep, izquierda = abrir detalle
+    _addSwipe(card, {
+      onRight: () => { if (cap > 0) plus1(enc, a); },
+      onLeft:  () => abrirModal(a),
+    });
+
+    const img=document.createElement('img');
+    img.className='ac-img'; img.loading='lazy';
+    img.src=imgUrl(a.imagen); img.onerror=()=>{img.src=BLANK;};
+
+    const body=document.createElement('div');
+    body.className='ac-body';
+
+    const name=document.createElement('div');
+    name.className='ac-name'; name.textContent=a.nombre;
+
+    const info=document.createElement('div');
+    info.className='ac-info';
+    info.textContent=(a.fuente||'')+(cap>0?` · ${cap} ep`:'');
+
+    const badge=document.createElement('span');
+    badge.className='badge '+cls; badge.textContent=lbl;
+
+    body.appendChild(name);
+    body.appendChild(info);
+    body.appendChild(badge);
+
+    if(cap>0){
+      const pb=document.createElement('div'); pb.className='prog-bar';
+      const pf=document.createElement('div'); pf.className='prog-fill';
+      pf.style.width=pct+'%'; pb.appendChild(pf); body.appendChild(pb);
+      const ec=document.createElement('div'); ec.className='ep-count';
+      ec.textContent=vis+'/'+cap+' ep ('+pct+'%)'; body.appendChild(ec);
+    }
+
+    card.appendChild(img); card.appendChild(body);
+
+    if(cap>0){
+      const p1=document.createElement('button');
+      p1.className='p1-btn'; p1.textContent='+1';
+      p1.addEventListener('click',e=>{e.stopPropagation();plus1(enc,a);});
+      card.appendChild(p1);
+    }
+    frag.appendChild(card);
+  });
+
+  cont.innerHTML='';
+  cont.appendChild(frag);
+}
+
+// ── Modal edición ─────────────────────────────────────────────────────────────
+function abrirModal(a) {
+  $('m-nombre').value=a.nombre;
+  $('m-name').textContent=a.nombre;
+  $('m-info').textContent=(a.fuente||'')+(a.capitulos?' · '+a.capitulos+' ep':'');
+  const src=imgUrl(a.imagen);
+  $('m-img').src=src; $('m-img').style.display='block';
+  $('m-estado').value=a.estado_usuario||'pendiente';
+  $('m-score').value=a.puntuacion||'';
+  $('m-vistos').value=a.episodios_vistos||'';
+  $('m-notas').value=a.notas||'';
+  $('modal').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+
+function cerrarModal() {
+  $('modal').classList.remove('on');
+  document.body.style.overflow='';
+}
+
+async function guardar() {
+  const nombre=$('m-nombre').value;
+  const body={
+    estado_usuario: $('m-estado').value,
+    puntuacion:     parseFloat($('m-score').value)||null,
+    episodios_vistos:parseInt($('m-vistos').value)||null,
+    notas:          $('m-notas').value||null,
+  };
+  try {
+    const r=await api(`/api/mobile/animes/${encodeURIComponent(nombre)}`,
+      {method:'PATCH',body:JSON.stringify(body)});
+    if(r.status===401){desconectar();return;}
+    if(!r.ok){toast('Error al guardar','err');return;}
+    // Update in memory
+    const idx=ANIMES.findIndex(a=>a.nombre===nombre);
+    if(idx>=0) Object.assign(ANIMES[idx], Object.fromEntries(
+      Object.entries(body).filter(([,v])=>v!=null)
+    ));
+    cerrarModal();
+    renderLista();
+    toast('✓ Guardado');
+  } catch(_){ toast('Error de conexión','err'); }
+}
+
+// ── +1 episodio ───────────────────────────────────────────────────────────────
+async function plus1(enc, a) {
+  try {
+    const r=await api(`/api/mobile/animes/${enc}/plus1`,{method:'POST'});
+    if(!r.ok) return;
+    const d=await r.json();
+    const idx=ANIMES.findIndex(x=>x.nombre===a.nombre);
+    if(idx>=0) ANIMES[idx].episodios_vistos=d.episodios_vistos;
+    renderLista();
+    toast(`+1 ep · ${d.episodios_vistos} vistos`);
+  } catch(_){ toast('Error','err'); }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function cargarStats() {
+  const c=$('stats-cont');
+  try {
+    const r=await api('/api/mobile/stats');
+    if(!r.ok) return;
+    const d=await r.json();
+    const ELBL={pendiente:'Pendiente',viendo:'Viendo',completado:'Completado',
+                abandonado:'Abandonado',pausa:'En pausa'};
+    const maxSt=Math.max(1,...Object.values(d.by_state||{}));
+    const barsHTML=Object.entries(d.by_state||{}).map(([k,v])=>`
+      <div class="brow">
+        <div class="blabel">${ELBL[k]||k}</div>
+        <div class="btrack"><div class="bfill" style="width:${Math.round(v/maxSt*100)}%"></div></div>
+        <div class="bnum">${v}</div>
+      </div>`).join('');
+    c.innerHTML=`
+      <div style="padding:14px">
+        <div class="kpi-g">
+          <div class="kpi"><div class="kpi-v">${d.total}</div><div class="kpi-l">Animes</div></div>
+          <div class="kpi"><div class="kpi-v">${d.total_episodes}</div><div class="kpi-l">Eps vistos</div></div>
+          <div class="kpi"><div class="kpi-v">${d.avg_score||'—'}</div><div class="kpi-l">Puntuación</div></div>
+          <div class="kpi"><div class="kpi-v" style="font-size:14px">${(d.top_generos||['—'])[0]}</div><div class="kpi-l">Top género</div></div>
+        </div>
+        <div class="bar-sec">
+          <h3>Por estado</h3>${barsHTML}
+        </div>
+        ${d.top_generos?.length?`<div class="bar-sec"><h3>Top géneros</h3>${
+          d.top_generos.map((g,i)=>`<div class="brow">
+            <div class="blabel">${g}</div>
+            <div class="btrack"><div class="bfill" style="width:${100-i*15}%"></div></div>
+          </div>`).join('')}</div>`:''}
+      </div>`;
+  } catch(_){ c.innerHTML='<div class="loading">Error al cargar</div>'; }
+}
+
+// ── Perfil ────────────────────────────────────────────────────────────────────
+async function cargarPerfil() {
+  try {
+    const r=await api('/api/perfil');
+    if(!r.ok) return;
+    PERFIL=await r.json();
+    actualizarHeaderPerfil();
+  } catch(_) {}
+}
+
+function actualizarHeaderPerfil() {
+  // Header name
+  const hn=$('h-username');
+  if(hn) hn.textContent=PERFIL.nombre_usuario||'Miraru';
+
+  // Header avatar — DOM construction avoids nested-quote hell
+  const wrap=$('h-avatar-wrap');
+  if(wrap) {
+    wrap.innerHTML='';
+    if(PERFIL.tiene_avatar){
+      const aImg=document.createElement('img');
+      aImg.className='h-avatar';
+      aImg.src='http://'+CFG.host+'/api/perfil/avatar?t='+Date.now();
+      aImg.onerror=function(){
+        wrap.innerHTML='';
+        const ph=_makeAvatarPh(); wrap.appendChild(ph);
+      };
+      aImg.addEventListener('click',()=>switchTab('perfil'));
+      wrap.appendChild(aImg);
+    } else {
+      wrap.appendChild(_makeAvatarPh());
+    }
+  }
+}
+
+function _makeAvatarPh(){
+  const ph=document.createElement('div');
+  ph.id='h-avatar-ph'; ph.className='c-logo-placeholder';
+  ph.style.cssText='width:34px;height:34px;font-size:16px;margin:0;cursor:pointer';
+  ph.textContent='🎌';
+  ph.addEventListener('click',()=>switchTab('perfil'));
+  return ph;
+}
+
+function renderPerfil() {
+  const cont=$('perfil-cont');
+  const avatarSrc = PERFIL.tiene_avatar
+    ? `http://${CFG.host}/api/perfil/avatar?t=${Date.now()}`
+    : '';
+
+  const avatarHtml = PERFIL.tiene_avatar
+    ? `<img class="profile-avatar" id="pa-img" src="${avatarSrc}" alt="avatar" onerror="this.src=''">`
+    : `<div class="profile-avatar" style="background:var(--card);display:flex;align-items:center;justify-content:center;font-size:40px">🎌</div>`;
+
+  cont.innerHTML=`
+    <div class="profile-header">
+      <div class="profile-avatar-wrap">
+        ${avatarHtml}
+        <label class="avatar-edit" title="Cambiar foto" style="cursor:pointer">
+          ✏️<input type="file" accept="image/*" style="display:none" onchange="subirAvatar(this)">
+        </label>
+      </div>
+      <div class="profile-name">${esc(PERFIL.nombre_usuario)||'Mi perfil'}</div>
+      <div class="profile-email">${esc(PERFIL.email_notif)||''}</div>
+    </div>
+
+    <div style="padding:14px">
+      <div class="pcard">
+        <h3>Información personal</h3>
+        <div class="p-field">
+          <label class="p-label">Nombre de usuario</label>
+          <input class="p-input" id="p-nombre" value="${esc(PERFIL.nombre_usuario)}" placeholder="Tu nombre" maxlength="50">
+        </div>
+        <div class="p-field">
+          <label class="p-label">Email notificaciones</label>
+          <input class="p-input" id="p-email" type="email" value="${esc(PERFIL.email_notif)}" placeholder="tu@email.com">
+        </div>
+        <button class="p-btn" onclick="guardarPerfil()">Guardar</button>
+      </div>
+
+      <div class="pcard">
+        <h3>Conexión al PC</h3>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.6">
+          Conectado a: <strong style="color:var(--light)">${esc(CFG.host||'')}</strong>
+        </div>
+        <button class="p-btn danger" onclick="desconectar()">Desconectar</button>
+      </div>
+    </div>`;
+}
+
+async function guardarPerfil() {
+  const nombre=$('p-nombre').value.trim();
+  const email=$('p-email').value.trim();
+  try {
+    const r=await api('/api/perfil',{method:'POST',body:JSON.stringify({
+      nombre_usuario:nombre, email_notif:email
+    })});
+    if(!r.ok){toast('Error al guardar','err');return;}
+    PERFIL.nombre_usuario=nombre;
+    PERFIL.email_notif=email;
+    actualizarHeaderPerfil();
+    renderPerfil();
+    toast('✓ Perfil guardado');
+  } catch(_){ toast('Error de conexión','err'); }
+}
+
+async function subirAvatar(input) {
+  const file=input.files[0];
+  if(!file) return;
+  const form=new FormData();
+  form.append('file',file);
+  try {
+    const r=await fetch(`http://${CFG.host}/api/perfil/avatar`,{
+      method:'POST',
+      headers:{'X-Mobile-Token':CFG.token},
+      body:form,
+    });
+    if(!r.ok){const d=await r.json();toast(d.detail||'Error','err');return;}
+    PERFIL.tiene_avatar=true;
+    actualizarHeaderPerfil();
+    renderPerfil();
+    toast('✓ Avatar actualizado');
+  } catch(_){ toast('Error de conexión','err'); }
+}
+
+// ── v2.3: Swipe gestures + pull-to-refresh ───────────────────────────────────
+
+// Swipe horizontal sobre un elemento. Threshold 70px, máx desviación vertical 40px.
+function _addSwipe(el, {onLeft, onRight} = {}) {
+  let sx = 0, sy = 0, dx = 0, dy = 0, tracking = false;
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    dx = 0; dy = 0; tracking = true;
+  }, {passive: true});
+  el.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    dx = e.touches[0].clientX - sx;
+    dy = e.touches[0].clientY - sy;
+    // Feedback visual: traduce un poquito mientras desliza
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+      el.style.transition = '';
+      el.style.transform = `translateX(${dx * 0.4}px)`;
+      el.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 400));
+    }
+  }, {passive: true});
+  el.addEventListener('touchend', () => {
+    if (!tracking) return;
+    tracking = false;
+    el.style.transition = 'transform .18s ease, opacity .18s ease';
+    el.style.transform = ''; el.style.opacity = '';
+    if (Math.abs(dy) > 40) return;                 // scroll vertical, ignorar
+    if (dx > 70 && onRight) onRight();
+    else if (dx < -70 && onLeft) onLeft();
+  });
+  el.addEventListener('touchcancel', () => {
+    tracking = false;
+    el.style.transition = 'transform .18s ease, opacity .18s ease';
+    el.style.transform = ''; el.style.opacity = '';
+  });
+}
+
+// Pull-to-refresh sobre el contenedor de la lista
+function _setupPullToRefresh() {
+  const cont = $('lista-cont');
+  if (!cont) return;
+  let sy = 0, pulling = false;
+  const indicator = document.createElement('div');
+  indicator.style.cssText = 'position:fixed;top:8px;left:50%;transform:translateX(-50%) translateY(-40px);'
+    + 'background:var(--accent);color:#fff;border-radius:99px;padding:7px 16px;'
+    + 'font-size:12px;font-weight:700;z-index:50;transition:transform .2s;pointer-events:none';
+  indicator.textContent = '↓ Soltar para refrescar';
+  document.body.appendChild(indicator);
+
+  cont.addEventListener('touchstart', e => {
+    if (cont.scrollTop > 0) { pulling = false; return; }
+    sy = e.touches[0].clientY; pulling = true;
+  }, {passive: true});
+  cont.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - sy;
+    if (dy > 40) {
+      indicator.style.transform = `translateX(-50%) translateY(${Math.min(60, dy * 0.4) - 40}px)`;
+      indicator.textContent = dy > 100 ? '↑ Soltar para refrescar' : '↓ Sigue tirando…';
+    } else {
+      indicator.style.transform = 'translateX(-50%) translateY(-40px)';
+    }
+  }, {passive: true});
+  cont.addEventListener('touchend', async e => {
+    if (!pulling) return;
+    pulling = false;
+    const dy = e.changedTouches[0].clientY - sy;
+    indicator.style.transform = 'translateX(-50%) translateY(-40px)';
+    if (dy > 100) {
+      indicator.textContent = 'Refrescando…';
+      indicator.style.transform = 'translateX(-50%) translateY(8px)';
+      try { await cargarAnimes(); toast('✓ Actualizado'); }
+      catch(_) { toast('Error al refrescar', 'err'); }
+      setTimeout(() => indicator.style.transform = 'translateX(-50%) translateY(-40px)', 600);
+    }
+  });
+}
+setTimeout(_setupPullToRefresh, 500);
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+intentarAutoconect();
+</script>
+</body>
+</html>

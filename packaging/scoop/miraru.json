@@ -1,0 +1,25 @@
+{
+  "version": "2.6.2",
+  "description": "Miraru — tu biblioteca personal de anime, series y películas.",
+  "homepage": "https://github.com/lucasusamentiaga/anime-tracker",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/lucasusamentiaga/anime-tracker/releases/download/v2.6.2/Miraru-Portable.exe",
+      "hash": "REEMPLAZAR_POR_SHA256_DEL_EXE"
+    }
+  },
+  "bin": "Miraru-Portable.exe",
+  "shortcuts": [
+    ["Miraru-Portable.exe", "Miraru"]
+  ],
+  "persist": [],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/lucasusamentiaga/anime-tracker/releases/download/v$version/Miraru-Portable.exe"
+      }
+    }
+  }
+}

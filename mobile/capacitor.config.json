@@ -1,0 +1,22 @@
+{
+  "appId": "com.miraru.mobile",
+  "appName": "Miraru",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "hostname": "miraru.local"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0a0812",
+    "minWebViewVersion": 60
+  },
+  "plugins": {
+    "StatusBar": {
+      "backgroundColor": "#0a0812",
+      "style": "dark",
+      "overlaysWebView": false
+    }
+  }
+}
