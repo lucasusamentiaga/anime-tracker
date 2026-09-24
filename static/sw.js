@@ -13,7 +13,10 @@
 //        innerHTML templating en _crearCard (de ~30 createElement a 1 parse).
 // v21 = fix onerror infinite loop (img.src=''), fix src='' en modales,
 //        meta referrer global, cache avgScore en sort, hoist getElementById.
-const CACHE_NAME = 'miraru-v21';
+// v22 = sync bidireccional AniList: backend (anilist_sync.py, 7 endpoints),
+//        UI modal en index.html (connect/disconnect, pull/push, resolve IDs),
+//        indicador de estado en header, auto-push al editar anime.
+const CACHE_NAME = 'miraru-v24'; // manga + watch folder UI + affiliates
 const STATIC_ASSETS = [
   '/',
   '/app',

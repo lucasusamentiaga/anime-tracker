@@ -727,12 +727,105 @@ main{padding:16px 20px}
   </div>
 </div>
 
+<!-- Modal: AniList Sync -->
+<div class="modal-bg" id="modal-anilist" onclick="if(event.target===this)cerrarModal('modal-anilist')">
+  <div class="modal" style="max-width:460px">
+    <h3>🔗 AniList Sync</h3>
+    <!-- Estado: no conectado -->
+    <div id="al-disconnected">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Conecta tu cuenta de AniList para sincronizar tu lista de anime bidireccionalmente.
+        Necesitas crear una app en <a href="https://anilist.co/settings/developer" target="_blank" rel="noopener" style="color:var(--light)">anilist.co/settings/developer</a>.
+      </p>
+      <div class="field">
+        <label>Client ID</label>
+        <input type="text" id="al-client-id" placeholder="Tu Client ID de AniList">
+      </div>
+      <div class="field">
+        <label>Client Secret</label>
+        <input type="text" id="al-client-secret" placeholder="Tu Client Secret de AniList">
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:6px">
+        Redirect URL para tu app de AniList: <code id="al-redirect-url" style="font-size:11px;user-select:all;cursor:text"></code>
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-g" onclick="cerrarModal('modal-anilist')">Cancelar</button>
+        <button class="btn btn-p" id="al-connect-btn" onclick="anilistConnect()">Conectar con AniList →</button>
+      </div>
+    </div>
+    <!-- Estado: conectado -->
+    <div id="al-connected" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px">
+        <span style="font-size:24px">✅</span>
+        <div>
+          <div style="font-weight:600;font-size:14px">Conectado como <span id="al-username" style="color:var(--light)"></span></div>
+          <div style="font-size:11px;color:var(--muted)">ID: <span id="al-userid"></span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn btn-p" style="flex:1" onclick="anilistPull()">
+          <span id="al-pull-txt">📥 Importar de AniList</span>
+        </button>
+        <button class="btn btn-p" style="flex:1;background:#059669" onclick="anilistPush()">
+          <span id="al-push-txt">📤 Subir a AniList</span>
+        </button>
+      </div>
+      <button class="btn btn-g" style="width:100%;justify-content:center;margin-bottom:10px" onclick="anilistResolveIds()">
+        <span id="al-resolve-txt">🔍 Resolver IDs de AniList</span>
+      </button>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+        <strong>Importar</strong>: trae tu lista de AniList a Miraru.<br>
+        <strong>Subir</strong>: envía tus cambios de Miraru a AniList.<br>
+        <strong>Resolver IDs</strong>: busca IDs de AniList para animes que aún no los tienen.
+      </p>
+      <div id="al-result" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+      <div class="modal-actions" style="justify-content:space-between">
+        <button class="btn btn-g" style="color:var(--danger);border-color:var(--danger)" onclick="anilistDisconnect()">Desconectar</button>
+        <button class="btn btn-g" onclick="cerrarModal('modal-anilist')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Watch Folder -->
+<div class="modal-bg" id="modal-watchfolder" onclick="if(event.target===this)cerrarModal('modal-watchfolder')">
+  <div class="modal-card" style="max-width:520px">
+    <h3 style="margin:0 0 8px">📂 Auto-detección de episodios</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 14px">
+      Miraru vigila una carpeta y marca automáticamente los episodios que descargas como vistos.
+    </p>
+    <div id="wf-status" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span id="wf-dot" style="width:10px;height:10px;border-radius:50%;background:var(--muted);display:inline-block"></span>
+        <span id="wf-state" style="font-size:13px;font-weight:600">Inactivo</span>
+      </div>
+      <div id="wf-path-display" style="font-size:12px;color:var(--muted);word-break:break-all;display:none"></div>
+    </div>
+    <div id="wf-setup">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px">Ruta de la carpeta de descargas:</label>
+      <input type="text" id="wf-path" placeholder="C:\Users\tu_usuario\Downloads\Anime" style="width:100%;margin-bottom:10px;font-size:13px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" id="wf-btn-start" onclick="wfStart()">▶ Iniciar vigilancia</button>
+        <button class="btn btn-g" id="wf-btn-stop" onclick="wfStop()" style="display:none;color:var(--danger);border-color:var(--danger)">⏹ Detener</button>
+      </div>
+    </div>
+    <div id="wf-log-section" style="margin-top:14px;display:none">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">📋 Actividad reciente</div>
+      <div id="wf-log" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;max-height:150px;overflow-y:auto;font-size:12px;font-family:monospace;color:var(--muted)"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-g" onclick="cerrarModal('modal-watchfolder')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Header -->
 <header>
   <img class="logo" src="/static/logo.png" alt="logo" onerror="this.style.display='none'">
   <span class="app-title" id="h-app-name">Miraru</span>
   <a id="update-badge" href="#" target="_blank" rel="noopener" style="display:none;text-decoration:none;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a1a24;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;margin-left:6px" title="Nueva versión disponible en GitHub">⬆ <span id="update-badge-txt">v?</span></a>
   <span id="sync-indicator" style="display:none;align-self:center;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);background:var(--card2);color:var(--muted);margin-left:6px" title="Estado del último sync"></span>
+  <span id="anilist-indicator" style="display:none;align-self:center;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid #02a9ff;background:var(--card2);color:#02a9ff;margin-left:4px;cursor:pointer" title="AniList conectado" onclick="abrirAniList()"></span>
   <div class="header-stats">
     <span class="stat-pill" id="stat-total">0 animes</span>
     <span class="stat-pill" id="stat-watching">0 viendo</span>
@@ -778,6 +871,8 @@ main{padding:16px 20px}
       <button class="btn btn-ghost btn-sm" id="btn-appearance" onclick="abrirApariencia()" title="Apariencia">🎨</button>
       <button class="btn btn-ghost btn-sm" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema"><span id="nav-theme">🌙</span></button>
       <a href="/mobile" class="btn btn-ghost btn-sm" title="Acceso móvil">📱</a>
+      <button class="btn btn-ghost btn-sm" onclick="abrirAniList()" title="AniList Sync" id="btn-anilist">🔗</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirWatchFolder()" title="Auto-detección episodios" id="btn-watchfolder">📂</button>
       <a href="/setup" class="btn btn-ghost btn-sm" title="Configuración">⚙</a>
       <a href="/" class="btn btn-ghost btn-sm" title="Menú inicio">⌂</a>
     </div>
@@ -793,6 +888,10 @@ main{padding:16px 20px}
          onblur="setTimeout(cerrarAutocomplete,200)">
   <span id="url-badge" style="display:none;align-self:center;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:var(--light);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600">🔗 URL detectada</span>
   <div id="autocomplete-drop" style="position:absolute;z-index:99;background:var(--card);border:1px solid var(--border);border-radius:8px;min-width:200px;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)"></div>
+  <select id="inp-tipo" style="max-width:110px" onchange="onTipoBusquedaChange()">
+    <option value="anime">🎬 Anime</option>
+    <option value="manga">📖 Manga</option>
+  </select>
   <select id="inp-fuente">
     <option value="todas">🌐 Todas las fuentes</option>
     <option value="anilist">AniList</option>
@@ -821,6 +920,11 @@ main{padding:16px 20px}
   </div>
   </div>
   <button class="btn btn-ghost btn-sm" id="btn-compact" onclick="toggleCompactAll()" title="Compactar / expandir franquicias" style="white-space:nowrap">📦 <span id="txt-compact">Expandir</span></button>
+  <select id="f-tipo" onchange="render()" style="max-width:100px">
+    <option value="">Todo</option>
+    <option value="anime">🎬 Anime</option>
+    <option value="manga">📖 Manga</option>
+  </select>
   <select id="f-estado" onchange="render()">
     <option value="" id="opt-all-states">📋 Estado</option>
     <option value="pendiente">⏳ Pendiente</option>
@@ -874,6 +978,7 @@ main{padding:16px 20px}
   </section>
   <div id="lista"></div>
   <p id="empty-msg"></p>
+
 </main>
 
 <script>
@@ -1243,11 +1348,12 @@ function render() {
   const hasOps = Object.keys(parsed).some(k => k !== 'free');
   const estado = document.getElementById('f-estado').value;
   const fuente = document.getElementById('f-fuente').value;
+  const tipoFiltro = document.getElementById('f-tipo')?.value || '';
   const sort   = document.getElementById('f-sort').value;
   const listaFiltro = document.getElementById('f-lista')?.value || '';
   const soloFavs = !!window._soloFavs;
   // Visual indicators on active filters (la búsqueda con operadores también cuenta)
-  ['f-estado','f-fuente','f-lista'].forEach(id => {
+  ['f-estado','f-fuente','f-lista','f-tipo'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('filter-active', !!el.value);
   });
@@ -1259,6 +1365,7 @@ function render() {
     if (fuente && a.fuente !== fuente)                  return false;
     if (listaFiltro && a.lista_personalizada !== listaFiltro) return false;
     if (soloFavs && !a.favorito) return false;
+    if (tipoFiltro && (a.tipo || 'anime') !== tipoFiltro) return false;
     return true;
   });
 
@@ -1366,8 +1473,9 @@ function render() {
     }[a.estado_usuario] || a.estado_usuario;
     const bc       = 'b-' + (a.estado_usuario || 'pendiente');
     const stLabel  = T(estado_key) || a.estado_usuario;
+    const isManga  = (a.tipo || 'anime') === 'manga';
     const capNum   = parseInt(a.capitulos) || 0;
-    const caps     = a.capitulos === 'película' ? T('movie') : T('episodes', {n: a.capitulos});
+    const caps     = a.capitulos === 'película' ? T('movie') : (isManga ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
     const vistos   = a.episodios_vistos || 0;
     const pct      = capNum > 0 ? Math.min(100, Math.round(vistos / capNum * 100)) : 0;
     const showProg = capNum > 0;
@@ -1387,10 +1495,11 @@ function render() {
       `<div class="thumb">` +
         `<div class="sel-check">✓</div>` +
         (a.favorito ? `<div style="position:absolute;top:5px;left:${favLeft};font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.8);z-index:2">⭐</div>` : '') +
+        (isManga ? `<div style="position:absolute;top:5px;right:${a.notif_activa ? '52px' : '32px'};font-size:11px;opacity:0.9;z-index:2;background:rgba(0,0,0,.5);padding:1px 4px;border-radius:4px">📖</div>` : '') +
         (a.notif_activa ? `<div style="position:absolute;top:5px;right:32px;font-size:11px;opacity:0.9;z-index:2">🔔</div>` : '') +
         `<img data-src="${thumbSrc}" src="${_esc(BLANK_IMG)}" alt="" decoding="async">` +
         `<div class="overlay"><span class="badge ${_esc(bc)}">${_esc(stLabel)}</span></div>` +
-        (capNum > 0 ? `<button class="plus1" title="+1 ep">+1</button>` : '') +
+        (capNum > 0 ? `<button class="plus1" title="+1 ${isManga ? 'cap' : 'ep'}">+1</button>` : '') +
         `<button class="del" title="${delTitle}">✕</button>` +
       `</div>` +
       `<div class="info">` +
@@ -1581,6 +1690,7 @@ function render() {
 async function previsualizarAnime() {
   const nombre = document.getElementById('inp-nombre').value.trim();
   const fuente = document.getElementById('inp-fuente').value;
+  const tipoBusqueda = document.getElementById('inp-tipo')?.value || 'anime';
   if (!nombre) return;
 
   const btn = document.getElementById('btn-preview');
@@ -1592,8 +1702,31 @@ async function previsualizarAnime() {
   document.getElementById('prev-multi').style.display = 'none';
   document.getElementById('prev-notfound').style.display = 'none';
   document.getElementById('prev-actions').style.display = 'none';
-  document.getElementById('prev-title').textContent = T('preview_title');
+  document.getElementById('prev-title').textContent = tipoBusqueda === 'manga' ? '📖 Manga Preview' : T('preview_title');
   abrirModalEl('modal-preview');
+
+  // Manga: búsqueda específica
+  if (tipoBusqueda === 'manga') {
+    try {
+      const r = await fetch('/api/buscar/manga/multi', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nombre, fuente: 'anilist', tipo: 'manga'})
+      });
+      const d = await r.json();
+      document.getElementById('prev-loading').style.display = 'none';
+      if (!d.ok || !d.resultados || !d.resultados.length) {
+        document.getElementById('prev-notfound').style.display = 'block';
+        document.getElementById('prev-notfound').textContent = T('not_found');
+        return;
+      }
+      renderMultiResultados(d.resultados);
+    } catch(e) {
+      document.getElementById('prev-loading').style.display = 'none';
+      document.getElementById('prev-notfound').style.display = 'block';
+      document.getElementById('prev-notfound').textContent = T('error');
+    } finally { btn.disabled = false; }
+    return;
+  }
 
   // v2.5: "Todas las fuentes" → buscar en todas y mostrar selector de resultados
   if (fuente === 'todas') {
@@ -1767,6 +1900,7 @@ function _yaEnLista(nombre) {
 async function agregarDirecto() {
   const nombre = document.getElementById('inp-nombre').value.trim();
   const fuente = document.getElementById('inp-fuente').value;
+  const tipoBusqueda = document.getElementById('inp-tipo')?.value || 'anime';
   if (!nombre) return;
 
   // Pre-check rápido en cliente (exacto, no afecta a temporadas distintas)
@@ -1778,19 +1912,41 @@ async function agregarDirecto() {
   txt.innerHTML = '<span class="spin"></span>';
 
   try {
-    const r = await fetch('/api/animes', {
+    const endpoint = tipoBusqueda === 'manga' ? '/api/manga' : '/api/animes';
+    const r = await fetch(endpoint, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({nombre, fuente})
+      body: JSON.stringify({nombre, fuente, tipo: tipoBusqueda})
     });
     const d = await r.json();
     if (r.status === 409) { toast(T('already_in_list'), 'warn'); return; }
     if (!r.ok) { toast(d.detail || T('not_found'), 'err'); return; }
-    toast(T('added_ok', {name: d.data.nombre, src: d.data.fuente}));
+    const label = tipoBusqueda === 'manga' ? '📖' : '🎬';
+    toast(label + ' ' + T('added_ok', {name: d.data.nombre, src: d.data.fuente || d.data.fuente_usada}));
     document.getElementById('inp-nombre').value = '';
     await cargar();
   } catch(e) { toast(T('error'), 'err'); }
   finally { btn.disabled = false; txt.textContent = T('add_btn'); }
+}
+
+// ── Cambio de tipo búsqueda (anime↔manga) ───────────────────────────────────
+function onTipoBusquedaChange() {
+  const tipo = document.getElementById('inp-tipo')?.value || 'anime';
+  const fuenteSel = document.getElementById('inp-fuente');
+  const inp = document.getElementById('inp-nombre');
+  if (tipo === 'manga') {
+    // Manga solo busca en AniList — deshabilitar otras fuentes
+    for (const opt of fuenteSel.options) {
+      if (opt.value !== 'anilist' && opt.value !== 'todas') {
+        opt.disabled = true;
+      }
+    }
+    fuenteSel.value = 'anilist';
+    if (inp) inp.placeholder = 'Buscar manga…';
+  } else {
+    for (const opt of fuenteSel.options) opt.disabled = false;
+    if (inp) inp.placeholder = 'Buscar anime…';
+  }
 }
 
 // ── Modal editar ──────────────────────────────────────────────────────────────
@@ -1799,13 +1955,14 @@ function abrirModal(enc) {
   const a = ANIMES.find(x => x.nombre === nombre);
   if (!a) return;
 
-  document.getElementById('edit-title').textContent  = T('edit_anime');
+  const _isMangaEdit = (a.tipo || 'anime') === 'manga';
+  document.getElementById('edit-title').textContent  = _isMangaEdit ? '📖 Editar manga' : T('edit_anime');
   document.getElementById('edit-nombre').value       = nombre;
   const _editImg = document.getElementById('edit-img');
   if (a.imagen) { _editImg.src = a.imagen; _editImg.style.visibility = ''; }
   else { _editImg.removeAttribute('src'); _editImg.style.visibility = 'hidden'; }
   document.getElementById('edit-nombre-display').textContent = a.nombre;
-  const caps = a.capitulos === 'película' ? T('movie') : T('episodes', {n: a.capitulos});
+  const caps = a.capitulos === 'película' ? T('movie') : (_isMangaEdit ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
   document.getElementById('edit-info').textContent   = `${a.fuente} · ${caps} · ${a.estado_anime || ''}`;
   const egEl = document.getElementById('edit-genres');
   egEl.innerHTML = '';
@@ -1815,6 +1972,10 @@ function abrirModal(enc) {
     sp.textContent = g;
     egEl.appendChild(sp);
   });
+
+  // Adaptar label de episodios/capítulos según tipo
+  const lblSeen = document.getElementById('lbl-seen-ep');
+  if (lblSeen) lblSeen.textContent = _isMangaEdit ? 'Capítulos leídos' : 'Episodios vistos';
 
   document.getElementById('edit-estado').value    = a.estado_usuario || 'pendiente';
   document.getElementById('edit-puntuacion').value= a.puntuacion || '';
@@ -3743,6 +3904,257 @@ function celebrarNivel(nivel){
     localStorage.setItem('miraru_gami_seen', JSON.stringify({nivel: nivel, ids: nowIds}));
   } catch(_){}
 })();
+</script>
+
+<!-- AniList Sync JS -->
+<script>
+// ── AniList Sync UI ──────────────────────────────────────────────────────────
+async function abrirAniList() {
+  // Set redirect URL hint
+  const rUrl = document.getElementById('al-redirect-url');
+  if (rUrl) rUrl.textContent = window.location.origin + '/api/anilist/callback';
+  // Restore saved credentials from localStorage
+  try {
+    const cid = localStorage.getItem('anilist_client_id');
+    const csec = localStorage.getItem('anilist_client_secret');
+    if (cid) document.getElementById('al-client-id').value = cid;
+    if (csec) document.getElementById('al-client-secret').value = csec;
+  } catch(_){}
+  // Check connection status
+  try {
+    const r = await fetch('/api/anilist/status');
+    const s = await r.json();
+    if (s.connected) {
+      _alShowConnected(s.username, s.userid);
+    } else {
+      _alShowDisconnected();
+    }
+  } catch(_) {
+    _alShowDisconnected();
+  }
+  abrirModalEl('modal-anilist');
+}
+
+function _alShowConnected(username, userid) {
+  document.getElementById('al-disconnected').style.display = 'none';
+  document.getElementById('al-connected').style.display = 'block';
+  document.getElementById('al-username').textContent = username || '—';
+  document.getElementById('al-userid').textContent = userid || '—';
+  document.getElementById('al-result').style.display = 'none';
+}
+
+function _alShowDisconnected() {
+  document.getElementById('al-disconnected').style.display = 'block';
+  document.getElementById('al-connected').style.display = 'none';
+}
+
+function anilistConnect() {
+  const cid = (document.getElementById('al-client-id')?.value || '').trim();
+  const csec = (document.getElementById('al-client-secret')?.value || '').trim();
+  if (!cid || !csec) { toast('Introduce Client ID y Client Secret', 'err'); return; }
+  // Save to localStorage for the callback page
+  try {
+    localStorage.setItem('anilist_client_id', cid);
+    localStorage.setItem('anilist_client_secret', csec);
+  } catch(_){}
+  const redirect = window.location.origin + '/api/anilist/callback';
+  const url = 'https://anilist.co/api/v2/oauth/authorize'
+    + '?client_id=' + encodeURIComponent(cid)
+    + '&redirect_uri=' + encodeURIComponent(redirect)
+    + '&response_type=code';
+  window.open(url, '_blank', 'width=500,height=700');
+  // Poll for connection status
+  let attempts = 0;
+  const poll = setInterval(async () => {
+    attempts++;
+    if (attempts > 60) { clearInterval(poll); return; } // 2 min timeout
+    try {
+      const r = await fetch('/api/anilist/status');
+      const s = await r.json();
+      if (s.connected) {
+        clearInterval(poll);
+        _alShowConnected(s.username, s.userid);
+        _alUpdateIndicator(s);
+        toast('✅ Conectado a AniList como ' + s.username);
+      }
+    } catch(_){}
+  }, 2000);
+}
+
+async function anilistDisconnect() {
+  try {
+    await fetch('/api/anilist/disconnect', {method:'POST'});
+    _alShowDisconnected();
+    _alUpdateIndicator({connected: false});
+    toast('Desconectado de AniList');
+  } catch(e) {
+    toast('Error al desconectar: ' + e.message, 'err');
+  }
+}
+
+async function anilistPull() {
+  const txt = document.getElementById('al-pull-txt');
+  const orig = txt.textContent;
+  txt.innerHTML = '<span class="spin"></span> Importando…';
+  try {
+    const r = await fetch('/api/anilist/pull', {method:'POST'});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Error');
+    const res = document.getElementById('al-result');
+    res.innerHTML = `📥 <strong>Importación completada</strong><br>+${d.added} añadidos · ~${d.updated} actualizados` + (d.errors ? ` · ${d.errors} errores` : '');
+    res.style.display = 'block';
+    toast('📥 AniList: +' + d.added + ' añadidos, ~' + d.updated + ' actualizados');
+    if (d.added > 0 || d.updated > 0) {
+      if (typeof cargarAnimes === 'function') cargarAnimes();
+    }
+  } catch(e) {
+    toast('Error al importar: ' + e.message, 'err');
+  }
+  txt.textContent = orig;
+}
+
+async function anilistPush() {
+  const txt = document.getElementById('al-push-txt');
+  const orig = txt.textContent;
+  txt.innerHTML = '<span class="spin"></span> Subiendo…';
+  try {
+    const r = await fetch('/api/anilist/push', {method:'POST'});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Error');
+    const res = document.getElementById('al-result');
+    res.innerHTML = `📤 <strong>Subida completada</strong><br>${d.pushed} subidos` + (d.errors ? ` · ${d.errors} errores` : '');
+    res.style.display = 'block';
+    toast('📤 AniList: ' + d.pushed + ' subidos');
+  } catch(e) {
+    toast('Error al subir: ' + e.message, 'err');
+  }
+  txt.textContent = orig;
+}
+
+async function anilistResolveIds() {
+  const txt = document.getElementById('al-resolve-txt');
+  const orig = txt.textContent;
+  txt.innerHTML = '<span class="spin"></span> Buscando IDs…';
+  try {
+    const r = await fetch('/api/anilist/resolve-ids', {method:'POST'});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Error');
+    const res = document.getElementById('al-result');
+    res.innerHTML = `🔍 <strong>Resolución completada</strong><br>${d.resolved} IDs encontrados` + (d.errors ? ` · ${d.errors} errores` : '');
+    res.style.display = 'block';
+    toast('🔍 ' + d.resolved + ' IDs de AniList resueltos');
+  } catch(e) {
+    toast('Error al resolver IDs: ' + e.message, 'err');
+  }
+  txt.textContent = orig;
+}
+
+// AniList status indicator in header
+function _alUpdateIndicator(s) {
+  const el = document.getElementById('anilist-indicator');
+  if (!el) return;
+  if (s.connected) {
+    el.textContent = '🔗 AniList · ' + (s.username || '✓');
+    el.style.display = 'inline-block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// Check AniList status on page load
+(async function _alInit() {
+  try {
+    const r = await fetch('/api/anilist/status');
+    const s = await r.json();
+    _alUpdateIndicator(s);
+  } catch(_){}
+})();
+
+// ── Watch Folder UI ─────────────────────────────────────────────────────────
+async function abrirWatchFolder() {
+  abrirModalEl('modal-watchfolder');
+  await wfRefresh();
+}
+
+async function wfRefresh() {
+  try {
+    const r = await fetch('/api/watch-folder/status');
+    const s = await r.json();
+    const dot = document.getElementById('wf-dot');
+    const state = document.getElementById('wf-state');
+    const pathDisp = document.getElementById('wf-path-display');
+    const btnStart = document.getElementById('wf-btn-start');
+    const btnStop = document.getElementById('wf-btn-stop');
+    const pathInput = document.getElementById('wf-path');
+
+    if (s.running) {
+      dot.style.background = '#22c55e';
+      state.textContent = '✓ Vigilando';
+      pathDisp.textContent = '📁 ' + (s.folder || '');
+      pathDisp.style.display = '';
+      btnStart.style.display = 'none';
+      btnStop.style.display = '';
+      pathInput.value = s.folder || '';
+    } else {
+      dot.style.background = 'var(--muted)';
+      state.textContent = 'Inactivo';
+      pathDisp.style.display = 'none';
+      btnStart.style.display = '';
+      btnStop.style.display = 'none';
+      if (s.folder) pathInput.value = s.folder;
+    }
+    // Cargar log
+    await wfLoadLog();
+  } catch(e) {
+    console.warn('wfRefresh error', e);
+  }
+}
+
+async function wfStart() {
+  const path = document.getElementById('wf-path').value.trim();
+  if (!path) { toast('Introduce una ruta de carpeta', 'warn'); return; }
+  const btn = document.getElementById('wf-btn-start');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+  try {
+    const r = await fetch('/api/watch-folder/start', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({carpeta: path})
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail || 'Error', 'err'); return; }
+    toast('📂 Vigilancia iniciada');
+    await wfRefresh();
+  } catch(e) { toast('Error al iniciar', 'err'); }
+  finally { btn.disabled = false; btn.textContent = '▶ Iniciar vigilancia'; }
+}
+
+async function wfStop() {
+  try {
+    await fetch('/api/watch-folder/stop', {method:'POST'});
+    toast('Vigilancia detenida');
+    await wfRefresh();
+  } catch(e) { toast('Error', 'err'); }
+}
+
+async function wfLoadLog() {
+  const section = document.getElementById('wf-log-section');
+  const logEl = document.getElementById('wf-log');
+  try {
+    const r = await fetch('/api/watch-folder/log');
+    const d = await r.json();
+    const entries = d.log || [];
+    if (entries.length > 0) {
+      section.style.display = '';
+      logEl.innerHTML = entries.slice(-20).map(l =>
+        `<div style="padding:2px 0;border-bottom:1px solid var(--border)">${l}</div>`
+      ).join('');
+      logEl.scrollTop = logEl.scrollHeight;
+    } else {
+      section.style.display = 'none';
+    }
+  } catch(_) { section.style.display = 'none'; }
+}
 </script>
 </body>
 </html>

@@ -19,6 +19,10 @@ class AnimeData:
     puntuacion: Optional[float] = None
     fecha_inicio: Optional[str] = None
     fecha_fin: Optional[str] = None
+    # ID externo (AniList media ID) para sync bidireccional
+    anilist_id: int = 0
+    # Tipo: "anime" o "manga"
+    tipo: str = "anime"
 
 
 class BaseScraper(ABC):

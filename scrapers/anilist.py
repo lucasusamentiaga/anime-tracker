@@ -12,10 +12,13 @@ _session = net.make_session()   # con reintentos + backoff (ver scrapers/net.py)
 ANILIST_API = "https://graphql.anilist.co"
 
 QUERY = """
-query ($search: String) {
-  Media(search: $search, type: ANIME) {
+query ($search: String, $type: MediaType!) {
+  Media(search: $search, type: $type) {
+    id
     title { romaji english native }
     episodes
+    chapters
+    volumes
     format
     coverImage { large }
     genres
@@ -25,6 +28,50 @@ query ($search: String) {
 }
 """
 
+_STATUS_MAP = {
+    "FINISHED": "Finalizado",
+    "RELEASING": "En emisión",
+    "NOT_YET_RELEASED": "Sin estrenar",
+    "CANCELLED": "Cancelado",
+    "HIATUS": "En pausa",
+}
+
+
+def _parse_media(media: dict, nombre: str, fuente: str,
+                 media_type: str = "ANIME") -> Optional[AnimeData]:
+    """Convierte un resultado de AniList en AnimeData (anime o manga)."""
+    title = (
+        media["title"].get("english")
+        or media["title"].get("romaji")
+        or nombre
+    )
+    fmt = (media.get("format") or "").upper()
+    is_manga = media_type == "MANGA"
+
+    if is_manga:
+        chapters = media.get("chapters") or 0
+        capitulos: int | str = chapters if chapters > 0 else "?"
+    else:
+        episodes = media.get("episodes") or 0
+        if fmt == "MOVIE":
+            capitulos = "película"
+        elif episodes > 0:
+            capitulos = episodes
+        else:
+            capitulos = "?"
+
+    return AnimeData(
+        nombre=title,
+        capitulos=capitulos,
+        imagen=media["coverImage"].get("large", ""),
+        genero=media.get("genres", []),
+        sinopsis=(media.get("description") or "")[:500],
+        fuente=fuente,
+        estado_anime=_STATUS_MAP.get(media.get("status", ""), "Desconocido"),
+        anilist_id=media.get("id", 0),
+        tipo="manga" if is_manga else "anime",
+    )
+
 
 class AniListScraper(BaseScraper):
 
@@ -32,12 +79,12 @@ class AniListScraper(BaseScraper):
     def nombre_fuente(self) -> str:
         return "anilist"
 
-    def buscar(self, nombre: str) -> Optional[AnimeData]:
+    def buscar(self, nombre: str, media_type: str = "ANIME") -> Optional[AnimeData]:
         try:
             resp = _session.post(
                 ANILIST_API,
-                json={"query": QUERY, "variables": {"search": nombre}},
-                headers={"User-Agent": "AnimeTracker/2.6.2", "Accept": "application/json",
+                json={"query": QUERY, "variables": {"search": nombre, "type": media_type}},
+                headers={"User-Agent": "AnimeTracker/2.9.0", "Accept": "application/json",
                          "Accept-Encoding": "identity"},
                 timeout=10,
             )
@@ -48,37 +95,10 @@ class AniListScraper(BaseScraper):
             if not media:
                 return None
 
-            title = (
-                media["title"].get("english")
-                or media["title"].get("romaji")
-                or nombre
-            )
-            episodes = media.get("episodes") or 0
-            # Anime format puede ser MOVIE, TV, OVA, SPECIAL, ONA, MUSIC...
-            fmt = (media.get("format") or "").upper()
-            if fmt == "MOVIE":
-                capitulos: int | str = "película"
-            elif episodes > 0:
-                capitulos = episodes
-            else:
-                capitulos = "?"  # desconocido (en emisión sin total, sin estrenar...)
-
-            status_map = {
-                "FINISHED": "Finalizado",
-                "RELEASING": "En emisión",
-                "NOT_YET_RELEASED": "Sin estrenar",
-                "CANCELLED": "Cancelado",
-                "HIATUS": "En pausa",
-            }
-
-            return AnimeData(
-                nombre=title,
-                capitulos=capitulos,
-                imagen=media["coverImage"].get("large", ""),
-                genero=media.get("genres", []),
-                sinopsis=(media.get("description") or "")[:500],
-                fuente=self.nombre_fuente,
-                estado_anime=status_map.get(media.get("status", ""), "Desconocido"),
-            )
+            return _parse_media(media, nombre, self.nombre_fuente, media_type)
         except Exception:
             return None
+
+    def buscar_manga(self, nombre: str) -> Optional[AnimeData]:
+        """Búsqueda específica de manga en AniList."""
+        return self.buscar(nombre, media_type="MANGA")

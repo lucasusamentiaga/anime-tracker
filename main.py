@@ -59,6 +59,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
+import anilist_sync
 import database as db
 import sheets_sync
 from i18n import TRANSLATIONS, get_lang, set_lang
@@ -718,6 +719,7 @@ def _get_sheets_config() -> tuple[str, str] | None:
 class BuscarRequest(BaseModel):
     nombre: str
     fuente: str = "anilist"
+    tipo: str = "anime"          # "anime" o "manga"
 
 # Estados que entienden las estadísticas, los filtros y la gamificación.
 # Cualquier otro valor se guardaba igual y luego no casaba con ninguna consulta:
@@ -1540,6 +1542,87 @@ async def guardar_anime(req: BuscarRequest):
     saved = db.obtener_anime(data.get("nombre","")) or data
     saved["fuente_usada"] = fuente_usada
     return {"ok": True, "data": saved}
+
+
+# ── Manga ────────────────────────────────────────────────────────────────────
+
+@app.post("/api/buscar/manga")
+async def buscar_manga(req: BuscarRequest):
+    """Busca manga en AniList."""
+    ck = f"manga:{req.nombre.lower().strip()}"
+    cached = _cache_get(ck)
+    if cached:
+        return cached
+    loop = asyncio.get_running_loop()
+    anilist = SCRAPERS.get("anilist")
+    if not anilist:
+        return {"ok": False, "mensaje": "Fuente AniList no disponible"}
+    try:
+        r = await asyncio.wait_for(
+            loop.run_in_executor(executor, anilist.buscar_manga, req.nombre),
+            timeout=15,
+        )
+    except (asyncio.TimeoutError, Exception):
+        r = None
+    if not r:
+        return {"ok": False, "mensaje": "Manga no encontrado"}
+    resp = {"ok": True, "data": r.__dict__, "fuente_usada": "anilist"}
+    _cache_set(ck, resp)
+    return resp
+
+
+@app.post("/api/buscar/manga/multi")
+async def buscar_manga_multi(req: BuscarRequest):
+    """Busca manga en AniList — múltiples resultados."""
+    ck = f"manga_multi:{req.nombre.lower().strip()}"
+    cached = _cache_get(ck)
+    if cached:
+        return cached
+    loop = asyncio.get_running_loop()
+    anilist = SCRAPERS.get("anilist")
+    if not anilist:
+        return {"ok": False, "mensaje": "Fuente AniList no disponible"}
+    try:
+        r = await asyncio.wait_for(
+            loop.run_in_executor(executor, anilist.buscar_manga, req.nombre),
+            timeout=15,
+        )
+    except (asyncio.TimeoutError, Exception):
+        r = None
+    if not r:
+        return {"ok": False, "mensaje": "Manga no encontrado"}
+    resp = {"ok": True, "resultados": [{"fuente": "anilist", "data": r.__dict__}]}
+    _cache_set(ck, resp)
+    return resp
+
+
+@app.post("/api/manga")
+async def guardar_manga(req: BuscarRequest):
+    """Busca manga en AniList y lo guarda."""
+    loop = asyncio.get_running_loop()
+    anilist = SCRAPERS.get("anilist")
+    if not anilist:
+        raise HTTPException(500, "Fuente AniList no disponible")
+    try:
+        resultado = await asyncio.wait_for(
+            loop.run_in_executor(executor, anilist.buscar_manga, req.nombre),
+            timeout=15,
+        )
+    except (asyncio.TimeoutError, Exception):
+        resultado = None
+    if not resultado:
+        raise HTTPException(404, "Manga no encontrado")
+    data = resultado.__dict__.copy()
+    data["tipo"] = "manga"
+    if not (data.get("nombre") or "").strip():
+        raise HTTPException(400, "El manga no tiene nombre válido")
+    ok, msg = db.guardar_anime(data)
+    if not ok:
+        raise HTTPException(409 if msg == "duplicado" else 500, msg)
+    saved = db.obtener_anime(data.get("nombre","")) or data
+    saved["fuente_usada"] = "anilist"
+    return {"ok": True, "data": saved}
+
 
 # NOTA: las rutas catch-all PATCH/DELETE de /api/animes/{nombre:path} se registran
 # MÁS ABAJO (tras las subrutas /nota, /tags/{tag}, etc.). Si se registraran aquí
@@ -3635,6 +3718,116 @@ async def watch_folder_log():
         return {"log": []}
 
 
+# ── AniList Sync ─────────────────────────────────────────────────────────────
+
+@app.get("/api/anilist/status")
+async def anilist_status():
+    return anilist_sync.get_connection_info()
+
+
+@app.post("/api/anilist/connect")
+async def anilist_connect(req: Request):
+    """Recibe client_id, client_secret, code y redirect_uri para completar OAuth2."""
+    body = await req.json()
+    client_id = body.get("client_id", "")
+    client_secret = body.get("client_secret", "")
+    code = body.get("code", "")
+    redirect_uri = body.get("redirect_uri", "")
+    if not all([client_id, client_secret, code]):
+        raise HTTPException(400, "Faltan client_id, client_secret o code")
+    try:
+        token_data = anilist_sync.exchange_code(code, client_id, client_secret,
+                                                redirect_uri)
+        token = token_data.get("access_token", "")
+        if not token:
+            raise HTTPException(400, "No se recibió access_token")
+        viewer = anilist_sync.fetch_viewer(token)
+        anilist_sync.save_token(token, viewer["name"], viewer["id"])
+        return {"ok": True, "username": viewer["name"], "userid": viewer["id"]}
+    except requests.HTTPError as e:
+        raise HTTPException(400, f"Error OAuth: {e}")
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/anilist/disconnect")
+async def anilist_disconnect():
+    anilist_sync.disconnect()
+    return {"ok": True}
+
+
+@app.post("/api/anilist/pull")
+async def anilist_pull():
+    """Descarga la lista de anime + manga de AniList y sincroniza con la BD local."""
+    if not anilist_sync.is_connected():
+        raise HTTPException(400, "No conectado a AniList")
+    from core import executor
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(executor, anilist_sync.pull_all)
+    db._invalidar_cache()
+    return result
+
+
+@app.post("/api/anilist/push")
+async def anilist_push():
+    """Sube todos los animes con anilist_id a AniList."""
+    if not anilist_sync.is_connected():
+        raise HTTPException(400, "No conectado a AniList")
+    from core import executor
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(executor, anilist_sync.push_all)
+    return result
+
+
+@app.post("/api/anilist/resolve-ids")
+async def anilist_resolve_ids():
+    """Busca el anilist_id de animes que aún no lo tienen."""
+    from core import executor
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(executor, anilist_sync.resolve_anilist_ids)
+    db._invalidar_cache()
+    return result
+
+
+@app.get("/api/anilist/callback")
+async def anilist_callback(code: str = ""):
+    """Callback OAuth2 — AniList redirige aquí con ?code=..."""
+    if not code:
+        return HTMLResponse("<h2>Error: no se recibió código de autorización</h2>")
+    # Devolver una página que envía el code al frontend vía postMessage o JS
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Conectando con AniList...</title>
+<style>body{{background:#0f0f13;color:#e2e2e8;font-family:system-ui;display:flex;
+align-items:center;justify-content:center;height:100vh;margin:0}}
+.box{{text-align:center;padding:40px;background:#1a1a24;border-radius:16px;
+border:1px solid #2a2a38;max-width:400px}}
+h2{{color:#a78bfa;margin-bottom:12px}}p{{color:#6b6b88;font-size:14px}}
+</style></head><body><div class="box">
+<h2>✅ Conectado con AniList</h2>
+<p>Código recibido. Guardando...</p>
+<script>
+fetch('/api/anilist/connect', {{
+  method: 'POST',
+  headers: {{'Content-Type': 'application/json'}},
+  body: JSON.stringify({{
+    code: '{code}',
+    client_id: localStorage.getItem('anilist_client_id') || '',
+    client_secret: localStorage.getItem('anilist_client_secret') || '',
+    redirect_uri: window.location.origin + '/api/anilist/callback'
+  }})
+}}).then(r => r.json()).then(d => {{
+  if (d.ok) {{
+    document.querySelector('p').textContent =
+      'Conectado como ' + d.username + '. Puedes cerrar esta pestaña.';
+  }} else {{
+    document.querySelector('p').textContent = 'Error: ' + JSON.stringify(d);
+  }}
+}}).catch(e => {{
+  document.querySelector('p').textContent = 'Error: ' + e.message;
+}});
+</script></div></body></html>""")
+
+
 # ── Catch-all de animes (PATCH/DELETE) ────────────────────────────────────────
 # IMPORTANTE: se definen AQUÍ, al final, para que se registren DESPUÉS de todas
 # las subrutas /api/animes/{nombre:path}/... Con el conversor :path (necesario
@@ -3662,12 +3855,14 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
         if 0 < delta <= 3:
             for ep in range(viejos + 1, nuevos + 1):
                 db.log_episode(nombre, ep)
-    # Sync automático a Sheets en background
-    cfg = _get_sheets_config()
-    if cfg:
-        anime_dict = db.obtener_anime(nombre)
-        if anime_dict:
+    # Sync automático en background (Sheets + AniList)
+    anime_dict = db.obtener_anime(nombre)
+    if anime_dict:
+        cfg = _get_sheets_config()
+        if cfg:
             _sync_bg(sheets_sync.update_anime_row, anime_dict, cfg[0], cfg[1])
+        if anilist_sync.is_connected() and anime_dict.get("anilist_id"):
+            _sync_bg(anilist_sync.push_anime, anime_dict)
     return {"ok": True}
 
 @app.delete("/api/animes/{nombre:path}")

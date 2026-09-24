@@ -188,6 +188,9 @@ def init_db():
             ("lista_personalizada", "TEXT DEFAULT 'principal'"),
             ("favorito",            "INTEGER DEFAULT 0"),
             ("notif_activa",        "INTEGER DEFAULT 0"),
+            ("anilist_id",          "INTEGER DEFAULT 0"),
+            ("tipo",                "TEXT DEFAULT 'anime'"),
+            ("volumenes_leidos",   "INTEGER DEFAULT 0"),
         ]:
             if col not in existing:
                 conn.execute(f"ALTER TABLE animes ADD COLUMN {col} {definition}")
@@ -274,7 +277,8 @@ def listar_animes() -> list[dict]:
 _SLIM_COLS = (
     "id, nombre, fuente, capitulos, imagen, genero, estado_anime, "
     "estado_usuario, puntuacion, episodios_vistos, temporada, "
-    "lista_personalizada, favorito, notif_activa, fecha_inicio, fecha_fin"
+    "lista_personalizada, favorito, notif_activa, fecha_inicio, fecha_fin, "
+    "anilist_id, tipo, volumenes_leidos"
 )
 _slim_cache: Optional[list[dict]] = None
 
@@ -317,8 +321,9 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
                    (nombre, fuente, capitulos, imagen, genero, sinopsis,
                     estado_anime, estado_usuario, puntuacion,
                     episodios_vistos, temporada, lista_personalizada,
-                    favorito, notif_activa, notas, fecha_inicio, fecha_fin)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    favorito, notif_activa, notas, fecha_inicio, fecha_fin,
+                    anilist_id, tipo, volumenes_leidos)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     data.get("nombre", ""),
                     data.get("fuente", ""),
@@ -337,6 +342,9 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
                     data.get("notas", "") or "",
                     data.get("fecha_inicio", "") or "",
                     data.get("fecha_fin", "") or "",
+                    data.get("anilist_id") or 0,
+                    data.get("tipo", "anime") or "anime",
+                    data.get("volumenes_leidos") or 0,
                 ),
             )
         _invalidar_cache()
@@ -348,7 +356,7 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
 
 
 def actualizar_anime(nombre: str, campos: dict) -> tuple[bool, str]:
-    allowed = {"estado_usuario","puntuacion","fecha_inicio","fecha_fin","episodios_vistos","notas","temporada","lista_personalizada","favorito","notif_activa"}
+    allowed = {"estado_usuario","puntuacion","fecha_inicio","fecha_fin","episodios_vistos","notas","temporada","lista_personalizada","favorito","notif_activa","anilist_id","tipo","volumenes_leidos"}
     campos  = {k: v for k, v in campos.items() if k in allowed}
     if not campos:
         return False, "sin campos válidos"
