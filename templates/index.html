@@ -3217,8 +3217,8 @@ document.addEventListener('keydown', e => {
       const n = _focusedName();
       if (n) {
         e.preventDefault();
-        fetch('/api/animes/' + encodeURIComponent(n) + '/favorito', {method: 'POST'})
-          .then(() => cargar());
+        try { fetch('/api/animes/' + encodeURIComponent(n) + '/favorito', {method: 'POST'})
+          .then(() => cargar()).catch(() => {}); } catch(_) {}
       }
       break;
     }
@@ -3963,16 +3963,17 @@ function anilistConnect() {
     + '&redirect_uri=' + encodeURIComponent(redirect)
     + '&response_type=code';
   window.open(url, '_blank', 'width=500,height=700');
-  // Poll for connection status
+  // Poll for connection status (window._alPoll prevents leak on double-click)
+  if (window._alPoll) clearInterval(window._alPoll);
   let attempts = 0;
-  const poll = setInterval(async () => {
+  window._alPoll = setInterval(async () => {
     attempts++;
-    if (attempts > 60) { clearInterval(poll); return; } // 2 min timeout
+    if (attempts > 60) { clearInterval(window._alPoll); window._alPoll = null; return; }
     try {
       const r = await fetch('/api/anilist/status');
       const s = await r.json();
       if (s.connected) {
-        clearInterval(poll);
+        clearInterval(window._alPoll); window._alPoll = null;
         _alShowConnected(s.username, s.userid);
         _alUpdateIndicator(s);
         toast('✅ Conectado a AniList como ' + s.username);

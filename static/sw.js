@@ -19,7 +19,9 @@
 // v25 = fix franquicias + refresh fallback + enrichment daemon eps "?"
 // v26 = fix recomendaciones (no sugerir animes ya en lista, check por ID +
 //        título en/ro), reparación auto portadas AnimeFLV → AniList.
-const CACHE_NAME = 'miraru-v26';
+// v27 = rate limit en AniList sync (push_all, resolve_ids), fix fetch sin
+//        catch en favorito toggle, fix setInterval leak en anilistConnect().
+const CACHE_NAME = 'miraru-v27';
 const STATIC_ASSETS = [
   '/',
   '/app',

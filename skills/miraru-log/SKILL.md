@@ -12,14 +12,14 @@ Este documento es el historial completo de decisiones, bugs arreglados, mejoras 
 ## Identidad del proyecto
 
 - **Nombre**: Miraru
-- **Versión actual**: 2.8.4
+- **Versión actual**: 2.9.1
 - **Stack**: Python 3.13, FastAPI, uvicorn, SQLite (WAL), HTML/CSS/JS vanilla
 - **Puerto**: `127.0.0.1:8765`
 - **Carpeta**: `C:\Users\lukit\Desktop\Claude Code\Anime Tracker\anime-tracker`
 - **Arranque**: `Miraru.vbs` → `launcher.py` → `main.py`
 - **Fuentes de datos**: AniList (principal), Jikan v4 / MAL, Kitsu (JSON:API), AnimeFLV (scraper)
 - **Base de datos**: `anime_tracker.db` (SQLite WAL, ~336 animes importados de instalación anterior)
-- **Service Worker**: `miraru-v13` — incrementar al desplegar cambios en templates/assets
+- **Service Worker**: `miraru-v26` — incrementar al desplegar cambios en templates/assets
 
 ---
 
@@ -50,7 +50,7 @@ Miraru.vbs (busca Python, instala deps si faltan, todo sin ventana)
 - **`get_conn()`** es un `@contextmanager` — cierra la conexión siempre en el `finally`. Antes usaba `with sqlite3.Connection` que solo gestiona transacciones, NO cierra. 32 usos × muchas peticiones = cientos de file descriptors abiertos (bug crítico).
 - WAL activado en `init_db()` con `PRAGMA journal_mode=WAL`
 - **Backup seguro**: usa `sqlite3.Connection.backup()` en lugar de `zipfile.write(db_path)`. El método directo copia el `.db` sin el contenido del `.wal`, perdiendo potencialmente horas de cambios.
-- **Tablas**: `animes`, `config`, `historial`, `ep_log`, `episode_notes`, `media`
+- **Tablas**: `animes` (con columnas `tipo`, `volumenes_leidos`, `anilist_id`), `config`, `historial`, `ep_log`, `episode_notes`, `media`
 - **`episode_notes`**: tabla para notas por episodio (nombre, episodio, nota, fecha). UPSERT con `ON CONFLICT(nombre, episodio)`.
 
 ### Backups (`main.py`)
@@ -96,6 +96,37 @@ Miraru.vbs (busca Python, instala deps si faltan, todo sin ventana)
 - **`watch_folder.py`**: watchdog que monitoriza una carpeta de descargas. Parsea nombres de archivo con regex (`[SubGroup] Name - 05`, `S01E05`, `EP1050`, `Name - 12`).
 - **`_buscar_coincidencia()`**: fuzzy matching con `difflib.SequenceMatcher` contra la biblioteca.
 - **Endpoints**: `GET /api/watch-folder/status`, `POST /api/watch-folder/start`, `POST /api/watch-folder/stop`, `GET /api/watch-folder/log`.
+- **UI**: modal `#modal-watchfolder` con indicador de estado, input de ruta, botones start/stop, log de actividad. Botón 📂 en header.
+
+### Sync bidireccional AniList (`anilist_sync.py`)
+- **Connect**: OAuth vía `POST /api/anilist/connect` con access_token.
+- **Pull**: `POST /api/anilist/pull` importa la lista de AniList → biblioteca local.
+- **Push**: `POST /api/anilist/push` exporta la biblioteca local → AniList.
+- **Resolve IDs**: `POST /api/anilist/resolve-ids` busca AniList IDs para animes sin vincular.
+- **Auto-push**: al editar un anime (progreso, puntuación, estado), se hace push automático si AniList está conectado.
+- **UI**: modal AniList en index.html con connect/disconnect, pull/push, resolve IDs, indicador en header.
+
+### Tracking de manga
+- **Tabla**: columna `tipo` ("anime"/"manga") y `volumenes_leidos` en `animes`.
+- **Scraper**: `buscar_manga()` en `scrapers/anilist.py` usa AniList con `type:MANGA`.
+- **API**: `POST /api/manga` para añadir manga (ruta separada de anime).
+- **UI**: selector de tipo (anime/manga) en búsqueda, badges 📖, labels adaptados ("caps" vs "eps", "Capítulos leídos" vs "Episodios vistos").
+
+### Franquicias (`franquicias.py`)
+- **`agrupar_franquicias()`**: agrupa animes por nombre base (quitando Season N, Part N, II/III/IV, Movie, OVA, Special, Recap, subtítulos tras `:`).
+- **`_base_name()`**: aplica regex `_SEASON_RE` iterativamente (hasta 5 pases) para nombres compuestos como "Title Movie 2: Subtitle".
+- **`_season_order()`**: ordena miembros dentro de franquicia por número de temporada.
+- **UI**: cards colapsables de franquicia con botón "Compactar todo".
+
+### Enriquecimiento automático (daemon `_start_enrich_unknown_eps`)
+- Arranca 60s después del startup, busca todos los animes con `capitulos="?"` y los enriquece vía AniList (rate limit 1s).
+- También repara portadas: si la imagen es de AnimeFLV o está vacía, la reemplaza con la de AniList.
+- Complementa los fallbacks en `POST /api/animes` (al añadir) y `POST /api/animes/refrescar` (al refrescar manualmente).
+
+### Recomendaciones (`/api/recomendaciones`)
+- Filtra por triple check: título en inglés, título en romaji, y AniList ID — para no recomendar animes ya en la biblioteca.
+- AniList trending como fuente principal, Kitsu como fallback.
+- `_recomendaciones_respaldo()`: usa `fuentes_respaldo.recomendaciones()` cuando AniList no responde.
 
 ### Seguridad (`main.py`)
 - **LAN guard** (`_RUTAS_SOLO_LOCAL`): bloquea `/docs`, `/redoc`, `/openapi.json` desde IPs externas con 404 (no 403, para no revelar que existen).
@@ -150,7 +181,7 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 - **Fetch en async functions**: todos los `fetch()` del proyecto van dentro de `try { ... } catch(e) { ... }`.
 
 ### Service Worker (`static/sw.js`)
-- `CACHE_NAME = 'miraru-v13'` — incrementar al desplegar cambios en cualquier template o asset estático.
+- `CACHE_NAME = 'miraru-v26'` — incrementar al desplegar cambios en cualquier template o asset estático.
 - NO cachea rutas `/api/` — todas las peticiones API van a la red.
 - Estático: stale-while-revalidate (devuelve caché y actualiza en background).
 
@@ -182,6 +213,10 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 | Motion decorativo inconsistente en botones | Gradientes, translateY, scale en hover → anti-patrón de producto | Rediseño completo con /impeccable: solid colors, focus-visible, reduced-motion |
 | Cards con translateY(-4px) en hover | Decorativo sin propósito funcional | Solo border-color + box-shadow sutil |
 | Sub-páginas con botones inconsistentes | peliculas, novedades, stats, import, mobile tenían estilos viejos | Todos alineados al nuevo sistema de botones |
+| Franquicias: Movie/OVA/Special duplicados | `_base_name()` no eliminaba sufijos Movie/OVA/Special | Regex extendida + aplicación iterativa (hasta 5 pases) |
+| AnimeFLV devuelve "?" en episodios | HTML parser no encuentra el bloque de episodios | AniList fallback en 3 niveles: al añadir, al refrescar, daemon al arrancar |
+| Recomendaciones sugieren animes ya en lista | Solo comparaba un título (en o ro) | Triple check: título EN + RO + AniList ID |
+| Portadas AnimeFLV rotas (403 persistente) | CDN de AnimeFLV cambia URLs o bloquea | Daemon repara automáticamente con imagen de AniList |
 
 ---
 
@@ -190,7 +225,7 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 | Archivo | Rol |
 |---------|-----|
 | `core.py` | VERSION (fuente única), executor (ThreadPoolExecutor compartido) |
-| `main.py` (~3600 líneas) | FastAPI app, endpoints, _lifespan, validación, búsqueda, backups, scores, ¿qué veo?, notas episodio |
+| `main.py` (~3800 líneas) | FastAPI app, endpoints, _lifespan, validación, búsqueda, backups, scores, ¿qué veo?, notas episodio, AniList sync, enrich daemon |
 | `database.py` | get_conn() contextmanager, init_db(), CRUD de animes, episode_notes, ep_log |
 | `migrations.py` | migrar_cap200(), refrescar_en_emision(), Cortocircuito |
 | `fuentes_respaldo.py` | Kitsu API como fallback de AniList |
@@ -201,8 +236,11 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 | `scrapers/net.py` | Session HTTP con reintentos automáticos (urllib3.Retry) |
 | `scrapers/kitsu.py` | Scraper Kitsu JSON:API |
 | `scrapers/jikan.py` | Scraper Jikan v4 (MAL) |
+| `scrapers/anilist.py` | Scraper AniList GraphQL (anime + manga), `buscar_manga()` |
+| `anilist_sync.py` | Sync bidireccional AniList (connect, pull, push, resolve IDs) |
+| `franquicias.py` | Agrupación de temporadas por nombre base (`_base_name`, `_season_order`) |
 | `static/customize.js` | Temas, acentos, miraruPortada(), meta referrer no-referrer global |
-| `static/sw.js` | Service Worker (CACHE_NAME = 'miraru-v13') — incrementar al desplegar |
+| `static/sw.js` | Service Worker (CACHE_NAME = 'miraru-v26') — incrementar al desplegar |
 | `static/theme.css` | Sistema visual unificado (variables CSS, temas) |
 | `templates/index.html` | UI principal; header nav, toolbar, cards, modals, scores, diario, ¿qué veo? |
 | `templates/menu.html` | Landing page / navegación principal, botón "Salir" → /api/apagar |
@@ -231,6 +269,8 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 
 - [ ] Completar la desinstalación de la instalación antigua en `AppData\Local\AnimeTracker`
 - [ ] Confirmar que `migrar_cap200()` completa los 170 animes pendientes (corre en background al arrancar)
+- [ ] UI para tracking de manga más completa (volúmenes, capítulos leídos, progreso visual)
+- [ ] Notificaciones push del navegador (además de email)
 
 ---
 
@@ -253,4 +293,4 @@ Rediseño completo de botones e interacciones siguiendo los principios del regis
 
 ---
 
-*Última actualización: 2026-09-23*
+*Última actualización: 2026-09-24*

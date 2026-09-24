@@ -17,6 +17,7 @@ Sync:
 from __future__ import annotations
 
 import logging
+import time as _time
 from typing import Optional
 
 import requests
@@ -346,6 +347,7 @@ def push_all() -> dict:
             pushed += 1
         else:
             errors += 1
+        _time.sleep(1)  # rate limit: AniList permite ~90 req/min
 
     log.info("Push all: %d subidos, %d errores", pushed, errors)
     return {"pushed": pushed, "errors": errors}
@@ -384,6 +386,7 @@ def resolve_anilist_ids() -> dict:
                 resolved += 1
         except Exception:
             errors += 1
+        _time.sleep(1)  # rate limit: AniList permite ~90 req/min
 
     log.info("Resolve IDs: %d resueltos, %d errores", resolved, errors)
     return {"resolved": resolved, "errors": errors}
