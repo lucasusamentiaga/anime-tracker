@@ -101,6 +101,7 @@ async def _lifespan(app: FastAPI):
     _start_auto_backup_once()
     _start_cap200_fix_once()
     _start_emision_refresh_once()
+    _start_enrich_unknown_eps()
     _start_notif_daemon_once()
     # Auto-detección de episodios: arranca si hay carpeta configurada
     try:
@@ -406,6 +407,46 @@ def _start_emision_refresh_once():
         _time.sleep(120)
         _emision_loop()
     threading.Thread(target=_run, daemon=True, name="emision-refresh").start()
+
+
+# ── Enriquecimiento de animes con episodios desconocidos (arranque) ──────────
+# Una pasada: busca en AniList los capítulos de animes con "?" eps.
+_enrich_started = False
+
+def _start_enrich_unknown_eps():
+    global _enrich_started
+    if _enrich_started:
+        return
+    _enrich_started = True
+
+    def _run():
+        _time.sleep(60)  # espera para no competir con el arranque
+        animes = db.listar_animes()
+        pendientes = [a for a in animes if str(a.get("capitulos") or "") in ("?", "")]
+        if not pendientes:
+            return
+        anilist = SCRAPERS.get("anilist")
+        if not anilist:
+            return
+        fixed = 0
+        for a in pendientes:
+            try:
+                r = anilist.buscar(a["nombre"])
+                if r and str(r.capitulos) != "?":
+                    cambios = {"capitulos": str(r.capitulos)}
+                    if not a.get("anilist_id") and r.anilist_id:
+                        cambios["anilist_id"] = r.anilist_id
+                    if not a.get("imagen") and r.imagen:
+                        cambios["imagen"] = r.imagen
+                    db.refrescar_metadata_anime(a["nombre"], cambios)
+                    fixed += 1
+                _time.sleep(1)  # rate limit
+            except Exception:
+                pass
+        if fixed:
+            _sync_log.info("Enriquecidos %d animes con eps desconocidos", fixed)
+
+    threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 
 
 # ── Daemon de notificaciones de nuevos episodios ─────────────────────────────
@@ -1520,8 +1561,24 @@ async def guardar_anime(req: BuscarRequest):
         raise HTTPException(404, "Anime no encontrado")
 
     data = resultado.__dict__.copy()
-    # Si el scraper no devolvió imagen, buscar en AniList como fallback
-    if not data.get("imagen"):
+    # Si el scraper no devolvió imagen o episodios, enriquecer con AniList
+    needs_enrichment = not data.get("imagen") or str(data.get("capitulos")) == "?"
+    if needs_enrichment and fuente_usada != "anilist" and "anilist" in SCRAPERS:
+        try:
+            alt = await asyncio.wait_for(
+                loop.run_in_executor(executor, SCRAPERS["anilist"].buscar, data.get("nombre", req.nombre)),
+                timeout=10,
+            )
+            if alt:
+                if not data.get("imagen") and alt.imagen:
+                    data["imagen"] = alt.imagen
+                if str(data.get("capitulos")) == "?" and str(alt.capitulos) != "?":
+                    data["capitulos"] = alt.capitulos
+                if not data.get("anilist_id") and alt.anilist_id:
+                    data["anilist_id"] = alt.anilist_id
+        except Exception:
+            pass
+    elif not data.get("imagen"):
         fallback_img = await loop.run_in_executor(executor, _find_anime_image, req.nombre)
         if fallback_img:
             data["imagen"] = fallback_img
