@@ -377,7 +377,7 @@ def refrescar_metadata_anime(nombre: str, campos: dict) -> tuple[bool, str]:
     """Como actualizar_anime pero para campos de la FUENTE (no del usuario).
     Permite refrescar capitulos/imagen/sinopsis/genero/estado_anime sin tocar
     el progreso del usuario (estado_usuario, puntuacion, episodios_vistos, etc.)."""
-    allowed = {"capitulos", "imagen", "sinopsis", "genero", "estado_anime", "fuente"}
+    allowed = {"capitulos", "imagen", "sinopsis", "genero", "estado_anime", "fuente", "anilist_id"}
     campos = {k: v for k, v in campos.items() if k in allowed}
     if not campos:
         return False, "sin campos válidos"

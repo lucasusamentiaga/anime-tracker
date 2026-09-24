@@ -21,7 +21,10 @@
 //        título en/ro), reparación auto portadas AnimeFLV → AniList.
 // v27 = rate limit en AniList sync (push_all, resolve_ids), fix fetch sin
 //        catch en favorito toggle, fix setInterval leak en anilistConnect().
-const CACHE_NAME = 'miraru-v27';
+// v28 = fix "? ep": AniList query ahora pide nextAiringEpisode para obtener
+//        eps de series en emisión (ej. One Piece → "1120+"), refrescar_metadata
+//        acepta anilist_id, endpoint /refrescar también guarda anilist_id.
+const CACHE_NAME = 'miraru-v28';
 const STATIC_ASSETS = [
   '/',
   '/app',

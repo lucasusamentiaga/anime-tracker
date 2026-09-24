@@ -24,6 +24,7 @@ query ($search: String, $type: MediaType!) {
     genres
     description(asHtml: false)
     status
+    nextAiringEpisode { episode }
   }
 }
 """
@@ -58,7 +59,11 @@ def _parse_media(media: dict, nombre: str, fuente: str,
         elif episodes > 0:
             capitulos = episodes
         else:
-            capitulos = "?"
+            # Para anime en emisión, usar nextAiringEpisode para saber
+            # cuántos episodios han salido hasta ahora
+            nae = media.get("nextAiringEpisode") or {}
+            next_ep = nae.get("episode") or 0
+            capitulos = f"{next_ep - 1}+" if next_ep > 1 else "?"
 
     return AnimeData(
         nombre=title,

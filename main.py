@@ -1806,6 +1806,8 @@ async def refrescar_metadata(filtro: dict = None):
                     cambios["genero"] = nuevo_g
             if nuevo.estado_anime and nuevo.estado_anime != a.get("estado_anime"):
                 cambios["estado_anime"] = nuevo.estado_anime
+            if not a.get("anilist_id") and nuevo.anilist_id:
+                cambios["anilist_id"] = nuevo.anilist_id
             if cambios:
                 db.refrescar_metadata_anime(a["nombre"], cambios)
                 arreglados += 1
