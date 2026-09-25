@@ -1902,11 +1902,16 @@ async function confirmarAgregar() {
   finally { btn.disabled = false; btn.textContent = T('add_to_list'); }
 }
 
-// ── Comprobador anti-duplicados (exacto por nombre, no bloquea temporadas) ──
+// ── Comprobador anti-duplicados (no bloquea temporadas) ──
+// Misma clave que database.clave_nombre: NFKC + minúsculas + solo letras/dígitos,
+// para que "One-Punch Man" o "SPY x FAMILY" cuenten como ya añadidos.
+function _claveNombre(n) {
+  return (n || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
 function _yaEnLista(nombre) {
-  if (!nombre) return false;
-  const low = nombre.trim().toLowerCase();
-  return ANIMES.some(a => (a.nombre || '').toLowerCase() === low);
+  const k = _claveNombre(nombre);
+  if (!k) return false;
+  return ANIMES.some(a => _claveNombre(a.nombre) === k);
 }
 
 // ── Añadir directo (sin preview) ─────────────────────────────────────────────

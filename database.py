@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import threading
+import unicodedata
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
@@ -308,10 +309,113 @@ def obtener_anime(nombre: str) -> Optional[dict]:
         return dict(row) if row else None
 
 
+def clave_nombre(nombre: str) -> str:
+    """Clave para detectar duplicados: NFKC + minúsculas + solo letras/dígitos.
+
+    "One Punch Man" == "One-Punch Man", "Spy x Family" == "SPY x FAMILY",
+    "Riku vs Kuu" == "Riku vs. Kuu". NFKC convierte "Ⅲ" en "III", así que
+    "Date A Live Ⅲ" sigue siendo distinto de "Date A Live". Las temporadas
+    ("Season 2", "2nd Season") no se tocan: siguen siendo animes distintos."""
+    n = unicodedata.normalize("NFKC", nombre or "").casefold()
+    return "".join(ch for ch in n if ch.isalnum())
+
+
+def buscar_por_clave(nombre: str) -> Optional[str]:
+    """Nombre guardado que colisiona con `nombre` según clave_nombre, o None."""
+    clave = clave_nombre(nombre)
+    if not clave:
+        return None
+    with get_conn() as conn:
+        for (n,) in conn.execute("SELECT nombre FROM animes"):
+            if clave_nombre(n) == clave:
+                return n
+    return None
+
+
+def buscar_duplicados() -> list[list[str]]:
+    """Grupos de nombres (≥2) que comparten clave_nombre."""
+    grupos: dict[str, list[str]] = {}
+    with get_conn() as conn:
+        for (n,) in conn.execute("SELECT nombre FROM animes ORDER BY id"):
+            grupos.setdefault(clave_nombre(n), []).append(n)
+    return [g for g in grupos.values() if len(g) > 1]
+
+
+_RANGO_ESTADO = {"completado": 5, "viendo": 4, "en pausa": 3, "pausado": 3,
+                 "pendiente": 2, "abandonado": 1}
+
+
+def fusionar_animes(conservar: str, descartar: str) -> tuple[bool, str]:
+    """Fusiona `descartar` dentro de `conservar` y borra `descartar`.
+
+    Progreso: se queda el mejor estado, el máximo de episodios/volúmenes y la
+    puntuación más alta; favorito/notif se combinan con OR; notas se unen;
+    fecha_inicio más temprana y fecha_fin más tardía. Historial, ep_log,
+    notas por episodio y tags pasan a `conservar` (sin duplicar)."""
+    if conservar == descartar:
+        return False, "mismo anime"
+    with get_conn() as conn:
+        a = conn.execute("SELECT * FROM animes WHERE nombre=?", (conservar,)).fetchone()
+        b = conn.execute("SELECT * FROM animes WHERE nombre=?", (descartar,)).fetchone()
+        if not a or not b:
+            return False, "no encontrado"
+        a, b = dict(a), dict(b)
+        cambios: dict = {}
+        ea, eb = a.get("estado_usuario") or "", b.get("estado_usuario") or ""
+        if _RANGO_ESTADO.get(eb, 0) > _RANGO_ESTADO.get(ea, 0):
+            cambios["estado_usuario"] = eb
+        for k in ("episodios_vistos", "volumenes_leidos"):
+            if k in a and (b.get(k) or 0) > (a.get(k) or 0):
+                cambios[k] = b[k]
+        if b.get("puntuacion") is not None and (a.get("puntuacion") is None
+                                                or b["puntuacion"] > a["puntuacion"]):
+            cambios["puntuacion"] = b["puntuacion"]
+        for k in ("favorito", "notif_activa"):
+            if b.get(k) and not a.get(k):
+                cambios[k] = 1
+        na, nb = (a.get("notas") or "").strip(), (b.get("notas") or "").strip()
+        if nb and nb not in na:
+            cambios["notas"] = (na + "\n\n" + nb).strip()
+        fi = [f for f in (a.get("fecha_inicio"), b.get("fecha_inicio")) if f]
+        if fi and min(fi) != (a.get("fecha_inicio") or ""):
+            cambios["fecha_inicio"] = min(fi)
+        ff = [f for f in (a.get("fecha_fin"), b.get("fecha_fin")) if f]
+        if ff and max(ff) != (a.get("fecha_fin") or ""):
+            cambios["fecha_fin"] = max(ff)
+        for k in ("anilist_id", "imagen", "sinopsis", "genero", "temporada"):
+            if k in a and not a.get(k) and b.get(k):
+                cambios[k] = b[k]
+        if cambios:
+            sets = ", ".join(f"{k}=?" for k in cambios)
+            conn.execute(f"UPDATE animes SET {sets} WHERE nombre=?",
+                         [*cambios.values(), conservar])
+        conn.execute("UPDATE historial SET nombre=? WHERE nombre=?", (conservar, descartar))
+        conn.execute("UPDATE OR IGNORE ep_log SET nombre=? WHERE nombre=?", (conservar, descartar))
+        conn.execute("DELETE FROM ep_log WHERE nombre=?", (descartar,))
+        conn.execute("UPDATE OR IGNORE episode_notes SET nombre=? WHERE nombre=?",
+                     (conservar, descartar))
+        conn.execute("DELETE FROM episode_notes WHERE nombre=?", (descartar,))
+        ta = conn.execute("SELECT value FROM config WHERE key=?", (f"tags:{conservar}",)).fetchone()
+        tb = conn.execute("SELECT value FROM config WHERE key=?", (f"tags:{descartar}",)).fetchone()
+        if tb and tb[0]:
+            tags = [t for t in ((ta[0] if ta else "") + "," + tb[0]).split(",") if t.strip()]
+            tags = list(dict.fromkeys(t.strip() for t in tags))[:20]
+            conn.execute("INSERT OR REPLACE INTO config(key, value) VALUES (?, ?)",
+                         (f"tags:{conservar}", ",".join(tags)))
+        conn.execute("DELETE FROM config WHERE key=?", (f"tags:{descartar}",))
+        conn.execute("DELETE FROM animes WHERE nombre=?", (descartar,))
+    _invalidar_cache()
+    return True, "ok"
+
+
 def guardar_anime(data: dict) -> tuple[bool, str]:
     nombre = (data.get("nombre") or "").strip()
     if not nombre:
         return False, "nombre vacío"
+    # UNIQUE(nombre) distingue mayúsculas y signos: "One-Punch Man" y
+    # "One Punch Man" entraban como dos animes distintos.
+    if buscar_por_clave(nombre):
+        return False, "duplicado"
     genero = data.get("genero", [])
     if isinstance(genero, list):
         genero = ", ".join(genero)

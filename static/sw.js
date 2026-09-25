@@ -31,7 +31,8 @@
 //        borrarNotaDiario, XSS fix en wfLoadLog, notification badge ordering.
 // v31 = notificaciones: notificationclick abre/enfoca Miraru; la página usa
 //        registration.showNotification (Chrome Android no admite new Notification).
-const CACHE_NAME = 'miraru-v31';
+// v32 = anti-duplicados con clave normalizada (mayúsculas, guiones, puntos).
+const CACHE_NAME = 'miraru-v32';
 const STATIC_ASSETS = [
   '/',
   '/app',
