@@ -23,6 +23,7 @@ from typing import Optional
 import requests
 
 import database as db
+from scrapers.anilist import ANILIST_MIN_INTERVAL
 
 log = logging.getLogger("miraru.anilist_sync")
 
@@ -347,7 +348,7 @@ def push_all() -> dict:
             pushed += 1
         else:
             errors += 1
-        _time.sleep(1)  # rate limit: AniList permite ~90 req/min
+        _time.sleep(ANILIST_MIN_INTERVAL)  # rate limit: AniList 30 req/min
 
     log.info("Push all: %d subidos, %d errores", pushed, errors)
     return {"pushed": pushed, "errors": errors}
@@ -386,7 +387,7 @@ def resolve_anilist_ids() -> dict:
                 resolved += 1
         except Exception:
             errors += 1
-        _time.sleep(1)  # rate limit: AniList permite ~90 req/min
+        _time.sleep(ANILIST_MIN_INTERVAL)  # rate limit: AniList 30 req/min
 
     log.info("Resolve IDs: %d resueltos, %d errores", resolved, errors)
     return {"resolved": resolved, "errors": errors}

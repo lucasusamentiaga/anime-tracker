@@ -85,3 +85,19 @@ class JikanV4Scraper(BaseScraper):
             return result
         except Exception:
             return None
+
+    def buscar_mal_id(self, nombre: str) -> int:
+        """ID de MyAnimeList del primer resultado (0 si no hay o falla).
+
+        MAL indexa los títulos romaji "clásicos" (p. ej. "Gotoubun no
+        Hanayome") que el buscador de AniList no encuentra; con el ID se puede
+        saltar a AniList vía `Media(idMal:)`."""
+        try:
+            resp = _session.get(f"{BASE}/anime",
+                                params={"q": nombre, "limit": 1, "sfw": True},
+                                headers=HEADERS, timeout=15)
+            resp.raise_for_status()
+            items = resp.json().get("data") or []
+            return int(items[0].get("mal_id") or 0) if items else 0
+        except Exception:
+            return 0

@@ -64,6 +64,7 @@ import database as db
 import sheets_sync
 from i18n import TRANSLATIONS, get_lang, set_lang
 from scrapers import SCRAPERS, AnimeData
+from scrapers.anilist import ANILIST_MIN_INTERVAL, candidatos_busqueda
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
 FROZEN_DIR    = Path(os.environ.get("ANIME_FROZEN_DIR", Path(__file__).parent))
@@ -413,6 +414,104 @@ def _start_emision_refresh_once():
 # Una pasada: busca en AniList los capítulos de animes con "?" eps.
 _enrich_started = False
 
+def _resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=None):
+    """Busca un título en AniList; si no lo encuentra y es anime, prueba vía
+    MyAnimeList (Jikan → mal_id → AniList `idMal`). El buscador de AniList no
+    reconoce muchos romaji de MAL/AnimeFLV ("Gotoubun no Hanayome", "Isekai
+    Ojisan"). Devuelve AnimeData o None. Hasta 3 AniList + 1 Jikan peticiones."""
+    anilist = anilist or SCRAPERS.get("anilist")
+    if not anilist:
+        return None
+    if tipo == "manga":
+        return anilist.buscar_manga(nombre)
+    r = anilist.buscar(nombre)
+    if r is not None:
+        return r
+    jikan = jikan or SCRAPERS.get("jikan")
+    if jikan is None or not hasattr(jikan, "buscar_mal_id") \
+            or not hasattr(anilist, "buscar_por_mal"):
+        return None
+    mal_id = jikan.buscar_mal_id(nombre)
+    return anilist.buscar_por_mal(mal_id) if mal_id else None
+
+
+def _enrich_needs(a: dict) -> tuple[bool, bool]:
+    """(necesita_eps, necesita_imagen) para un anime de la lista."""
+    caps = str(a.get("capitulos") or "").strip()
+    img = (a.get("imagen") or "").strip().lower()
+    return (caps in ("?", "") or caps.endswith("+"),
+            not img or "animeflv" in img)
+
+
+def _enrich_cambios(a: dict, r, need_eps: bool, need_img: bool) -> dict:
+    """Campos de fuente a actualizar a partir de un AnimeData de AniList."""
+    cambios: dict = {}
+    if need_eps and r.capitulos not in ("?", "", None) \
+            and str(r.capitulos) != str(a.get("capitulos") or ""):
+        cambios["capitulos"] = str(r.capitulos)
+    if need_img and r.imagen and "animeflv" not in r.imagen.lower():
+        cambios["imagen"] = r.imagen
+    if not a.get("anilist_id") and r.anilist_id:
+        cambios["anilist_id"] = r.anilist_id
+    if (a.get("tipo") == "manga" and not a.get("volumenes_totales")
+            and getattr(r, "volumenes_totales", 0)):
+        cambios["volumenes_totales"] = r.volumenes_totales
+    return cambios
+
+
+def _enriquecer_desde_anilist(animes: list[dict], anilist,
+                              sleep=_time.sleep) -> tuple[int, int]:
+    """Rellena eps desconocidos/en emisión ("?", "", "N+") y repara portadas
+    vacías o de AnimeFLV usando AniList.
+
+    Animes con `anilist_id` → lookup por lotes de 50 IDs (1 petición/lote).
+    Sin ID → búsqueda por nombre (1 petición/anime). Rate limit ANILIST_MIN_INTERVAL (30 req/min).
+    Devuelve (eps_actualizados, portadas_reparadas)."""
+    pend = []
+    for a in animes:
+        ne, ni = _enrich_needs(a)
+        if ne or ni:
+            pend.append((a, ne, ni))
+    eps_fixed = img_fixed = 0
+
+    def _aplicar(a, r, ne, ni):
+        nonlocal eps_fixed, img_fixed
+        cambios = _enrich_cambios(a, r, ne, ni)
+        if not cambios:
+            return
+        ok, _ = db.refrescar_metadata_anime(a["nombre"], cambios)
+        if ok:
+            eps_fixed += "capitulos" in cambios
+            img_fixed += "imagen" in cambios
+
+    for tipo, mtype in (("anime", "ANIME"), ("manga", "MANGA")):
+        con_id = [p for p in pend if p[0].get("anilist_id")
+                  and (p[0].get("tipo") or "anime") == tipo]
+        for i in range(0, len(con_id), 50):
+            lote = con_id[i:i + 50]
+            try:
+                res = anilist.buscar_por_ids(
+                    [int(p[0]["anilist_id"]) for p in lote], media_type=mtype)
+            except Exception:
+                res = {}
+            for a, ne, ni in lote:
+                r = res.get(int(a["anilist_id"]))
+                if r:
+                    _aplicar(a, r, ne, ni)
+            sleep(ANILIST_MIN_INTERVAL)
+
+    for a, ne, ni in (p for p in pend if not p[0].get("anilist_id")):
+        try:
+            r = _resolver_en_anilist(a["nombre"], a.get("tipo") or "anime", anilist=anilist)
+            if r:
+                _aplicar(a, r, ne, ni)
+        except Exception:
+            pass
+        # hasta una petición por variante del título + la de idMal
+        sleep(ANILIST_MIN_INTERVAL * (len(candidatos_busqueda(a["nombre"])) + 1))
+    return eps_fixed, img_fixed
+
+
 def _start_enrich_unknown_eps():
     global _enrich_started
     if _enrich_started:
@@ -421,53 +520,18 @@ def _start_enrich_unknown_eps():
 
     def _run():
         _time.sleep(60)  # espera para no competir con el arranque
-        animes = db.listar_animes()
         anilist = SCRAPERS.get("anilist")
         if not anilist:
             return
-
-        # 1) Animes con episodios desconocidos
-        pendientes = [a for a in animes if str(a.get("capitulos") or "") in ("?", "")]
-        fixed = 0
-        for a in pendientes:
-            try:
-                r = anilist.buscar(a["nombre"])
-                if r and str(r.capitulos) != "?":
-                    cambios = {"capitulos": str(r.capitulos)}
-                    if not a.get("anilist_id") and r.anilist_id:
-                        cambios["anilist_id"] = r.anilist_id
-                    if not a.get("imagen") and r.imagen:
-                        cambios["imagen"] = r.imagen
-                    db.refrescar_metadata_anime(a["nombre"], cambios)
-                    fixed += 1
-                _time.sleep(1)  # rate limit
-            except Exception:
-                pass
-        if fixed:
-            _sync_log.info("Enriquecidos %d animes con eps desconocidos", fixed)
-
-        # 2) Animes con imagen rota o de AnimeFLV (hotlinking 403)
-        img_fixed = 0
-        for a in animes:
-            img = (a.get("imagen") or "").strip()
-            needs_fix = (not img
-                         or "animeflv" in img.lower()
-                         or "cdn.animeflv" in img.lower())
-            if not needs_fix:
-                continue
-            try:
-                r = anilist.buscar(a["nombre"])
-                if r and r.imagen and "animeflv" not in r.imagen.lower():
-                    cambios = {"imagen": r.imagen}
-                    if not a.get("anilist_id") and r.anilist_id:
-                        cambios["anilist_id"] = r.anilist_id
-                    db.refrescar_metadata_anime(a["nombre"], cambios)
-                    img_fixed += 1
-                _time.sleep(1)
-            except Exception:
-                pass
-        if img_fixed:
-            _sync_log.info("Reparadas %d portadas rotas/animeflv → AniList", img_fixed)
+        try:
+            eps, imgs = _enriquecer_desde_anilist(db.listar_animes(), anilist)
+        except Exception as e:
+            _sync_log.warning("enrich daemon: %s", e)
+            return
+        if eps:
+            _sync_log.info("Enriquecidos %d animes con eps desconocidos", eps)
+        if imgs:
+            _sync_log.info("Reparadas %d portadas rotas/animeflv → AniList", imgs)
 
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 
@@ -488,8 +552,7 @@ def _notif_daemon_loop():
             activos = db.listar_con_notif()
             email = db.get_config("email_notif") or ""
             if activos and email:
-                nombres = [a["nombre"] for a in activos][:30]
-                info = _fetch_ultimos_episodios(nombres)
+                info = _fetch_ultimos_episodios(activos)
                 now_ts = _time.time()
                 for a in activos:
                     meta = info.get(a["nombre"])
@@ -2900,10 +2963,8 @@ async def notif_check():
     activos = db.listar_con_notif()
     if not activos:
         return {"pendientes": []}
-    nombres = [a["nombre"] for a in activos][:30]
-
     loop = asyncio.get_running_loop()
-    info = await loop.run_in_executor(executor, _fetch_ultimos_episodios, nombres)
+    info = await loop.run_in_executor(executor, _fetch_ultimos_episodios, activos)
 
     pendientes = []
     now_ts = _time.time()
@@ -2932,40 +2993,72 @@ async def notif_check():
     return {"pendientes": pendientes}
 
 
-def _fetch_ultimos_episodios(nombres: list) -> dict:
-    """Batch AniList: para cada nombre devuelve next_ep, next_at y total."""
-    if not nombres:
+_QUERY_ULTIMOS_EPS = """
+query ($ids: [Int]) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) { id episodes nextAiringEpisode { airingAt episode } }
+  }
+}"""
+
+
+def _fetch_ultimos_episodios(animes: list, max_resolver: int = 5,
+                             sleep=_time.sleep) -> dict:
+    """Para cada anime devuelve {nombre: {total, next_ep, next_at}}.
+
+    Antes hacía una query con un alias `Media(search:)` por nombre, pero AniList
+    responde 404 a TODA la query si un solo título no casa (p. ej. nombres de
+    AnimeFLV como "Black Clover (TV)"): todos los alias volvían null y ninguna
+    notificación funcionaba. Ahora:
+      1. Animes sin `anilist_id` se resuelven por búsqueda (con variantes de
+         título) y se guarda el ID — máx. `max_resolver` por llamada.
+      2. Una query `Page(media(id_in:))` por cada 50 IDs; los IDs que no
+         existan simplemente no aparecen, sin romper el resto.
+    Acepta dicts de anime o nombres sueltos (compatibilidad)."""
+    items = [a if isinstance(a, dict) else {"nombre": a} for a in (animes or [])]
+    if not items:
         return {}
+    anilist = SCRAPERS.get("anilist")
+    resueltos = 0
+    for a in items:
+        if a.get("anilist_id") or not anilist or resueltos >= max_resolver:
+            continue
+        resueltos += 1
+        try:
+            r = _resolver_en_anilist(a["nombre"], anilist=anilist)
+            if r and r.anilist_id:
+                a["anilist_id"] = r.anilist_id
+                db.refrescar_metadata_anime(a["nombre"], {"anilist_id": r.anilist_id})
+        except Exception:
+            pass
+        sleep(ANILIST_MIN_INTERVAL)
+
+    por_id: dict[int, list[str]] = {}
+    for a in items:
+        try:
+            aid = int(a.get("anilist_id") or 0)
+        except (TypeError, ValueError):
+            aid = 0
+        if aid:
+            por_id.setdefault(aid, []).append(a["nombre"])
+    out: dict = {}
+    ids = list(por_id)
     try:
-        partes = []
-        variables: dict = {}
-        for i, n in enumerate(nombres):
-            partes.append(
-                f"a{i}: Media(search: $s{i}, type: ANIME) {{"
-                f" episodes nextAiringEpisode {{ airingAt episode }}"
-                f"}}"
-            )
-            variables[f"s{i}"] = n
-        var_decls = ", ".join(f"${v}: String" for v in variables)
-        query = f"query ({var_decls}) {{ {' '.join(partes)} }}"
-        data = _anilist(query, variables, timeout=15)
-        if not data:
-            return {}
-        out = {}
-        for i, n in enumerate(nombres):
-            m = data.get(f"a{i}")
-            if not m:
-                continue
-            nae = m.get("nextAiringEpisode") or {}
-            out[n] = {
-                "total":   m.get("episodes") or 0,
-                "next_ep": nae.get("episode") or 0,
-                "next_at": nae.get("airingAt") or 0,
-            }
-        return out
+        for i in range(0, len(ids), 50):
+            data = _anilist(_QUERY_ULTIMOS_EPS, {"ids": ids[i:i + 50]}, timeout=15)
+            for m in ((data or {}).get("Page") or {}).get("media") or []:
+                if not m or not m.get("id"):
+                    continue
+                nae = m.get("nextAiringEpisode") or {}
+                meta = {
+                    "total":   m.get("episodes") or 0,
+                    "next_ep": nae.get("episode") or 0,
+                    "next_at": nae.get("airingAt") or 0,
+                }
+                for nombre in por_id.get(int(m["id"]), []):
+                    out[nombre] = meta
     except Exception as e:
         _sync_log.warning("_fetch_ultimos_episodios: %s", e)
-        return {}
+    return out
 
 
 # ── Animes relacionados ───────────────────────────────────────────────────────
