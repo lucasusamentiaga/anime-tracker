@@ -22,6 +22,9 @@ mobile-expo/ios/
 .miraru_acceso_creado
 arranque.log
 anime_tracker.db
+*.db-wal
+*.db-shm
+*.db-journal
 credentials.json
 avatar.*
 *.log
