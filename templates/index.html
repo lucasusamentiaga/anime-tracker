@@ -2287,10 +2287,11 @@ async function guardarNotaDiario() {
 
 async function borrarNotaDiario(nombre, ep) {
   try {
-    await fetch('/api/animes/' + encodeURIComponent(nombre) + '/notas-episodio/' + ep, { method: 'DELETE' });
+    const r = await fetch('/api/animes/' + encodeURIComponent(nombre) + '/notas-episodio/' + ep, { method: 'DELETE' });
+    if (!r.ok) { toast(T('error'), 'err'); return; }
     cargarDiarioModal(nombre);
     toast('Nota borrada');
-  } catch(_) {}
+  } catch(_) { toast(T('error'), 'err'); }
 }
 
 async function cargarExtraModal(nombre) {
@@ -2555,14 +2556,19 @@ async function actualizarBotonAvisos() {
   let _ne; try { _ne = localStorage.getItem('notif_enabled'); } catch(_) {}
   const on = _ne === '1' && Notification.permission === 'granted';
   // Show count badge with animes that have notif_activa
+  // Set button text FIRST, then append badge (innerHTML destroys children)
+  if (on) {
+    btn.innerHTML = '🔔 <span style="color:var(--success)">' + (T('avisos_on') || 'Avisos ON') + '</span>';
+    btn.style.borderColor = 'var(--success)';
+  } else {
+    btn.innerHTML = '🔕 <span>' + (T('avisos_off') || 'Avisos') + '</span>';
+    btn.style.borderColor = '';
+  }
   if (on) {
     try {
       const r = await fetch('/api/notif/activas');
       const d = await r.json();
       const count = (d.animes || []).length;
-      // Remove old badge
-      const old = btn.querySelector('.notif-badge');
-      if (old) old.remove();
       if (count > 0) {
         const badge = document.createElement('span');
         badge.className = 'notif-badge';
@@ -2570,16 +2576,6 @@ async function actualizarBotonAvisos() {
         btn.appendChild(badge);
       }
     } catch(_) {}
-  } else {
-    const old = btn.querySelector('.notif-badge');
-    if (old) old.remove();
-  }
-  if (on) {
-    btn.innerHTML = '🔔 <span style="color:var(--success)">' + (T('avisos_on') || 'Avisos ON') + '</span>';
-    btn.style.borderColor = 'var(--success)';
-  } else {
-    btn.innerHTML = '🔕 <span>' + (T('avisos_off') || 'Avisos') + '</span>';
-    btn.style.borderColor = '';
   }
 }
 
@@ -2667,14 +2663,16 @@ async function plusEpisodio(enc) {
     const mara = window._marathon >= 2 ? ` · 🍿 ×${window._marathon}` : '';
     // v2.3: toast con undo (resta 1 ep)
     toastUndo(`+1 ep · ${nombre} (${d.episodios_vistos})${mara}`, async () => {
-      const back = d.episodios_vistos - 1;
-      await fetch('/api/animes/' + encodeURIComponent(nombre), {
-        method:'PATCH', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({episodios_vistos: Math.max(0, back)})
-      });
-      if (idx >= 0) ANIMES[idx].episodios_vistos = Math.max(0, back);
-      render();
-      if (typeof cargarContinuar === 'function') cargarContinuar();
+      try {
+        const back = d.episodios_vistos - 1;
+        await fetch('/api/animes/' + encodeURIComponent(nombre), {
+          method:'PATCH', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({episodios_vistos: Math.max(0, back)})
+        });
+        if (idx >= 0) ANIMES[idx].episodios_vistos = Math.max(0, back);
+        render();
+        if (typeof cargarContinuar === 'function') cargarContinuar();
+      } catch(_) { toast(T('error'), 'err'); }
     });
     // v2.4: si has llegado al último episodio, sugiere marcar completado.
     const capNum = idx >= 0 ? parseInt(ANIMES[idx].capitulos) : 0;
@@ -3674,22 +3672,24 @@ async function bulkApply(field, value) {
   // Undo: revertir cada anime al valor anterior. Importante: PATCH ignora
   // valores null (al filtrar Pydantic los descarta), pero respeta 0.
   toastUndo('✓ ' + ok + ' actualizados' + (fail ? ', ' + fail + ' fallidos' : ''), async () => {
-    for (const [nombre, v] of Object.entries(prev)) {
-      if (v === MISSING) continue;
-      // Para campos donde "deshacer a null" no tiene sentido (estado, lista)
-      // omitimos null/undefined. Para favorito (0/1) o puntuación (0+) el 0
-      // SÍ es válido y debe restaurarse.
-      const send = (v === null || v === undefined)
-        ? (field === 'favorito' || field === 'episodios_vistos' ? 0 : null)
-        : v;
-      if (send === null) continue;
-      await fetch('/api/animes/' + encodeURIComponent(nombre), {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({[field]: send})
-      });
-    }
-    await cargar();
+    try {
+      for (const [nombre, v] of Object.entries(prev)) {
+        if (v === MISSING) continue;
+        // Para campos donde "deshacer a null" no tiene sentido (estado, lista)
+        // omitimos null/undefined. Para favorito (0/1) o puntuación (0+) el 0
+        // SÍ es válido y debe restaurarse.
+        const send = (v === null || v === undefined)
+          ? (field === 'favorito' || field === 'episodios_vistos' ? 0 : null)
+          : v;
+        if (send === null) continue;
+        await fetch('/api/animes/' + encodeURIComponent(nombre), {
+          method: 'PATCH',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({[field]: send})
+        });
+      }
+      await cargar();
+    } catch(_) { toast(T('error'), 'err'); }
   });
 }
 
@@ -4183,7 +4183,7 @@ async function wfLoadLog() {
     if (entries.length > 0) {
       section.style.display = '';
       logEl.innerHTML = entries.slice(-20).map(l =>
-        `<div style="padding:2px 0;border-bottom:1px solid var(--border)">${l}</div>`
+        `<div style="padding:2px 0;border-bottom:1px solid var(--border)">${_escHtml(l)}</div>`
       ).join('');
       logEl.scrollTop = logEl.scrollHeight;
     } else {
