@@ -29,7 +29,9 @@
 //        AniList scraper devuelve volumenes_totales desde query.
 // v30 = fix auditoría: try/catch en bulkApply undo, response check en
 //        borrarNotaDiario, XSS fix en wfLoadLog, notification badge ordering.
-const CACHE_NAME = 'miraru-v30';
+// v31 = notificaciones: notificationclick abre/enfoca Miraru; la página usa
+//        registration.showNotification (Chrome Android no admite new Notification).
+const CACHE_NAME = 'miraru-v31';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -100,6 +102,21 @@ self.addEventListener('fetch', event => {
         return resp;
       }).catch(() => cached);
       return cached || fetched;
+    })
+  );
+});
+
+// Clic en una notificación de nuevo episodio → enfocar la pestaña de Miraru
+// si ya está abierta; si no, abrir una nueva.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (new URL(c.url).origin === self.location.origin && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow ? self.clients.openWindow(url) : undefined;
     })
   );
 });

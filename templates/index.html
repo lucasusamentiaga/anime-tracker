@@ -2542,12 +2542,11 @@ async function pedirPermiso() {
   }
   actualizarBotonAvisos();
   toast('🔔 ' + T('notif_on'), 'ok');
-  try {
-    new Notification('Miraru', {
-      body: 'Te avisaremos cuando haya nuevos episodios de los animes con notificación.',
-      icon: '/static/logo.png'
-    });
-  } catch(_) {}
+  _mostrarNotif('Miraru', {
+    body: 'Te avisaremos cuando haya nuevos episodios de los animes con notificación.',
+    icon: '/static/logo.png'
+  });
+  checkNotificaciones();
 }
 
 async function actualizarBotonAvisos() {
@@ -2579,8 +2578,22 @@ async function actualizarBotonAvisos() {
   }
 }
 
+// Muestra una notificación del sistema. Prefiere el Service Worker
+// (registration.showNotification): Chrome Android lanza TypeError con
+// `new Notification()` y además así funciona el clic (notificationclick en sw.js).
+async function _mostrarNotif(titulo, opts) {
+  opts = Object.assign({ data: { url: '/' } }, opts || {});
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.showNotification) { await reg.showNotification(titulo, opts); return; }
+    }
+  } catch(_) {}
+  try { new Notification(titulo, opts); } catch(_) {}
+}
+
 async function checkNotificaciones() {
-  if (Notification.permission !== 'granted') return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     // v2: el backend consulta AniList y devuelve solo animes con ep realmente nuevo.
     // Además guardamos el último ep notificado por anime en localStorage para no
@@ -2593,14 +2606,14 @@ async function checkNotificaciones() {
     (d.pendientes || []).forEach(p => {
       const last = notif_log[p.nombre] || 0;
       if (p.siguiente <= last) return;   // ya notificado, no spamear
-      new Notification(`📺 ${p.nombre}`, {
+      _mostrarNotif(`📺 ${p.nombre}`, {
         body: `Nuevo episodio ${p.siguiente} disponible (último emitido: ${p.ultimo_emitido})`,
         icon: p.imagen || '/static/logo.png',
         tag: `anime-${p.nombre}-${p.siguiente}`,
       });
       notif_log[p.nombre] = p.siguiente;
     });
-    localStorage.setItem('notif_log', JSON.stringify(notif_log));
+    try { localStorage.setItem('notif_log', JSON.stringify(notif_log)); } catch(_) {}
   } catch(_) {}
 }
 
@@ -3796,6 +3809,9 @@ function selectAllVisible() {
     const wasEnabled = _wasEnabled === '1';
     if (wasEnabled && Notification.permission === 'granted' && !window._notifInterval) {
       window._notifInterval = setInterval(checkNotificaciones, 30 * 60 * 1000);
+      // Comprobar también al abrir: antes el primer aviso llegaba a los 30 min
+      // y, si se cerraba la app antes, nunca.
+      setTimeout(checkNotificaciones, 8000);
     }
     actualizarBotonAvisos();
   }
