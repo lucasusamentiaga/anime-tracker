@@ -239,3 +239,24 @@ def test_jikan_buscar_mal_id():
         assert JikanV4Scraper().buscar_mal_id("Gotoubun no Hanayome") == 38080
     with patch("scrapers.jikan._session.get", side_effect=Exception("504")):
         assert JikanV4Scraper().buscar_mal_id("x") == 0
+
+
+def test_candidatos_normaliza_numeral_unicode():
+    from scrapers.anilist import candidatos_busqueda
+    assert "Date A Live III" in candidatos_busqueda("Date A Live Ⅲ")
+
+
+def test_portada_anime_planet_se_sustituye(main_mod):
+    animes = [{"nombre": "Naruto", "capitulos": "220", "anilist_id": 20,
+               "imagen": "https://cdn.anime-planet.com/anime/primary/road-of-naruto-1.webp"}]
+    fake = _FakeAniList(by_id={20: _ad(220, img="https://s4.anilist.co/naruto.jpg", aid=20)})
+    assert main_mod._enriquecer_desde_anilist(animes, fake, sleep=lambda s: None) == (0, 1)
+    assert main_mod._calls == [("Naruto", {"imagen": "https://s4.anilist.co/naruto.jpg"})]
+
+
+def test_portada_kitsu_no_se_toca(main_mod):
+    animes = [{"nombre": "K", "capitulos": "12", "anilist_id": 1,
+               "imagen": "https://media.kitsu.app/anime/poster_images/1/large.jpg"}]
+    fake = _FakeAniList()
+    assert main_mod._enriquecer_desde_anilist(animes, fake, sleep=lambda s: None) == (0, 0)
+    assert fake.id_calls == []

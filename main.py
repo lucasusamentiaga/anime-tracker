@@ -435,12 +435,20 @@ def _resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=N
     return anilist.buscar_por_mal(mal_id) if mal_id else None
 
 
+# Portadas que se sustituyen por la de AniList cuando se encuentra:
+# - animeflv: hotlinking 403.
+# - anime-planet: su scraper toma la primera tarjeta del listado aunque no
+#   coincida → Naruto con la de "Road of Naruto", Dragon Ball Daima con
+#   "Tokyo Underground", placeholders default-anime-*.png…
+_HOSTS_PORTADA_POCO_FIABLE = ("animeflv", "anime-planet")
+
+
 def _enrich_needs(a: dict) -> tuple[bool, bool]:
     """(necesita_eps, necesita_imagen) para un anime de la lista."""
     caps = str(a.get("capitulos") or "").strip()
     img = (a.get("imagen") or "").strip().lower()
     return (caps in ("?", "") or caps.endswith("+"),
-            not img or "animeflv" in img)
+            not img or any(h in img for h in _HOSTS_PORTADA_POCO_FIABLE))
 
 
 def _enrich_cambios(a: dict, r, need_eps: bool, need_img: bool) -> dict:
@@ -449,7 +457,8 @@ def _enrich_cambios(a: dict, r, need_eps: bool, need_img: bool) -> dict:
     if need_eps and r.capitulos not in ("?", "", None) \
             and str(r.capitulos) != str(a.get("capitulos") or ""):
         cambios["capitulos"] = str(r.capitulos)
-    if need_img and r.imagen and "animeflv" not in r.imagen.lower():
+    if need_img and r.imagen and not any(
+            h in r.imagen.lower() for h in _HOSTS_PORTADA_POCO_FIABLE):
         cambios["imagen"] = r.imagen
     if not a.get("anilist_id") and r.anilist_id:
         cambios["anilist_id"] = r.anilist_id

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Optional
 
 from . import net
@@ -28,9 +29,11 @@ def candidatos_busqueda(nombre: str) -> list[str]:
     El primer elemento es siempre el original. Sin duplicados."""
     base = (nombre or "").strip()
     out = [base]
-    sin_paren = _RE_PAREN.sub(" ", base).strip()
+    # NFKC: "Date A Live Ⅲ" → "Date A Live III" (AniList no casa el numeral Unicode)
+    nfkc = unicodedata.normalize("NFKC", base)
+    sin_paren = _RE_PAREN.sub(" ", nfkc).strip()
     sin_movie = re.sub(r"\s{2,}", " ", _RE_MOVIE.sub(" ", sin_paren)).strip(" :-")
-    for c in (sin_paren, sin_movie):
+    for c in (nfkc, sin_paren, sin_movie):
         if c and c not in out:
             out.append(c)
     return out
