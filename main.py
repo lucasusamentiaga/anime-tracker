@@ -62,6 +62,7 @@ from pydantic import BaseModel, Field, field_validator
 
 import anilist_sync
 import database as db
+import metadatos
 import sheets_sync
 from i18n import TRANSLATIONS, get_lang, set_lang
 from scrapers import SCRAPERS, AnimeData
@@ -441,7 +442,7 @@ def _resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=N
 # - anime-planet: su scraper toma la primera tarjeta del listado aunque no
 #   coincida → Naruto con la de "Road of Naruto", Dragon Ball Daima con
 #   "Tokyo Underground", placeholders default-anime-*.png…
-_HOSTS_PORTADA_POCO_FIABLE = ("animeflv", "anime-planet")
+_HOSTS_PORTADA_POCO_FIABLE = metadatos.HOSTS_PORTADA_POCO_FIABLE
 
 
 def _enrich_needs(a: dict) -> tuple[bool, bool]:
@@ -1809,6 +1810,10 @@ async def sync_sheets(req: SyncRequest):
     sid = req.spreadsheet_id or db.get_config("spreadsheet_id")
     if not sid:
         raise HTTPException(400, "No hay spreadsheet_id configurado")
+    if not CREDENTIALS.exists():
+        # Antes caía en sincronizar_todo y devolvía un 500 genérico
+        raise HTTPException(400, "Falta credentials.json en la carpeta de la app "
+                                 "(Configuración → subir credenciales)")
     animes = db.listar_animes()
     ok, msg = sheets_sync.sincronizar_todo(animes, sid, str(CREDENTIALS))
     _record_sync(ok, msg)
@@ -1820,85 +1825,110 @@ async def sync_sheets(req: SyncRequest):
 
 # ── v2.6.2: refrescar metadatos de animes ya guardados (arregla cap=200 viejo) ─
 
+# ── Refresco manual de metadatos (en segundo plano) ─────────────────────────
+# Antes era una petición síncrona que re-consultaba la FUENTE ORIGINAL de cada
+# anime sin rate limit: con ~340 animes AniList respondía 429, la petición
+# duraba muchos minutos y, peor, sobrescribía portadas buenas de AniList con
+# las erróneas de anime-planet y números conocidos con "?".
+
+_refresco_lock = threading.Lock()
+_refresco_estado: dict = {"en_curso": False}
+
+
+def _refrescar_todo(animes: list[dict], estado: dict, anilist=None,
+                    sleep=_time.sleep) -> dict:
+    """Refresca metadatos de fuente con metadatos.cambios_seguros.
+
+    1) Animes con anilist_id → AniList por lotes de 50 (1 petición/lote).
+    2) Resto (o ID no encontrado) → _resolver_en_anilist (búsqueda + MAL) y,
+       si nada, la fuente original. Actualiza `estado` con el progreso."""
+    anilist = anilist or SCRAPERS.get("anilist")
+    estado.update(total=len(animes), hechos=0, actualizados=0,
+                  sin_cambios=0, fallidos=[])
+
+    def _aplicar(a, nuevo):
+        cambios = metadatos.cambios_seguros(a, nuevo)
+        if cambios:
+            db.refrescar_metadata_anime(a["nombre"], cambios)
+            estado["actualizados"] += 1
+        else:
+            estado["sin_cambios"] += 1
+
+    pendientes: list[dict] = []
+    for tipo, mtype in (("anime", "ANIME"), ("manga", "MANGA")):
+        con_id = [a for a in animes if a.get("anilist_id")
+                  and (a.get("tipo") or "anime") == tipo]
+        for i in range(0, len(con_id), 50):
+            lote = con_id[i:i + 50]
+            try:
+                res = anilist.buscar_por_ids(
+                    [int(a["anilist_id"]) for a in lote], media_type=mtype) if anilist else {}
+            except Exception:
+                res = {}
+            for a in lote:
+                nuevo = res.get(int(a["anilist_id"]))
+                if nuevo:
+                    _aplicar(a, nuevo)
+                    estado["hechos"] += 1
+                else:
+                    pendientes.append(a)
+            sleep(ANILIST_MIN_INTERVAL)
+    pendientes += [a for a in animes if not a.get("anilist_id")]
+
+    for a in pendientes:
+        nombre = a["nombre"]
+        try:
+            nuevo = _resolver_en_anilist(nombre, a.get("tipo") or "anime", anilist=anilist)
+            if not nuevo:
+                fuente = a.get("fuente") or ""
+                if fuente in SCRAPERS and fuente != "anilist":
+                    nuevo = SCRAPERS[fuente].buscar(nombre)
+            if nuevo:
+                _aplicar(a, nuevo)
+            else:
+                estado["fallidos"].append(nombre)
+        except Exception:
+            estado["fallidos"].append(nombre)
+        estado["hechos"] += 1
+        sleep(ANILIST_MIN_INTERVAL * (len(candidatos_busqueda(nombre)) + 1))
+    return estado
+
+
 @app.post("/api/animes/refrescar")
 async def refrescar_metadata(filtro: dict = None):
-    """Re-consulta la fuente original de los animes para refrescar metadatos
-    (capítulos, imagen, géneros, sinopsis). Útil para corregir entradas
-    afectadas por el bug del cap=200.
+    """Lanza el refresco de metadatos en segundo plano y vuelve al momento.
+    El progreso se consulta en GET /api/refrescar/estado.
 
-    body opcional: {"solo_cap_200": true}  → solo re-consulta los que tienen
-    exactamente 200 capítulos (el bug). Por defecto: re-consulta todos.
-    """
+    body opcional: {"solo_cap_200": true} → solo los que tienen 200 capítulos."""
     animes = db.listar_animes()
     if filtro and filtro.get("solo_cap_200"):
         animes = [a for a in animes if str(a.get("capitulos")) == "200"]
+    with _refresco_lock:
+        if _refresco_estado.get("en_curso"):
+            return {"ok": True, "iniciado": False, **_refresco_estado}
+        _refresco_estado.clear()
+        _refresco_estado.update(en_curso=True, total=len(animes), hechos=0,
+                                actualizados=0, sin_cambios=0, fallidos=[],
+                                inicio=_time.time(), fin=None)
 
-    arreglados = 0
-    sin_cambios = 0
-    fallidos = []
-    loop = asyncio.get_running_loop()
-
-    for a in animes:
-        fuente = a.get("fuente") or "anilist"
-        if fuente not in SCRAPERS:
-            fuente = "anilist"
+    def _run():
         try:
-            nuevo = await loop.run_in_executor(executor, SCRAPERS[fuente].buscar, a["nombre"])
-            # Si la fuente original no devuelve resultado o eps desconocidos,
-            # intentar con AniList como fallback
-            if nuevo and str(nuevo.capitulos) == "?" and fuente != "anilist" and "anilist" in SCRAPERS:
-                alt = await loop.run_in_executor(executor, SCRAPERS["anilist"].buscar, a["nombre"])
-                if alt and str(alt.capitulos) != "?":
-                    nuevo = alt
-            if not nuevo and fuente != "anilist" and "anilist" in SCRAPERS:
-                nuevo = await loop.run_in_executor(executor, SCRAPERS["anilist"].buscar, a["nombre"])
-            if not nuevo:
-                fallidos.append(a["nombre"])
-                continue
-            # Solo actualizamos campos derivados de la fuente; preservamos
-            # estado_usuario, puntuacion, episodios_vistos, notas, lista, favorito.
-            cambios = {}
-            if str(nuevo.capitulos) != str(a.get("capitulos") or ""):
-                cambios["capitulos"] = str(nuevo.capitulos)
-            if nuevo.imagen and nuevo.imagen != a.get("imagen"):
-                best_img = nuevo.imagen
-                # Preferir imagen de AniList sobre AnimeFLV (evita hotlinking 403)
-                if "animeflv" in best_img.lower() and fuente != "anilist" and "anilist" in SCRAPERS:
-                    try:
-                        alt_img = await loop.run_in_executor(
-                            executor, SCRAPERS["anilist"].buscar, a["nombre"])
-                        if alt_img and alt_img.imagen:
-                            best_img = alt_img.imagen
-                    except Exception:
-                        pass
-                cambios["imagen"] = best_img
-            if nuevo.sinopsis and nuevo.sinopsis != a.get("sinopsis"):
-                cambios["sinopsis"] = nuevo.sinopsis
-            if nuevo.genero:
-                nuevo_g = ",".join(nuevo.genero)
-                if nuevo_g != (a.get("genero") or ""):
-                    cambios["genero"] = nuevo_g
-            if nuevo.estado_anime and nuevo.estado_anime != a.get("estado_anime"):
-                cambios["estado_anime"] = nuevo.estado_anime
-            if not a.get("anilist_id") and nuevo.anilist_id:
-                cambios["anilist_id"] = nuevo.anilist_id
-            if nuevo.volumenes_totales and nuevo.volumenes_totales != a.get("volumenes_totales"):
-                cambios["volumenes_totales"] = nuevo.volumenes_totales
-            if cambios:
-                db.refrescar_metadata_anime(a["nombre"], cambios)
-                arreglados += 1
-            else:
-                sin_cambios += 1
-        except Exception:
-            fallidos.append(a["nombre"])
+            _refrescar_todo(animes, _refresco_estado)
+        except Exception as e:
+            _sync_log.warning("refresco manual: %s", e)
+        finally:
+            _refresco_estado.update(en_curso=False, fin=_time.time())
 
-    return {
-        "ok": True,
-        "total":       len(animes),
-        "arreglados":  arreglados,
-        "sin_cambios": sin_cambios,
-        "fallidos":    fallidos[:20],
-    }
+    threading.Thread(target=_run, daemon=True, name="refresco-manual").start()
+    return {"ok": True, "iniciado": True, "total": len(animes)}
+
+
+@app.get("/api/refrescar/estado")
+async def refrescar_estado():
+    est = dict(_refresco_estado)
+    est["fallidos"] = list(est.get("fallidos") or [])[:20]
+    return est
+
 
 # ── Estadísticas ──────────────────────────────────────────────────────────────
 
@@ -2804,7 +2834,10 @@ async def get_tags(nombre: str):
 
 @app.post("/api/animes/{nombre:path}/tags")
 async def add_tag(nombre: str, req: TagRequest):
-    tag = req.tag.strip()[:30]
+    # "/" no se puede borrar luego: DELETE .../tags/{tag} con %2F se decodifica
+    # antes del enrutado y {nombre:path} se traga la barra → 404. Y "," es el
+    # separador con que se guardan.
+    tag = req.tag.replace("/", "-").replace(",", " ").strip()[:30]
     if not tag:
         raise HTTPException(400, "Tag vacío")
     tags_str = db.get_config(f"tags:{nombre}") or ""

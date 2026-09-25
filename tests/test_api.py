@@ -266,3 +266,18 @@ def test_anadir_sustituye_portada_anime_planet_y_guarda_anilist_id(client, monke
     assert d["imagen"] == "https://s4.anilist.co/naruto.jpg"
     assert d["anilist_id"] == 20
     assert str(d["capitulos"]) == "220"
+
+
+def test_tag_con_barra_se_puede_borrar(client):
+    client.post("/api/animes/restore", json={"nombre": "Tagueado", "capitulos": "12"})
+    r = client.post("/api/animes/Tagueado/tags", json={"tag": "a/b, c"})
+    assert r.json()["tags"] == ["a-b  c"]
+    assert client.delete("/api/animes/Tagueado/tags/a-b  c").status_code == 200
+    assert client.get("/api/animes/Tagueado/tags").json()["tags"] == []
+
+
+def test_sync_sin_credenciales_da_400_claro(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(main, "CREDENTIALS", tmp_path / "no-existe.json")
+    r = client.post("/api/sync", json={"spreadsheet_id": "abc"})
+    assert r.status_code == 400
+    assert "credentials.json" in r.json()["detail"]

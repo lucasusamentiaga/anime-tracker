@@ -10,6 +10,7 @@ import logging
 import time as _time
 
 import database as db
+from metadatos import cambios_seguros
 from scrapers import SCRAPERS
 
 log = logging.getLogger("miraru.migrations")
@@ -170,19 +171,59 @@ EN_EMISION = {
 }
 
 
+# Campos que el refresco periódico puede tocar (la sinopsis/géneros no cambian
+# por emitirse un episodio y no merece la pena reescribirlos cada 12h).
+_CAMPOS_REFRESCO_EMISION = ("capitulos", "estado_anime", "imagen", "anilist_id")
+
+
 def refrescar_en_emision(sleep: float = 0.4) -> int:
     """Re-consulta las series EN EMISIÓN para actualizar nº de episodios, imagen
     y estado (al terminar la temporada crecen los episodios o pasa a Finalizado).
     NO toca el progreso del usuario. Pensado para correr periódicamente en
-    segundo plano. Devuelve cuántas se actualizaron."""
+    segundo plano. Devuelve cuántas se actualizaron.
+
+    - Con anilist_id → AniList por lotes de 50 IDs (exacto y 1 petición/lote).
+    - Sin ID → fuente original con fallback.
+    - Usa metadatos.cambios_seguros: nunca pone "?" sobre un número conocido
+      ni cambia una portada buena por una de anime-planet/AnimeFLV."""
     actualizados = 0
+
+    def _aplicar(a, nuevo) -> None:
+        nonlocal actualizados
+        cambios = {k: v for k, v in cambios_seguros(a, nuevo).items()
+                   if k in _CAMPOS_REFRESCO_EMISION}
+        if cambios:
+            db.refrescar_metadata_anime(a["nombre"], cambios)
+            actualizados += 1
+
     try:
         animes = [
             a for a in db.listar_animes()
             if (a.get("estado_anime") or "").strip().lower() in EN_EMISION
         ]
+        anilist = SCRAPERS.get("anilist")
+        por_id = hasattr(anilist, "buscar_por_ids")
+        con_id = [a for a in animes if por_id and a.get("anilist_id")
+                  and (a.get("tipo") or "anime") == "anime"]
+        resto = [a for a in animes if a not in con_id]
+
+        for i in range(0, len(con_id), 50):
+            lote = con_id[i:i + 50]
+            try:
+                res = anilist.buscar_por_ids([int(a["anilist_id"]) for a in lote])
+            except Exception:
+                res = {}
+            for a in lote:
+                nuevo = res.get(int(a["anilist_id"]))
+                if nuevo:
+                    _aplicar(a, nuevo)
+                else:
+                    resto.append(a)      # ID no encontrado: probar por nombre
+            if sleep:
+                _time.sleep(max(sleep, 2.1))
+
         corto = Cortocircuito()
-        for a in animes:
+        for a in resto:
             nombre = a["nombre"]
             fuente = a.get("fuente") or "anilist"
             if fuente not in SCRAPERS:
@@ -192,16 +233,7 @@ def refrescar_en_emision(sleep: float = 0.4) -> int:
                 break
             nuevo, _f = buscar_sync_con_fallback(nombre, fuente, corto)
             if nuevo:
-                cambios = {}
-                if str(nuevo.capitulos) != str(a.get("capitulos") or ""):
-                    cambios["capitulos"] = str(nuevo.capitulos)
-                if nuevo.estado_anime and nuevo.estado_anime != a.get("estado_anime"):
-                    cambios["estado_anime"] = nuevo.estado_anime
-                if nuevo.imagen and nuevo.imagen != a.get("imagen"):
-                    cambios["imagen"] = nuevo.imagen
-                if cambios:
-                    db.refrescar_metadata_anime(nombre, cambios)
-                    actualizados += 1
+                _aplicar(a, nuevo)
             if sleep:
                 _time.sleep(sleep)
         if actualizados:

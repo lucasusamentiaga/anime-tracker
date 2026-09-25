@@ -3366,11 +3366,11 @@ function _paletteCommands() {
   return cmds.filter(c => typeof c.run === 'function');
 }
 
-// v2.6.2: refresca capitulos/imagen/sinopsis desde la fuente original.
-// Pensado para arreglar entradas con cap=200 fantasma del bug viejo.
+// Refresca capítulos/portada/sinopsis. Corre en segundo plano en el servidor
+// (con ~340 animes y el límite de AniList tarda varios minutos): aquí solo se
+// lanza y se consulta el progreso cada 4 s.
 async function refrescarMetadatos() {
-  if (!confirm('Esto re-consulta cada anime con su fuente original para refrescar capítulos, imagen y géneros. No toca tu progreso (estado, puntuación, episodios vistos). Puede tardar 1-2 min con listas grandes. ¿Continuar?')) return;
-  toast('🔧 Refrescando metadatos...', 'info');
+  if (!confirm('Esto vuelve a consultar los datos de cada anime (capítulos, portada, géneros) en AniList. No toca tu progreso (estado, puntuación, episodios vistos). Se hace en segundo plano y puede tardar varios minutos. ¿Continuar?')) return;
   try {
     const r = await fetch('/api/animes/refrescar', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -3378,11 +3378,29 @@ async function refrescarMetadatos() {
     });
     const d = await r.json();
     if (!r.ok) { toast('Error: ' + (d.detail || r.status), 'err'); return; }
-    const msg = `✓ ${d.arreglados} actualizados, ${d.sin_cambios} sin cambios` +
-                (d.fallidos.length ? `, ${d.fallidos.length} fallaron` : '');
-    toast(msg);
-    await cargar();
+    toast(d.iniciado ? `🔧 Refrescando ${d.total} animes en segundo plano…`
+                     : '🔧 Ya hay un refresco en curso', 'info');
+    _seguirRefresco();
   } catch(e) { toast('Error de conexión', 'err'); }
+}
+
+function _seguirRefresco() {
+  if (window._refrescoInterval) clearInterval(window._refrescoInterval);
+  window._refrescoInterval = setInterval(async () => {
+    try {
+      const r = await fetch('/api/refrescar/estado');
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.en_curso) return;
+      clearInterval(window._refrescoInterval);
+      window._refrescoInterval = null;
+      if (!d.total && d.total !== 0) return;
+      const fall = (d.fallidos || []).length;
+      toast(`✓ ${d.actualizados || 0} actualizados, ${d.sin_cambios || 0} sin cambios` +
+            (fall ? `, ${fall} sin encontrar` : ''));
+      await cargar();
+    } catch(_) {}
+  }, 4000);
 }
 
 function openCommandPalette() {

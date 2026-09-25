@@ -32,7 +32,8 @@
 // v31 = notificaciones: notificationclick abre/enfoca Miraru; la página usa
 //        registration.showNotification (Chrome Android no admite new Notification).
 // v32 = anti-duplicados con clave normalizada (mayúsculas, guiones, puntos).
-const CACHE_NAME = 'miraru-v32';
+// v33 = refresco de metadatos en segundo plano con progreso.
+const CACHE_NAME = 'miraru-v33';
 const STATIC_ASSETS = [
   '/',
   '/app',
