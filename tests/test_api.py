@@ -241,3 +241,28 @@ def test_buscar_usa_fallback_cuando_la_fuente_preferida_falla(client, monkeypatc
     assert d["ok"] is True
     assert d["data"]["nombre"] == "Cowboy Bebop"
     assert d["fuente_usada"] == "jikan"
+
+
+def test_anadir_sustituye_portada_anime_planet_y_guarda_anilist_id(client, monkeypatch):
+    """Al añadir, una portada de anime-planet (su scraper coge la primera tarjeta
+    aunque no coincida) se sustituye por la de AniList y se guarda anilist_id."""
+    from scrapers.base import AnimeData
+
+    async def fake_fallback(nombre, fuente):
+        return AnimeData(nombre="Naruto", capitulos=220, fuente="animeplanet",
+                         imagen="https://cdn.anime-planet.com/anime/primary/road-of-naruto.webp",
+                         genero=[], sinopsis="", estado_anime="Finalizado"), "animeplanet"
+
+    class _AL:
+        def buscar(self, n, media_type="ANIME"):
+            return AnimeData(nombre="Naruto", capitulos=220, imagen="https://s4.anilist.co/naruto.jpg",
+                             genero=[], sinopsis="", fuente="anilist", estado_anime="", anilist_id=20)
+
+    monkeypatch.setattr(main, "_buscar_con_fallback", fake_fallback)
+    monkeypatch.setitem(main.SCRAPERS, "anilist", _AL())
+    r = client.post("/api/animes", json={"nombre": "Naruto", "fuente": "animeplanet"})
+    assert r.status_code == 200, r.text
+    d = r.json()["data"]
+    assert d["imagen"] == "https://s4.anilist.co/naruto.jpg"
+    assert d["anilist_id"] == 20
+    assert str(d["capitulos"]) == "220"

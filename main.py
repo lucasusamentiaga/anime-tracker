@@ -1660,8 +1660,11 @@ async def guardar_anime(req: BuscarRequest):
         raise HTTPException(404, "Anime no encontrado")
 
     data = resultado.__dict__.copy()
-    # Si el scraper no devolvió imagen o episodios, enriquecer con AniList
-    needs_enrichment = not data.get("imagen") or str(data.get("capitulos")) == "?"
+    # Completar con AniList si falta imagen/episodios, si la portada viene de un
+    # host poco fiable (anime-planet/animeflv) o si no hay anilist_id (lo
+    # necesitan las notificaciones y el enriquecimiento por lotes).
+    need_eps, need_img = _enrich_needs(data)
+    needs_enrichment = need_eps or need_img or not data.get("anilist_id")
     if needs_enrichment and fuente_usada != "anilist" and "anilist" in SCRAPERS:
         try:
             alt = await asyncio.wait_for(
@@ -1669,12 +1672,7 @@ async def guardar_anime(req: BuscarRequest):
                 timeout=10,
             )
             if alt:
-                if not data.get("imagen") and alt.imagen:
-                    data["imagen"] = alt.imagen
-                if str(data.get("capitulos")) == "?" and str(alt.capitulos) != "?":
-                    data["capitulos"] = alt.capitulos
-                if not data.get("anilist_id") and alt.anilist_id:
-                    data["anilist_id"] = alt.anilist_id
+                data.update(_enrich_cambios(data, alt, need_eps, need_img))
         except Exception:
             pass
     elif not data.get("imagen"):
