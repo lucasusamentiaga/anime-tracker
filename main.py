@@ -416,25 +416,8 @@ def _start_emision_refresh_once():
 # Una pasada: busca en AniList los capítulos de animes con "?" eps.
 _enrich_started = False
 
-def _resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=None):
-    """Busca un título en AniList; si no lo encuentra y es anime, prueba vía
-    MyAnimeList (Jikan → mal_id → AniList `idMal`). El buscador de AniList no
-    reconoce muchos romaji de MAL/AnimeFLV ("Gotoubun no Hanayome", "Isekai
-    Ojisan"). Devuelve AnimeData o None. Hasta 3 AniList + 1 Jikan peticiones."""
-    anilist = anilist or SCRAPERS.get("anilist")
-    if not anilist:
-        return None
-    if tipo == "manga":
-        return anilist.buscar_manga(nombre)
-    r = anilist.buscar(nombre)
-    if r is not None:
-        return r
-    jikan = jikan or SCRAPERS.get("jikan")
-    if jikan is None or not hasattr(jikan, "buscar_mal_id") \
-            or not hasattr(anilist, "buscar_por_mal"):
-        return None
-    mal_id = jikan.buscar_mal_id(nombre)
-    return anilist.buscar_por_mal(mal_id) if mal_id else None
+# Compartido con anilist_sync (evita importar main): ver metadatos.py
+_resolver_en_anilist = metadatos.resolver_en_anilist
 
 
 # Portadas que se sustituyen por la de AniList cuando se encuentra:
@@ -523,6 +506,9 @@ def _enriquecer_desde_anilist(animes: list[dict], anilist,
     return eps_fixed, img_fixed
 
 
+_RESOLVER_IDS_POR_ARRANQUE = 40
+
+
 def _start_enrich_unknown_eps():
     global _enrich_started
     if _enrich_started:
@@ -543,6 +529,15 @@ def _start_enrich_unknown_eps():
             _sync_log.info("Enriquecidos %d animes con eps desconocidos", eps)
         if imgs:
             _sync_log.info("Reparadas %d portadas rotas/animeflv → AniList", imgs)
+        # Resolver poco a poco los anilist_id que faltan (notificaciones y
+        # refrescos por lotes los necesitan). Tope por arranque para no
+        # acaparar el cupo de AniList (30 req/min) que usa también la UI.
+        try:
+            r = anilist_sync.resolve_anilist_ids(limite=_RESOLVER_IDS_POR_ARRANQUE)
+            if r.get("resolved"):
+                _sync_log.info("Resueltos %d anilist_id", r["resolved"])
+        except Exception as e:
+            _sync_log.warning("resolver IDs: %s", e)
 
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 

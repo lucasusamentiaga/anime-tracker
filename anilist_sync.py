@@ -356,38 +356,34 @@ def push_all() -> dict:
 
 # ── Resolución de anilist_id para animes existentes ──────────────────────────
 
-_SEARCH_ID = """
-query ($search: String) {
-  Media(search: $search, type: ANIME) {
-    id
-    title { romaji english }
-  }
-}
-"""
 
 
-def resolve_anilist_ids() -> dict:
-    """Busca el anilist_id de animes que aún no lo tienen."""
-    animes = db.listar_animes()
+def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep) -> dict:
+    """Busca el anilist_id de animes/mangas que aún no lo tienen.
+
+    Usa metadatos.resolver_en_anilist (variantes del título + fallback MAL) y
+    el tipo correcto (antes buscaba los mangas como ANIME y solo el título
+    literal, así que los nombres de AnimeFLV nunca se resolvían).
+    `limite`: máximo de animes a intentar en esta llamada (None = todos)."""
+    from metadatos import resolver_en_anilist
+    from scrapers.anilist import candidatos_busqueda
+
+    pendientes = [a for a in db.listar_animes() if not a.get("anilist_id")]
+    if limite is not None:
+        pendientes = pendientes[:limite]
     resolved = errors = 0
 
-    for a in animes:
-        if a.get("anilist_id"):
-            continue
+    for a in pendientes:
         try:
-            resp = requests.post(ANILIST_API,
-                                 json={"query": _SEARCH_ID,
-                                       "variables": {"search": a["nombre"]}},
-                                 headers={"Accept": "application/json"},
-                                 timeout=10)
-            resp.raise_for_status()
-            media = resp.json().get("data", {}).get("Media")
-            if media and media.get("id"):
-                db.actualizar_anime(a["nombre"], {"anilist_id": media["id"]})
+            r = resolver_en_anilist(a["nombre"], a.get("tipo") or "anime")
+            if r and r.anilist_id:
+                db.refrescar_metadata_anime(a["nombre"], {"anilist_id": r.anilist_id})
                 resolved += 1
         except Exception:
             errors += 1
-        _time.sleep(ANILIST_MIN_INTERVAL)  # rate limit: AniList 30 req/min
+        # hasta una petición por variante del título + la de idMal
+        sleep(ANILIST_MIN_INTERVAL * (len(candidatos_busqueda(a["nombre"])) + 1))
 
     log.info("Resolve IDs: %d resueltos, %d errores", resolved, errors)
-    return {"resolved": resolved, "errors": errors}
+    return {"resolved": resolved, "errors": errors,
+            "pendientes": max(0, len(pendientes) - resolved)}

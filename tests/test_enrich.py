@@ -260,3 +260,24 @@ def test_portada_kitsu_no_se_toca(main_mod):
     fake = _FakeAniList()
     assert main_mod._enriquecer_desde_anilist(animes, fake, sleep=lambda s: None) == (0, 0)
     assert fake.id_calls == []
+
+
+def test_resolve_ids_usa_variantes_tipo_y_limite(db, monkeypatch):
+    import anilist_sync
+    import metadatos
+    db.guardar_anime({"nombre": "Black Clover (TV)"})
+    db.guardar_anime({"nombre": "Berserk", "tipo": "manga"})
+    db.guardar_anime({"nombre": "Ya tiene", "anilist_id": 5})
+    db.guardar_anime({"nombre": "Otro"})
+    vistos = []
+
+    def fake(nombre, tipo="anime", anilist=None, jikan=None):
+        vistos.append((nombre, tipo))
+        return _ad(10, aid={"Black Clover (TV)": 97940, "Berserk": 30002}.get(nombre, 0))
+    monkeypatch.setattr(metadatos, "resolver_en_anilist", fake)
+    r = anilist_sync.resolve_anilist_ids(limite=2, sleep=lambda s: None)
+    assert vistos == [("Black Clover (TV)", "anime"), ("Berserk", "manga")]
+    assert r["resolved"] == 2
+    assert db.obtener_anime("Black Clover (TV)")["anilist_id"] == 97940
+    assert db.obtener_anime("Berserk")["anilist_id"] == 30002
+    assert db.obtener_anime("Otro")["anilist_id"] == 0
