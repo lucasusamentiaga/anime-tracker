@@ -601,6 +601,15 @@ main{padding:16px 20px}
         <input type="number" id="edit-vistos" min="0">
       </div>
     </div>
+    <div id="manga-volumes-row" style="display:none;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Volúmenes leídos</label>
+        <input type="number" id="edit-vol-leidos" min="0">
+      </div>
+      <div class="field">
+        <label id="lbl-vol-total" style="font-size:12px;color:var(--muted)"></label>
+      </div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field">
         <label id="lbl-start">Fecha inicio</label>
@@ -1475,7 +1484,10 @@ function render() {
     const stLabel  = T(estado_key) || a.estado_usuario;
     const isManga  = (a.tipo || 'anime') === 'manga';
     const capNum   = parseInt(a.capitulos) || 0;
-    const caps     = a.capitulos === 'película' ? T('movie') : (isManga ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
+    const volTotal = a.volumenes_totales || 0;
+    const volLeidos = a.volumenes_leidos || 0;
+    const capsLabel = a.capitulos === 'película' ? T('movie') : (isManga ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
+    const caps     = isManga && volTotal > 0 ? `${capsLabel} · ${volTotal} vols` : capsLabel;
     const vistos   = a.episodios_vistos || 0;
     const pct      = capNum > 0 ? Math.min(100, Math.round(vistos / capNum * 100)) : 0;
     const showProg = capNum > 0;
@@ -1508,6 +1520,7 @@ function render() {
           `<span style="font-size:10px;color:var(--muted)">${_esc(caps)}</span>` +
           (a.puntuacion ? `<span style="font-size:10px;color:#fbbf24">${_esc(T('score', {n: a.puntuacion}))}</span>` : '') +
           (showProg && vistos > 0 ? `<span style="font-size:10px;color:var(--muted)">${vistos}/${capNum || '?'}</span>` : '') +
+          (isManga && volLeidos > 0 ? `<span style="font-size:10px;color:var(--muted)">${volLeidos}${volTotal > 0 ? '/' + volTotal : ''} vol</span>` : '') +
         `</div>` +
         `<div style="display:flex;gap:1px;margin-top:2px" data-enc="${_esc(enc)}" data-cur="${curStars}">` +
           [1,2,3,4,5].map(i =>
@@ -1962,8 +1975,9 @@ function abrirModal(enc) {
   if (a.imagen) { _editImg.src = a.imagen; _editImg.style.visibility = ''; }
   else { _editImg.removeAttribute('src'); _editImg.style.visibility = 'hidden'; }
   document.getElementById('edit-nombre-display').textContent = a.nombre;
-  const caps = a.capitulos === 'película' ? T('movie') : (_isMangaEdit ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
-  document.getElementById('edit-info').textContent   = `${a.fuente} · ${caps} · ${a.estado_anime || ''}`;
+  const _capsEdit = a.capitulos === 'película' ? T('movie') : (_isMangaEdit ? `${a.capitulos || '?'} caps` : T('episodes', {n: a.capitulos}));
+  const _volsEdit = _isMangaEdit && a.volumenes_totales ? ` · ${a.volumenes_totales} vols` : '';
+  document.getElementById('edit-info').textContent   = `${a.fuente} · ${_capsEdit}${_volsEdit} · ${a.estado_anime || ''}`;
   const egEl = document.getElementById('edit-genres');
   egEl.innerHTML = '';
   (a.genero || '').split(',').map(g => g.trim()).filter(Boolean).forEach(g => {
@@ -1976,6 +1990,26 @@ function abrirModal(enc) {
   // Adaptar label de episodios/capítulos según tipo
   const lblSeen = document.getElementById('lbl-seen-ep');
   if (lblSeen) lblSeen.textContent = _isMangaEdit ? 'Capítulos leídos' : 'Episodios vistos';
+
+  // Mostrar/ocultar fila de volúmenes (solo manga)
+  const volRow = document.getElementById('manga-volumes-row');
+  if (volRow) {
+    volRow.style.display = _isMangaEdit ? 'grid' : 'none';
+    if (_isMangaEdit) {
+      document.getElementById('edit-vol-leidos').value = a.volumenes_leidos || '';
+      const vt = a.volumenes_totales || 0;
+      const vl = a.volumenes_leidos || 0;
+      const lblVt = document.getElementById('lbl-vol-total');
+      if (lblVt) {
+        if (vt > 0) {
+          const pctV = Math.min(100, Math.round(vl / vt * 100));
+          lblVt.innerHTML = `${vl} / ${vt} vols (${pctV}%)<div class="progress-bar" style="margin-top:4px"><div class="fill" style="width:${pctV}%"></div></div>`;
+        } else {
+          lblVt.textContent = vl > 0 ? `${vl} vols leídos` : '';
+        }
+      }
+    }
+  }
 
   document.getElementById('edit-estado').value    = a.estado_usuario || 'pendiente';
   document.getElementById('edit-puntuacion').value= a.puntuacion || '';
@@ -2383,6 +2417,7 @@ async function guardarEdicion() {
     lista_personalizada: document.getElementById('edit-lista')?.value || 'principal',
     favorito:         document.getElementById('edit-favorito')?.checked ? 1 : 0,
     notif_activa:     document.getElementById('edit-notif')?.checked ? 1 : 0,
+    volumenes_leidos: parseInt(document.getElementById('edit-vol-leidos')?.value) || null,
   };
   // Si activa notificación, pedir permiso del navegador
   if (body.notif_activa) pedirPermiso();

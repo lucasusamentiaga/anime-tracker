@@ -75,6 +75,7 @@ def _parse_media(media: dict, nombre: str, fuente: str,
         estado_anime=_STATUS_MAP.get(media.get("status", ""), "Desconocido"),
         anilist_id=media.get("id", 0),
         tipo="manga" if is_manga else "anime",
+        volumenes_totales=media.get("volumes") or 0,
     )
 
 

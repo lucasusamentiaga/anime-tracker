@@ -119,6 +119,45 @@ def test_buscar_animes_parcial_case_insensitive(db):
     assert len(res) == 1 and res[0]["nombre"] == "Attack on Titan"
 
 
+def test_manga_volumenes_crud(db):
+    """Guardar manga con volumenes_totales y actualizar volumenes_leidos."""
+    db.guardar_anime({
+        "nombre": "One Piece Manga",
+        "tipo": "manga",
+        "capitulos": "1120",
+        "volumenes_totales": 109,
+    })
+    a = db.obtener_anime("One Piece Manga")
+    assert a["tipo"] == "manga"
+    assert a["volumenes_totales"] == 109
+    assert a["volumenes_leidos"] == 0
+
+    ok, _ = db.actualizar_anime("One Piece Manga", {"volumenes_leidos": 50})
+    assert ok
+    a = db.obtener_anime("One Piece Manga")
+    assert a["volumenes_leidos"] == 50
+
+    # refrescar_metadata puede actualizar volumenes_totales
+    ok, _ = db.refrescar_metadata_anime("One Piece Manga", {"volumenes_totales": 110})
+    assert ok
+    a = db.obtener_anime("One Piece Manga")
+    assert a["volumenes_totales"] == 110
+
+
+def test_manga_volumenes_en_slim(db):
+    """listar_animes_slim devuelve volumenes_totales y volumenes_leidos."""
+    db.guardar_anime({
+        "nombre": "Naruto Manga",
+        "tipo": "manga",
+        "volumenes_totales": 72,
+        "volumenes_leidos": 30,
+    })
+    slim = db.listar_animes_slim()
+    m = next(a for a in slim if a["nombre"] == "Naruto Manga")
+    assert m["volumenes_totales"] == 72
+    assert m["volumenes_leidos"] == 30
+
+
 def test_config_set_get(db):
     assert db.get_config("noexiste") is None
     db.set_config("k", "v1")

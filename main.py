@@ -810,6 +810,7 @@ class ActualizarRequest(BaseModel):
     favorito:            Optional[int]   = Field(default=None, ge=0, le=1)
     notif_activa:        Optional[int]   = Field(default=None, ge=0, le=1)
     notas:               Optional[str]   = Field(default=None, max_length=5000)
+    volumenes_leidos:    Optional[int]   = Field(default=None, ge=0)
 
     @field_validator("estado_usuario")
     @classmethod
@@ -1808,6 +1809,8 @@ async def refrescar_metadata(filtro: dict = None):
                 cambios["estado_anime"] = nuevo.estado_anime
             if not a.get("anilist_id") and nuevo.anilist_id:
                 cambios["anilist_id"] = nuevo.anilist_id
+            if nuevo.volumenes_totales and nuevo.volumenes_totales != a.get("volumenes_totales"):
+                cambios["volumenes_totales"] = nuevo.volumenes_totales
             if cambios:
                 db.refrescar_metadata_anime(a["nombre"], cambios)
                 arreglados += 1

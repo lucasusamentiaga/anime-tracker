@@ -112,6 +112,64 @@ def test_anilist_scraper_no_explota_en_excepcion():
     assert r is None
 
 
+def test_anilist_scraper_manga_volumenes_totales():
+    """buscar_manga devuelve volumenes_totales desde AniList."""
+    from scrapers.anilist import AniListScraper
+    s = AniListScraper()
+    body = {
+        "data": {
+            "Media": {
+                "id": 13,
+                "title": {"romaji": "One Piece", "english": "One Piece", "native": ""},
+                "episodes": None,
+                "chapters": 1120,
+                "volumes": 109,
+                "format": "MANGA",
+                "coverImage": {"large": "https://example/op.jpg"},
+                "genres": ["Action", "Adventure"],
+                "description": "Pirate adventure.",
+                "status": "RELEASING",
+                "nextAiringEpisode": None,
+            }
+        }
+    }
+    with patch("scrapers.anilist._session.post", return_value=_mock_resp(200, body)):
+        r = s.buscar_manga("One Piece")
+    assert r is not None
+    assert r.tipo == "manga"
+    assert r.capitulos == 1120
+    assert r.volumenes_totales == 109
+    assert r.estado_anime == "En emisión"
+
+
+def test_anilist_scraper_manga_sin_volumes():
+    """Manga sin volumes devuelve volumenes_totales=0."""
+    from scrapers.anilist import AniListScraper
+    s = AniListScraper()
+    body = {
+        "data": {
+            "Media": {
+                "id": 99,
+                "title": {"romaji": "Test Manga", "english": None, "native": ""},
+                "episodes": None,
+                "chapters": None,
+                "volumes": None,
+                "format": "MANGA",
+                "coverImage": {"large": "https://example/m.jpg"},
+                "genres": [],
+                "description": "",
+                "status": "RELEASING",
+                "nextAiringEpisode": None,
+            }
+        }
+    }
+    with patch("scrapers.anilist._session.post", return_value=_mock_resp(200, body)):
+        r = s.buscar_manga("Test Manga")
+    assert r is not None
+    assert r.volumenes_totales == 0
+    assert r.capitulos == "?"
+
+
 # ── Jikan ─────────────────────────────────────────────────────────────────────
 
 JIKAN_RESPONSE = {

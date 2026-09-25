@@ -24,7 +24,10 @@
 // v28 = fix "? ep": AniList query ahora pide nextAiringEpisode para obtener
 //        eps de series en emisión (ej. One Piece → "1120+"), refrescar_metadata
 //        acepta anilist_id, endpoint /refrescar también guarda anilist_id.
-const CACHE_NAME = 'miraru-v28';
+// v29 = manga UI mejorada: volúmenes leídos/totales en modal de edición,
+//        progreso visual, card muestra vols, PATCH acepta volumenes_leidos,
+//        AniList scraper devuelve volumenes_totales desde query.
+const CACHE_NAME = 'miraru-v29';
 const STATIC_ASSETS = [
   '/',
   '/app',

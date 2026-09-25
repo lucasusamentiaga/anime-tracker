@@ -23,6 +23,8 @@ class AnimeData:
     anilist_id: int = 0
     # Tipo: "anime" o "manga"
     tipo: str = "anime"
+    # Total de volúmenes (manga)
+    volumenes_totales: int = 0
 
 
 class BaseScraper(ABC):
