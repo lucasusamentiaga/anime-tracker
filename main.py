@@ -28,6 +28,7 @@ from collections import Counter, OrderedDict
 from contextlib import asynccontextmanager
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from html import escape as _esc
 from pathlib import Path
 from typing import Optional
 
@@ -586,8 +587,10 @@ def _notif_daemon_loop():
 
 def _notif_enviar_nuevo_disponible(anime: dict, vistos: int, disponible: int, email: str):
     """Envía email avisando de episodio(s) nuevo(s) disponible(s)."""
-    nombre = anime.get("nombre", "?")
-    imagen = anime.get("imagen", "")
+    nombre_raw = anime.get("nombre", "?")
+    # Escapar: nombre/imagen vienen de scrapers externos y van dentro de HTML
+    nombre = _esc(nombre_raw)
+    imagen = _esc(anime.get("imagen", "") or "", quote=True)
     pendientes = disponible - vistos
     html = f"""
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0a0812;
@@ -612,7 +615,7 @@ def _notif_enviar_nuevo_disponible(anime: dict, vistos: int, disponible: int, em
         <p style="color:#4a4a60;font-size:11px;margin:0">Miraru — notificación automática</p>
       </div>
     </div>"""
-    subj = f"🆕 {nombre} — {'ep ' + str(disponible) if pendientes == 1 else str(pendientes) + ' eps nuevos'}"
+    subj = f"🆕 {nombre_raw} — {'ep ' + str(disponible) if pendientes == 1 else str(pendientes) + ' eps nuevos'}"
     _sync_bg(_enviar_email, email, subj, html)
 
 
@@ -2605,10 +2608,11 @@ def _enviar_notif_nuevo_episodio(anime: dict, num_ep: int):
     email = db.get_config("email_notif") or ""
     if not email:
         return
-    nombre   = anime.get("nombre","?")
-    imagen   = anime.get("imagen","")
-    genero   = anime.get("genero","")
-    puntuacion = anime.get("puntuacion") or "—"
+    nombre_raw = anime.get("nombre", "?")
+    nombre   = _esc(nombre_raw)
+    imagen   = _esc(anime.get("imagen", "") or "", quote=True)
+    genero   = _esc(anime.get("genero", "") or "")
+    puntuacion = _esc(str(anime.get("puntuacion") or "—"))
 
     html = f"""
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#0a0812;
@@ -2629,7 +2633,7 @@ def _enviar_notif_nuevo_episodio(anime: dict, num_ep: int):
         <p style="color:#4a4a60;font-size:11px;margin:0">Miraru — notificación automática</p>
       </div>
     </div>"""
-    _sync_bg(_enviar_email, email, f"📺 {nombre} — episodio {num_ep}", html)
+    _sync_bg(_enviar_email, email, f"📺 {nombre_raw} — episodio {num_ep}", html)
 
 # ── Ruta novedades page ────────────────────────────────────────────────────────
 
