@@ -78,3 +78,38 @@ def test_primer_mal_id():
     assert personajes_api.primer_mal_id({"data": []}) == 0
     assert personajes_api.primer_mal_id({}) == 0
     assert personajes_api.primer_mal_id({"data": [{}]}) == 0
+
+
+# ── Endpoints de ficha: los errores de red no se cachean ─────────────────────
+
+def test_error_de_red_no_se_cachea(db, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import main  # noqa: F401  (registra el router)
+    from routers import themes as rt
+    llamadas = []
+
+    def falla(nombre):
+        llamadas.append(nombre)
+        return None
+    monkeypatch.setattr(rt, "_buscar_temas", falla)
+    monkeypatch.setattr(rt, "_buscar_personajes", falla)
+    rt._cache.clear(); rt._cache_personajes.clear()
+    c = TestClient(main.app, client=("127.0.0.1", 1))
+    for _ in range(2):
+        assert c.get("/api/animes/Naruto/themes").json() == {"temas": [], "cacheado": False, "error": True}
+        assert c.get("/api/animes/Naruto/personajes").json()["error"] is True
+    assert len(llamadas) == 4          # se reintenta cada vez, no queda cacheado
+    assert "naruto" not in rt._cache and "naruto" not in rt._cache_personajes
+
+
+def test_resultado_valido_si_se_cachea(db, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    import main
+    from routers import themes as rt
+    monkeypatch.setattr(rt, "_buscar_temas", lambda n: [{"slug": "OP1"}])
+    rt._cache.clear()
+    c = TestClient(main.app, client=("127.0.0.1", 1))
+    assert c.get("/api/animes/Bleach/themes").json()["cacheado"] is False
+    assert c.get("/api/animes/Bleach/themes").json()["cacheado"] is True
