@@ -1,5 +1,52 @@
 # Changelog
 
+## v2.9.0 — Datos que ya no se estropean solos, y todo lo nuevo desde la 2.8.4
+
+### Novedades desde la 2.8.4
+- **Manga**: tipo anime/manga, volúmenes leídos/totales con barra de progreso.
+- **Sync bidireccional con AniList** (conectar, bajar, subir, resolver IDs).
+- **Carpeta vigilada**: detecta episodios descargados y los marca.
+- Notas por episodio, puntuaciones externas (AniList/MAL/Kitsu), motor
+  "¿Qué veo?" y franquicias agrupadas.
+- **Notificaciones del navegador** vía Service Worker (funcionan en Chrome
+  Android) que comprueban al abrir la app; clic en el aviso → abre Miraru.
+
+### Refrescos que empeoraban los datos
+El refresco automático de series en emisión (cada 12 h) y el botón "Refrescar
+metadatos" re-consultaban la fuente original y **sobrescribían** lo bueno con lo
+malo: "1179+" de One Piece pasaba a "?", y las portadas de AniList se cambiaban
+por las de anime-planet, cuyo scraper coge la primera tarjeta del listado aunque
+no coincida (Naruto acababa con la de *Road of Naruto*). Ahora hay un único
+juego de reglas (`metadatos.py`) que nunca empeora un dato, y se consulta AniList
+por ID en lotes de 50. El refresco manual corre en segundo plano con progreso,
+en vez de una petición que tardaba muchos minutos y chocaba con el límite de
+AniList (30 peticiones/min).
+
+### Notificaciones que no llegaban nunca
+La consulta de nuevos episodios pedía todos los títulos en una sola query a
+AniList; si **uno** no casaba, AniList devolvía 404 para todos. Bastaba un
+nombre estilo AnimeFLV con la campanita activada para que no llegase ningún
+aviso, ni por email ni en el navegador. Ahora se consulta por ID.
+
+### Episodios en "?" y portadas rotas
+Los 342 animes tenían `anilist_id = 0` y los nombres heredados de AnimeFLV
+("Black Clover (TV)", "Baki (2018)") no se encontraban. Ahora la búsqueda prueba
+variantes del título y, si no, pasa por MyAnimeList. El arranque resuelve IDs
+poco a poco (40 por arranque) y repara portadas de AnimeFLV/anime-planet.
+
+### Duplicados
+"One Punch Man" y "One-Punch Man", o "Spy x Family" y "SPY x FAMILY", entraban
+como animes distintos. La comprobación ahora ignora mayúsculas y signos (las
+temporadas siguen siendo distintas) y los pares existentes se fusionaron sin
+perder progreso, notas ni historial.
+
+### Más arreglos
+- Openings y personajes: con la API caída la ficha esperaba ~53 s y cacheaba el
+  fallo hasta reiniciar. Ahora 8 s como mucho y los errores no se cachean.
+- Emails de notificación con los datos escapados.
+- Etiquetas con "/" que luego no se podían borrar.
+- `/api/sync` sin `credentials.json`: aviso claro en vez de error 500.
+
 ## v2.8.4 — Nada fuera de la carpeta, y datos que no se corrompen solos
 
 ### Miraru ya no toca el escritorio

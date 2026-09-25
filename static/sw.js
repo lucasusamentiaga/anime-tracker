@@ -33,7 +33,8 @@
 //        registration.showNotification (Chrome Android no admite new Notification).
 // v32 = anti-duplicados con clave normalizada (mayúsculas, guiones, puntos).
 // v33 = refresco de metadatos en segundo plano con progreso.
-const CACHE_NAME = 'miraru-v33';
+// v34 = versión 2.9.0 (manifest.json).
+const CACHE_NAME = 'miraru-v34';
 const STATIC_ASSETS = [
   '/',
   '/app',
