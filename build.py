@@ -43,6 +43,29 @@ APP_DIST  = DIST / "AnimeTracker"
 SETUP_EXE = DIST / "AnimeTracker-Setup.exe"
 SEP       = ";"   # Windows path separator for --add-data
 
+# Módulos propios del proyecto. Antes se enumeraban A MANO en tres listas
+# (datas, HIDDEN y validate_sources) y se quedaban atrás: anilist_sync.py,
+# watch_folder.py y metadatos.py no entraban en el .exe → ImportError al
+# arrancar la versión empaquetada. Ahora se descubren solos.
+_NO_EMPAQUETAR = {"build.py", "launcher.py"}   # launcher es el entry point
+
+
+def modulos_propios() -> list[Path]:
+    """Módulos .py de primer nivel que main.py puede importar."""
+    return sorted(
+        p for p in ROOT.glob("*.py")
+        if p.name not in _NO_EMPAQUETAR
+        and not p.name.startswith(("_", "test_"))
+    )
+
+
+def _paquete(nombre: str) -> list[str]:
+    """['scrapers', 'scrapers.anilist', ...] para un paquete propio."""
+    return [nombre] + sorted(
+        f"{nombre}.{p.stem}" for p in (ROOT / nombre).glob("*.py")
+        if p.stem != "__init__"
+    )
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -117,19 +140,10 @@ HIDDEN = [
     "xml.etree.ElementTree", "html.parser",
     # bs4 parsers
     "lxml", "html5lib",
-    # propios
-    "database", "sheets_sync", "i18n", "core", "migrations",
-    "stats_util", "share_page", "achievements", "gamificacion",
-    "gateway_anime", "noticias", "themes_api", "personajes_api",
-    "discord_presence", "fuentes_respaldo", "franquicias",
-    "scrapers", "scrapers.base", "scrapers.net", "scrapers.calidad",
-    "scrapers.anilist", "scrapers.mal",
-    "scrapers.jikan", "scrapers.kitsu", "scrapers.animeplanet",
-    "scrapers.animeflv", "scrapers.animeav1", "scrapers.crunchyroll",
-    "scrapers.tmdb",
-    "routers", "routers.media", "routers.gamificacion",
-    "routers.noticias", "routers.themes",
+    # propios: se añaden abajo, descubiertos automáticamente
 ]
+
+HIDDEN += [p.stem for p in modulos_propios()] + _paquete("scrapers") + _paquete("routers")
 
 
 # ── Paso 1: compilar la app principal ─────────────────────────────────────────
@@ -137,15 +151,9 @@ HIDDEN = [
 def validate_sources():
     """Valida que todos los archivos .py compilan sin errores antes de empaquetar."""
     import py_compile
-    to_check = [
-        ROOT / "main.py", ROOT / "core.py", ROOT / "database.py", ROOT / "migrations.py",
-        ROOT / "stats_util.py", ROOT / "share_page.py", ROOT / "achievements.py",
-        ROOT / "gamificacion.py", ROOT / "gateway_anime.py", ROOT / "noticias.py",
-        ROOT / "discord_presence.py", ROOT / "themes_api.py", ROOT / "personajes_api.py",
-        ROOT / "fuentes_respaldo.py", ROOT / "franquicias.py",
-        ROOT / "sheets_sync.py", ROOT / "i18n.py",
-        ROOT / "launcher.py",
-    ] + list((ROOT / "scrapers").glob("*.py")) + list((ROOT / "routers").glob("*.py"))
+    to_check = (modulos_propios() + [ROOT / "launcher.py"]
+                + list((ROOT / "scrapers").glob("*.py"))
+                + list((ROOT / "routers").glob("*.py")))
 
     failed = []
     for f in to_check:
@@ -179,24 +187,7 @@ def build_app(onefile: bool = False):
         (str(ROOT / "scrapers"),     "scrapers"),
         (str(ROOT / "routers"),      "routers"),   # APIRouter por dominio
         # .py fuente — necesarios para importlib en launcher.py
-        (str(ROOT / "main.py"),       "."),
-        (str(ROOT / "core.py"),       "."),   # executor/version compartidos
-        (str(ROOT / "database.py"),   "."),
-        (str(ROOT / "migrations.py"), "."),   # main.py hace `import migrations`
-        (str(ROOT / "stats_util.py"), "."),   # import stats_util (stats globales)
-        (str(ROOT / "share_page.py"), "."),   # import share_page (export social)
-        (str(ROOT / "achievements.py"), "."), # import achievements (logros/emblemas)
-        (str(ROOT / "gamificacion.py"), "."), # import gamificacion (XP/nivel/racha)
-        (str(ROOT / "gateway_anime.py"), "."),# import gateway_anime (recos principiante)
-        (str(ROOT / "noticias.py"), "."),     # import noticias (parser RSS)
-        (str(ROOT / "discord_presence.py"), "."),  # Rich Presence opcional
-        (str(ROOT / "themes_api.py"), "."),   # openings/endings (AnimeThemes)
-        (str(ROOT / "personajes_api.py"), "."), # personajes y seiyuus (Jikan)
-        (str(ROOT / "fuentes_respaldo.py"), "."), # Kitsu cuando AniList cae
-        (str(ROOT / "franquicias.py"), "."),      # agrupación de temporadas
-        (str(ROOT / "sheets_sync.py"),"."),
-        (str(ROOT / "i18n.py"),       "."),
-    ]
+    ] + [(str(p), ".") for p in modulos_propios()]
     datas_args = []
     for src, dst in datas:
         datas_args += ["--add-data", f"{src}{SEP}{dst}"]
