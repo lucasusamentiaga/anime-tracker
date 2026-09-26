@@ -37,7 +37,10 @@ def cambios_seguros(actual: dict, nuevo) -> dict:
     - capitulos: solo si el nuevo es conocido y distinto.
     - imagen: nunca desde un host poco fiable; nunca se cambia una portada de
       AniList por otra que no sea de AniList.
-    - sinopsis / genero / estado_anime: solo si el nuevo no está vacío.
+    - sinopsis / genero: solo si NO hay ya uno (las sinopsis guardadas suelen
+      estar en español y AniList las da en inglés; los géneros ya guardados
+      tienen su propio formato y no se reescriben).
+    - estado_anime: solo si el nuevo no está vacío ni es "Desconocido".
     - anilist_id: solo si falta. volumenes_totales: solo si el nuevo es > 0.
     """
     cambios: dict = {}
@@ -56,13 +59,13 @@ def cambios_seguros(actual: dict, nuevo) -> dict:
         cambios["imagen"] = img_nueva
 
     sinopsis = (getattr(nuevo, "sinopsis", "") or "").strip()
-    if sinopsis and sinopsis != (actual.get("sinopsis") or ""):
+    if sinopsis and not (actual.get("sinopsis") or "").strip():
         cambios["sinopsis"] = sinopsis
 
     genero = getattr(nuevo, "genero", None)
     if genero:
         g = ", ".join(genero) if isinstance(genero, (list, tuple)) else str(genero)
-        if g and g != (actual.get("genero") or ""):
+        if g and not (actual.get("genero") or "").strip():
             cambios["genero"] = g
 
     estado = (getattr(nuevo, "estado_anime", "") or "").strip()

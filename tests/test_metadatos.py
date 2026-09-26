@@ -157,3 +157,31 @@ def test_endpoint_refrescar_vuelve_al_momento(main_mod, monkeypatch):
             break
         __import__("time").sleep(0.05)
     assert c.get("/api/refrescar/estado").json()["en_curso"] is False
+
+
+def test_no_sobrescribe_sinopsis_ni_generos_existentes():
+    actual = {"sinopsis": "Naruto, un aprendiz de ninja...", "genero": "Action,Shounen"}
+    c = metadatos.cambios_seguros(actual, _n(sinopsis="Naruto Uzumaki, a mischievous...",
+                                              genero=["Action", "Adventure"]))
+    assert "sinopsis" not in c and "genero" not in c
+
+
+def test_rellena_sinopsis_y_generos_vacios():
+    c = metadatos.cambios_seguros({"sinopsis": "", "genero": ""},
+                                  _n(sinopsis="Texto", genero=["A"]))
+    assert c["sinopsis"] == "Texto" and c["genero"] == "A"
+
+
+def test_completar_episodios_vistos(db, monkeypatch):
+    monkeypatch.setattr(migrations, "db", db)
+    for nombre, caps, estado, vistos in [
+        ("A", "12", "completado", 0), ("B", "1179+", "completado", 0),
+        ("C", "película", "completado", 0), ("D", "?", "completado", 0),
+        ("E", "24", "viendo", 0), ("F", "26", "completado", 20),
+    ]:
+        db.guardar_anime({"nombre": nombre, "capitulos": caps,
+                          "estado_usuario": estado, "episodios_vistos": vistos})
+    assert migrations.completar_episodios_vistos() == 2
+    got = {n: db.obtener_anime(n)["episodios_vistos"] for n in "ABCDEF"}
+    assert got == {"A": 12, "B": 1179, "C": 0, "D": 0, "E": 0, "F": 20}
+    assert migrations.completar_episodios_vistos() == 0     # idempotente
