@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 # versión falsa en el registro de Windows y el cliente móvil la compara para
 # decidir si el servidor le vale. Quien necesite la versión la importa de aquí;
 # `tests/test_version.py` vigila que nadie vuelva a declararla por su cuenta.
-VERSION = "2.9.0"
+VERSION = "2.10.0"
 
 # Pool compartido para llamadas bloqueantes (scrapers, Sheets, TMDB) sin
 # bloquear el event loop de FastAPI.

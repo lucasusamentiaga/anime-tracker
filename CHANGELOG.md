@@ -1,5 +1,39 @@
 # Changelog
 
+## v2.10.0 — Avisos con la pestaña cerrada, modo sin conexión real y un .exe que arranca
+
+### Avisos de nuevos episodios aunque cierres la pestaña (Web Push)
+Con Miraru abierto en segundo plano, los avisos de la campanita llegan como
+notificación del sistema aunque no tengas la pestaña abierta. Se activa con el
+botón **Avisos**; para comprobarlo, en la paleta de comandos está *Probar
+notificación push*. Lo ya avisado se recuerda entre reinicios (antes cada
+reinicio repetía los avisos).
+
+### El Service Worker nunca había funcionado
+Se registraba en `/static/sw.js` y, sin la cabecera que lo permite, solo
+controlaba `/static/`: ninguna página de la app. Ahora controla toda la app:
+- **Sin conexión** Miraru abre con tu lista y los textos.
+- Las actualizaciones se ven al momento (las páginas van primero a la red).
+
+### El .exe fallaba al arrancar
+`build.py` enumeraba los módulos a mano y `anilist_sync.py`, `watch_folder.py`
+y `metadatos.py` se habían quedado fuera: la versión empaquetada daba
+ImportError. Ahora se descubren solos y un test lo vigila.
+
+### La carpeta vigilada marcaba episodios en el anime equivocado
+Con una biblioteca real, la mitad de los archivos típicos iban mal:
+"Naruto Shippuden - 100" → Naruto, "Spy x Family S02E05" → una campaña de la
+película. Ahora tiene en cuenta la temporada, descarta películas/OVAs y nunca
+marca animes completados ni pasa del total de capítulos.
+
+### Más arreglos
+- "Refrescar metadatos" ya no cambia tus sinopsis en español por las de AniList.
+- Los completados importados tenían 0 episodios vistos (fichas en 0/12).
+- AniList: un anime en pausa se importaba con un estado que no existía, y el
+  callback de conexión se rompía con ciertos códigos.
+- Pool de conexiones a la BD que podía devolver una conexión a otro fichero.
+- `MIRARU_NO_BROWSER=1` arranca Miraru sin abrir el navegador.
+
 ## v2.9.0 — Datos que ya no se estropean solos, y todo lo nuevo desde la 2.8.4
 
 ### Novedades desde la 2.8.4

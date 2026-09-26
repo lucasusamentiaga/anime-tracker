@@ -38,7 +38,8 @@
 //        origen, y evento 'push' (Web Push: avisos con la pestaña cerrada).
 // v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
 // v37 = mensaje de PIN unificado en /mobile.
-const CACHE_NAME = 'miraru-v37';
+// v38 = versión 2.10.0.
+const CACHE_NAME = 'miraru-v38';
 const STATIC_ASSETS = [
   '/',
   '/app',
