@@ -86,32 +86,91 @@ def _parsear_archivo(nombre_archivo: str) -> Optional[tuple[str, int]]:
     return None
 
 
-def _buscar_coincidencia(nombre_archivo: str, animes: list[dict]) -> Optional[dict]:
-    """Busca el anime de la biblioteca que mejor coincide con el nombre del archivo.
-    Devuelve el anime dict o None si no hay match suficiente."""
-    if not animes:
+_RE_SXXEYY = re.compile(r"\bS(\d{1,2})E\d{1,4}\b", re.IGNORECASE)
+_ROMANOS = {"ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6}
+_RE_TEMP_NOMBRE = re.compile(
+    r"\bseason\s*(\d+)|\b(\d+)(?:st|nd|rd|th)\s+season\b|\bs(\d+)\b|\b(ii|iii|iv|vi|v)\b",
+    re.IGNORECASE)
+# Entradas que no son la serie de TV: una película no recibe "episodio 5".
+_RE_NO_SERIE = re.compile(
+    r"\b(movie|pel[ií]cula|film|ova|oad|special|specials|campaign|recap|picture drama)\b",
+    re.IGNORECASE)
+
+
+def _temporada_de_archivo(nombre_archivo: str) -> Optional[int]:
+    """Temporada indicada en el archivo (S02E05 → 2) o None."""
+    m = _RE_SXXEYY.search(Path(nombre_archivo).stem)
+    return int(m.group(1)) if m else None
+
+
+def _temporada_de_nombre(nombre: str) -> Optional[int]:
+    """Temporada en un título: 'Season 2', '2nd Season', 'S2', 'II' → 2."""
+    m = _RE_TEMP_NOMBRE.search(nombre or "")
+    if not m:
         return None
-    nombre_lower = nombre_archivo.lower().strip()
-    mejor = None
-    mejor_ratio = 0.0
+    for g in m.groups()[:3]:
+        if g:
+            return int(g)
+    return _ROMANOS.get((m.group(4) or "").lower())
 
-    for a in animes:
-        anime_nombre = (a.get("nombre") or "").lower().strip()
-        if not anime_nombre:
-            continue
-        # Match exacto (substring)
-        if nombre_lower in anime_nombre or anime_nombre in nombre_lower:
-            ratio = 0.95
+
+def _norm(s: str) -> str:
+    return " ".join(re.sub(r"[^0-9a-z]+", " ", (s or "").lower()).split())
+
+
+def _puntuar(nombre_archivo: str, anime: dict, temporada: Optional[int],
+             episodio: Optional[int]) -> float:
+    a, b = _norm(nombre_archivo), _norm(anime.get("nombre") or "")
+    if not a or not b:
+        return 0.0
+    if a == b:
+        score = 1.0
+    elif a in b or b in a:
+        # Contención: cuanto más se parecen las longitudes, mejor. Antes era
+        # 0.95 fijo y ganaba el PRIMERO de la lista ("Naruto Shippuden" → "Naruto").
+        corto, largo = sorted((len(a), len(b)))
+        score = 0.7 + 0.3 * corto / largo
+    else:
+        score = SequenceMatcher(None, a, b).ratio()
+
+    t_anime = _temporada_de_nombre(anime.get("nombre") or "")
+    t_arch = temporada or _temporada_de_nombre(nombre_archivo)
+    if t_arch and t_arch > 1:
+        if t_anime == t_arch:
+            score += 0.2
+        elif t_anime:
+            score -= 0.3
         else:
-            ratio = SequenceMatcher(None, nombre_lower, anime_nombre).ratio()
-        if ratio > mejor_ratio:
-            mejor_ratio = ratio
-            mejor = a
+            score -= 0.1               # entrada sin temporada = la 1ª
+    elif t_anime and t_anime > 1:
+        score -= 0.15
 
-    # Umbral mínimo de similitud: 0.6 (60%)
-    if mejor_ratio >= 0.6 and mejor:
-        return mejor
-    return None
+    if _RE_NO_SERIE.search(anime.get("nombre") or "") and not _RE_NO_SERIE.search(nombre_archivo):
+        score -= 0.25
+    caps = str(anime.get("capitulos") or "")
+    if caps == "película":
+        score -= 0.25
+    elif episodio and caps.isdigit() and episodio > int(caps) and not caps.endswith("+"):
+        score -= 0.2                   # esa entrada no tiene tantos episodios
+    if (anime.get("estado_usuario") or "") == "viendo":
+        score += 0.05
+    return score
+
+
+def _buscar_coincidencia(nombre_archivo: str, animes: list[dict],
+                         temporada: Optional[int] = None,
+                         episodio: Optional[int] = None) -> Optional[dict]:
+    """Anime de la biblioteca que mejor coincide con el nombre del archivo.
+
+    Tiene en cuenta la temporada (S02E05, 'Season 2'), evita películas/OVAs
+    y entradas con menos episodios que el del archivo. None si ninguno llega
+    al 60 %."""
+    mejor, mejor_score = None, 0.0
+    for a in animes or []:
+        sc = _puntuar(nombre_archivo, a, temporada, episodio)
+        if sc > mejor_score:
+            mejor, mejor_score = a, sc
+    return mejor if mejor is not None and mejor_score >= 0.6 else None
 
 
 # ── Estado del watcher ────────────────────────────────────────────────────────
@@ -185,13 +244,24 @@ def _check_new_files(folder_path: Path):
             _add_log(filename, None, None, "no parseado")
             continue
         nombre_serie, episodio = parsed
-        match = _buscar_coincidencia(nombre_serie, animes)
+        match = _buscar_coincidencia(nombre_serie, animes,
+                                     temporada=_temporada_de_archivo(filename),
+                                     episodio=episodio)
         if not match:
             _add_log(filename, nombre_serie, episodio, "sin coincidencia en biblioteca")
             continue
         # Solo marcar si el episodio es el siguiente al que lleva visto
         anime_nombre = match["nombre"]
         vistos = int(match.get("episodios_vistos") or 0)
+        caps = str(match.get("capitulos") or "")
+        if (match.get("estado_usuario") or "") == "completado":
+            _add_log(filename, anime_nombre, episodio, "ya completado")
+            continue
+        if caps.isdigit() and episodio > int(caps):
+            # Numeración continua entre temporadas o archivo de otra entrada:
+            # mejor no marcar que sumar episodios que esa entrada no tiene.
+            _add_log(filename, anime_nombre, episodio, f"fuera de rango (tiene {caps})")
+            continue
         if episodio <= vistos:
             _add_log(filename, anime_nombre, episodio, "ya visto")
             continue
