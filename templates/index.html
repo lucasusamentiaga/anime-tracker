@@ -892,7 +892,7 @@ main{padding:16px 20px}
 <div class="toolbar">
   <input id="inp-nombre" type="text" placeholder="Nombre del anime o pega una URL…"
          autocomplete="off"
-         oninput="autocomplete(this.value); detectarURL(this.value)"
+         oninput="autocompletar(this.value); detectarURL(this.value)"
          onkeydown="if(event.key==='Enter'){cerrarAutocomplete();previsualizarAnime()}"
          onblur="setTimeout(cerrarAutocomplete,200)">
   <span id="url-badge" style="display:none;align-self:center;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:var(--light);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600">🔗 URL detectada</span>
@@ -2969,7 +2969,10 @@ document.addEventListener('keydown', e => {
 
 // ── Autocompletado desde lista local ─────────────────────────────────────────
 let _acTimer = null;
-function autocomplete(q) {
+// OJO: no llamarla autocomplete(): en un oninput="…" en línea, el nombre se
+// resuelve primero como propiedad del <input> (su atributo autocomplete="off",
+// un string) → "autocomplete is not a function" y las sugerencias no salían.
+function autocompletar(q) {
   const drop = document.getElementById('autocomplete-drop');
   if (!drop) return;
   clearTimeout(_acTimer);

@@ -153,6 +153,12 @@ const TX = {
 let LANG = 'es';
 const T = (k, n = 0) => ((TX[LANG] || TX.es)[k] || k).replace('{n}', n);
 
+// Versión real (antes estaba escrita a mano: "v2.4.0").
+fetch('/api/version').then(r => r.json()).then(d => {
+  const el = document.getElementById('app-version');
+  if (el && d && d.version) el.textContent = 'v' + d.version;
+}).catch(() => {});
+
 async function setLang(l) {
   LANG = l;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === l));
@@ -450,6 +456,6 @@ document.addEventListener('keydown', e => {
   }
 });
 </script>
-<div style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(167,139,250,.4)">v2.4.0</div>
+<div style="position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(167,139,250,.4)" id="app-version"></div>
 </body>
 </html>
