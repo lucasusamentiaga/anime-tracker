@@ -32,6 +32,15 @@ from fastapi.testclient import TestClient  # noqa: E402
 import main  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _bd_propia(monkeypatch):
+    """Fijar la BD en cada test (no solo al importar el módulo): si antes se
+    ejecutó un test con el fixture `db`, la ruta del entorno era otra."""
+    monkeypatch.setenv("ANIME_APP_DIR", _TMP)
+    monkeypatch.setenv("ANIME_DB_PATH", os.path.join(_TMP, "apagado.db"))
+    main.db.init_db()
+
+
 @pytest.fixture
 def client_local():
     """Cliente que se presenta como 127.0.0.1 (el caso normal)."""

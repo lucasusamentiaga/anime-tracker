@@ -33,3 +33,20 @@ def db(app_dir):
     importlib.reload(database)
     database.init_db()
     return database
+
+
+@pytest.fixture(autouse=True)
+def _vaciar_pool_bd():
+    """database guarda conexiones en un pool. Si un test cambia la ruta de la
+    BD (fixture `db`) y otro usa otra, el pool podía devolver una conexión a
+    la BD del test anterior → "no such table". En la app real la ruta no
+    cambia; esto solo aísla los tests entre sí."""
+    yield
+    import database
+    with database._pool_lock:
+        for c in database._conn_pool:
+            try:
+                c.close()
+            except Exception:
+                pass
+        database._conn_pool.clear()

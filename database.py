@@ -146,18 +146,38 @@ def _make_conn() -> sqlite3.Connection:
     return conn
 
 
+def _misma_bd(conn: sqlite3.Connection) -> bool:
+    """¿La conexión apunta al fichero de BD actual?
+
+    Si la ruta cambia (tests, restauración de backup), una conexión antigua del
+    pool seguiría leyendo/escribiendo en el fichero viejo. Un hilo de fondo que
+    pidiera conexión justo en el cambio podía además dejar en el pool una
+    conexión a una BD vacía → "no such table: config"."""
+    try:
+        fichero = conn.execute("PRAGMA database_list").fetchone()[2]
+        return os.path.normcase(os.path.abspath(fichero)) == \
+            os.path.normcase(os.path.abspath(str(_get_db_path())))
+    except Exception:
+        return False
+
+
 def _get_pooled_conn() -> sqlite3.Connection:
-    with _pool_lock:
-        if _conn_pool:
-            return _conn_pool.pop()
-    return _make_conn()
+    while True:
+        with _pool_lock:
+            conn = _conn_pool.pop() if _conn_pool else None
+        if conn is None:
+            return _make_conn()
+        if _misma_bd(conn):
+            return conn
+        conn.close()
 
 
 def _return_conn(conn: sqlite3.Connection):
-    with _pool_lock:
-        if len(_conn_pool) < _POOL_MAX:
-            _conn_pool.append(conn)
-            return
+    if _misma_bd(conn):
+        with _pool_lock:
+            if len(_conn_pool) < _POOL_MAX:
+                _conn_pool.append(conn)
+                return
     conn.close()
 
 

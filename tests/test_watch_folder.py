@@ -11,6 +11,15 @@ import pytest
 
 import watch_folder as wf
 
+
+@pytest.fixture(autouse=True)
+def _limpiar_estado_watcher():
+    """El log y los archivos vistos del watcher son globales del módulo."""
+    yield
+    wf._watcher_seen = set()
+    wf._watcher_log.clear()
+
+
 BIBLIO = [
     {"nombre": "Ayataka Spy x Family Movie Campaign Ayataka de Hotto Hitoiki", "capitulos": "1"},
     {"nombre": "Spy x Family Movie: Code: White", "capitulos": "película"},
