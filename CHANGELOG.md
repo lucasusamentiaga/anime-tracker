@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.10.1 — Revisión antes de publicar
+
+### Miraru en inglés, francés y alemán de verdad
+En EN/FR/DE quedaban unos 370 textos en español: estados de la lista, logros,
+calendario, novedades, películas, importar, acceso móvil, avisos y ventanas de
+confirmación. Ahora se traducen todos (los títulos de anime no se tocan).
+
+### Arreglos
+- **Autocompletado** al escribir un nombre: nunca había funcionado (un choque de
+  nombres en el navegador lo rompía).
+- **"En pausa"** en el editor daba error al guardar; ahora se guarda, y AniList
+  sincroniza "PAUSED" como En pausa (antes lo convertía en Viendo).
+- **Añadir por URL de AniList**: los animes en emisión salían con "?" episodios
+  y sin enlace a AniList.
+- La ventana de puntuaciones y "Tiempo hasta completar" mostraban la clave
+  interna en vez del texto.
+- La versión del menú y de la lista estaba escrita a mano (v2.4.0 / v2.6.2).
+- **Python 3.10 o superior** es obligatorio (las dependencias no instalan en 3.8/3.9;
+  antes daba un error engañoso de "comprueba tu conexión").
+- El instalador y el portable se vuelven a generar solos en cada versión.
+
 ## v2.10.0 — Avisos con la pestaña cerrada, modo sin conexión real y un .exe que arranca
 
 ### Avisos de nuevos episodios aunque cierres la pestaña (Web Push)
