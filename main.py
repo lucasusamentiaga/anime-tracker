@@ -1152,6 +1152,12 @@ async def set_language(req: LangRequest):
     db.set_config("lang", req.lang)
     return {"ok": True, "lang": req.lang}
 
+@app.get("/api/i18n/ui")
+async def get_ui_translations():
+    """Textos de interfaz escritos en español en las plantillas → idioma activo (ver i18n_ui.py)."""
+    import i18n_ui
+    return i18n_ui.ui_para(get_lang())
+
 @app.get("/api/langs")
 async def list_languages():
     return {"langs": list(TRANSLATIONS.keys())}

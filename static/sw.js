@@ -39,7 +39,7 @@
 // v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
 // v37 = mensaje de PIN unificado en /mobile.
 // v38 = versión 2.10.0.
-const CACHE_NAME = 'miraru-v39';
+const CACHE_NAME = 'miraru-v40';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -52,6 +52,7 @@ const STATIC_ASSETS = [
   '/mobile',
   '/static/theme.css',
   '/static/customize.js',
+  '/static/i18n-dom.js',
   // Tipografias locales: sin esto la app offline pierde su tipografia
   '/static/fonts/inter-latin-400-normal.woff2',
   '/static/fonts/inter-latin-600-normal.woff2',
@@ -65,7 +66,7 @@ const STATIC_ASSETS = [
 ];
 
 // GET de la API que se guardan para poder abrir la app sin conexión.
-const API_OFFLINE = ['/api/lang', '/api/animes/slim', '/api/animes'];
+const API_OFFLINE = ['/api/lang', '/api/i18n/ui', '/api/animes/slim', '/api/animes'];
 
 self.addEventListener('install', event => {
   // addAll falla entero si un asset falla — usamos add() individual con catch

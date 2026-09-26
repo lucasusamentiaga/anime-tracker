@@ -158,6 +158,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
+<script src="/static/i18n-dom.js" defer></script>
 </head>
 <body>
 <header>
@@ -565,7 +566,7 @@ async function loadCompletion() {
   const list = document.getElementById('list-completion');
   if (!sec || !list) return;
   const lbl = document.getElementById('lbl-completion');
-  if (lbl) lbl.textContent = '⏱ ' + (T('completion_title') || 'Tiempo hasta completar');
+  if (lbl) lbl.textContent = '⏱ ' + (TR.completion_title || 'Tiempo hasta completar');
   try {
     const r = await fetch('/api/stats/completion');
     if (!r.ok) return;
