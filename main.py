@@ -102,6 +102,7 @@ async def _lifespan(app: FastAPI):
     except Exception:
         pass
     _start_auto_backup_once()
+    migrations.completar_episodios_vistos()   # rápido (solo SQL), idempotente
     _start_cap200_fix_once()
     _start_emision_refresh_once()
     _start_enrich_unknown_eps()

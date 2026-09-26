@@ -241,3 +241,31 @@ def refrescar_en_emision(sleep: float = 0.4) -> int:
     except Exception as e:
         log.warning("refresco emisión: %s", e)
     return actualizados
+
+
+def completar_episodios_vistos() -> int:
+    """Completados con 0 episodios vistos → vistos = nº de capítulos.
+
+    La importación antigua dejó los 334 completados a 0: la ficha y las barras
+    mostraban 0/12. Misma regla que "marcar como completado" en la UI
+    (parseInt de capítulos; "1179+" → 1179). Películas y "?" no se tocan.
+    Idempotente: solo actúa sobre completados con 0. Devuelve cuántos cambió."""
+    import re
+    cambiados = 0
+    try:
+        with db.get_conn() as conn:
+            filas = conn.execute(
+                "SELECT nombre, capitulos FROM animes WHERE estado_usuario='completado' "
+                "AND COALESCE(episodios_vistos, 0) = 0").fetchall()
+            for nombre, caps in filas:
+                m = re.match(r"\s*(\d+)", str(caps or ""))
+                n = int(m.group(1)) if m else 0
+                if n > 0:
+                    conn.execute("UPDATE animes SET episodios_vistos=? WHERE nombre=?", (n, nombre))
+                    cambiados += 1
+        if cambiados:
+            db._invalidar_cache()
+            log.info("completados: %d con episodios_vistos rellenados", cambiados)
+    except Exception as e:
+        log.warning("completar_episodios_vistos: %s", e)
+    return cambiados
