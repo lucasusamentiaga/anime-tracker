@@ -312,5 +312,26 @@ def test_anadir_por_url_anilist_usa_id_y_episodios_en_emision(client, monkeypatc
 def test_menu_sin_version_escrita_a_mano():
     import pathlib
     import re
-    html = (pathlib.Path(main.__file__).parent / "templates" / "menu.html").read_text(encoding="utf-8")
-    assert not re.search(r">v\d+\.\d+\.\d+<", html)
+    for nombre in ("menu.html", "index.html"):
+        html = (pathlib.Path(main.__file__).parent / "templates" / nombre).read_text(encoding="utf-8")
+        assert not re.search(r">v\d+\.\d+\.\d+<", html), nombre
+
+
+def test_i18n_ui_endpoint_segun_idioma(client):
+    client.post("/api/lang", json={"lang": "es"})
+    d = client.get("/api/i18n/ui").json()
+    assert d["map"] == {} and d["patterns"] == []
+    client.post("/api/lang", json={"lang": "en"})
+    try:
+        d = client.get("/api/i18n/ui").json()
+        assert d["map"]["Pendiente"] == "Plan to watch"
+        assert d["patterns"]
+    finally:
+        client.post("/api/lang", json={"lang": "es"})
+
+
+def test_todas_las_plantillas_cargan_i18n_dom():
+    import pathlib
+    tpl = pathlib.Path(main.__file__).parent / "templates"
+    for f in tpl.glob("*.html"):
+        assert "/static/i18n-dom.js" in f.read_text(encoding="utf-8"), f.name

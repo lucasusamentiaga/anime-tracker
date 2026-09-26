@@ -561,11 +561,18 @@ main{padding:16px 20px}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
+<script src="/static/i18n-dom.js" defer></script>
 </head>
 <body>
 
 <!-- Toast -->
-<div style="position:fixed;bottom:4px;left:12px;font-size:10px;color:var(--muted);opacity:.5;z-index:1">v2.6.2</div>
+<div style="position:fixed;bottom:4px;left:12px;font-size:10px;color:var(--muted);opacity:.5;z-index:1" id="app-version"></div>
+<script>
+// Versión real desde el backend (antes estaba escrita a mano y se quedó en v2.6.2).
+fetch('/api/version').then(r => r.json()).then(d => {
+  const el = document.getElementById('app-version'); if (el && d.version) el.textContent = 'v' + d.version;
+}).catch(() => {});
+</script>
 <div id="toast"><div class="toast-inner" id="toast-inner"></div></div>
 
 <!-- Modal: Editar anime -->
