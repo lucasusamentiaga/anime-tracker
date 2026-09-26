@@ -18,6 +18,9 @@ lxml>=5.0.0
 google-auth>=2.30.0
 google-api-python-client==2.196.0
 
+# ── Notificaciones Web Push (llegan con la pestaña cerrada) ──────────────────
+pywebpush>=2.0.0
+
 # ── Imágenes (avatar, iconos del build) ───────────────────────────────────────
 Pillow>=10.0.0
 

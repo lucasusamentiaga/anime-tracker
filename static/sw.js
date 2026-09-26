@@ -34,7 +34,10 @@
 // v32 = anti-duplicados con clave normalizada (mayúsculas, guiones, puntos).
 // v33 = refresco de metadatos en segundo plano con progreso.
 // v34 = versión 2.9.0 (manifest.json).
-const CACHE_NAME = 'miraru-v34';
+// v35 = alcance "/" (servido desde /sw.js), páginas red-primero, solo mismo
+//        origen, y evento 'push' (Web Push: avisos con la pestaña cerrada).
+// v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
+const CACHE_NAME = 'miraru-v36';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -59,6 +62,9 @@ const STATIC_ASSETS = [
   '/static/manifest.json',
 ];
 
+// GET de la API que se guardan para poder abrir la app sin conexión.
+const API_OFFLINE = ['/api/lang', '/api/animes/slim', '/api/animes'];
+
 self.addEventListener('install', event => {
   // addAll falla entero si un asset falla — usamos add() individual con catch
   event.waitUntil(
@@ -80,8 +86,27 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+  // Solo peticiones de Miraru: las portadas de AniList/Kitsu y demás CDNs van
+  // directas a la red (respuestas opacas, no se pueden cachear bien).
+  if (url.origin !== self.location.origin) return;
 
-  // API: siempre red, sin caché. Si falla, JSON offline.
+  // Lecturas imprescindibles para usar la app sin conexión (textos y lista):
+  // red primero y, si no hay red, la última respuesta guardada.
+  if (event.request.method === 'GET' && API_OFFLINE.includes(url.pathname)) {
+    event.respondWith(
+      fetch(event.request).then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(event.request).then(c => c ||
+        new Response(JSON.stringify({error: 'offline'}), {headers: {'Content-Type': 'application/json'}})))
+    );
+    return;
+  }
+
+  // Resto de la API: siempre red, sin caché. Si falla, JSON offline.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() =>
@@ -93,8 +118,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Estático: stale-while-revalidate (devuelve caché y actualiza en background)
   if (event.request.method !== 'GET') return;
+
+  // Páginas: red primero (así una actualización se ve al momento) y la caché
+  // solo como respaldo sin conexión.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(resp => {
+        if (resp.ok) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(event.request).then(c => c || caches.match('/app')))
+    );
+    return;
+  }
+
+  // Estático: stale-while-revalidate (devuelve caché y actualiza en background)
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetched = fetch(event.request).then(resp => {
@@ -122,4 +163,19 @@ self.addEventListener('notificationclick', event => {
       return self.clients.openWindow ? self.clients.openWindow(url) : undefined;
     })
   );
+});
+
+// Web Push: el servidor de Miraru avisa de episodios nuevos aunque la pestaña
+// esté cerrada. Payload JSON {title, body, url, tag, icon}.
+self.addEventListener('push', event => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; }
+  catch (_) { d = { body: event.data ? event.data.text() : '' }; }
+  event.waitUntil(self.registration.showNotification(d.title || 'Miraru', {
+    body: d.body || '',
+    icon: d.icon || '/static/logo.png',
+    badge: '/static/logo.png',
+    tag: d.tag || undefined,
+    data: { url: d.url || '/app' },
+  }));
 });

@@ -158,12 +158,14 @@ if STATIC_DIR.exists():
 from routers import gamificacion as gamificacion_router  # noqa: E402
 from routers import media as media_router  # noqa: E402  (tras crear `app`)
 from routers import noticias as noticias_router  # noqa: E402
+from routers import push as push_router  # noqa: E402
 from routers import themes as themes_router  # noqa: E402
 
 app.include_router(media_router.router)
 app.include_router(gamificacion_router.router)
 app.include_router(noticias_router.router)
 app.include_router(themes_router.router)
+app.include_router(push_router.router)
 
 
 # ── Middleware: cuando modo móvil está activo, exigir token en LAN ───────────
@@ -544,42 +546,78 @@ def _start_enrich_unknown_eps():
 
 
 # ── Daemon de notificaciones de nuevos episodios ─────────────────────────────
-# Comprueba cada 4h si los animes con notif_activa tienen episodio nuevo.
-# Almacena en _notif_last_seen qué episodio fue el último notificado para
-# no repetir el aviso. Solo envía si hay email configurado.
+# Comprueba periódicamente si los animes con notif_activa (campanita) tienen
+# episodio nuevo y avisa por email (si hay) y por Web Push (si algún navegador
+# está suscrito: llega aunque la pestaña esté cerrada). El último episodio
+# avisado se guarda en config para no repetir avisos tras reiniciar (antes
+# vivía solo en memoria).
 
-_notif_last_seen: dict[str, int] = {}  # nombre → último ep notificado
 _notif_daemon_started = False
+_CFG_NOTIF_VISTO = "notif_last_seen"
+
+
+def _notif_cargar_visto() -> dict[str, int]:
+    try:
+        d = json.loads(db.get_config(_CFG_NOTIF_VISTO) or "{}")
+        return {str(k): int(v) for k, v in d.items()}
+    except Exception:
+        return {}
+
+
+def _comprobar_nuevos_episodios() -> list[tuple[str, int]]:
+    """Una pasada del daemon. Devuelve [(nombre, ultimo_emitido)] avisados."""
+    import push_web
+    activos = db.listar_con_notif()
+    email = db.get_config("email_notif") or ""
+    hay_push = push_web.num_suscripciones() > 0
+    if not activos or not (email or hay_push):
+        return []
+    info = _fetch_ultimos_episodios(activos)
+    visto = _notif_cargar_visto()
+    now_ts = _time.time()
+    avisados: list[tuple[str, int]] = []
+    for a in activos:
+        meta = info.get(a["nombre"])
+        if not meta:
+            continue
+        next_ep = meta.get("next_ep") or 0
+        next_at = meta.get("next_at") or 0
+        if next_ep and next_at > now_ts:
+            ultimo_emitido = max(0, int(next_ep) - 1)
+        else:
+            ultimo_emitido = int(meta.get("total") or 0)
+        vistos = int(a.get("episodios_vistos") or 0)
+        prev = visto.get(a["nombre"], vistos)
+        if ultimo_emitido > vistos and ultimo_emitido > prev:
+            visto[a["nombre"]] = ultimo_emitido
+            avisados.append((a["nombre"], ultimo_emitido))
+            if email:
+                _notif_enviar_nuevo_disponible(a, vistos, ultimo_emitido, email)
+            if hay_push:
+                pendientes = ultimo_emitido - vistos
+                try:
+                    push_web.enviar(
+                        f"📺 {a['nombre']}",
+                        f"Episodio {vistos + 1} disponible" if pendientes == 1
+                        else f"{pendientes} episodios sin ver (hasta el {ultimo_emitido})",
+                        url="/app", tag=f"anime-{a['nombre']}-{ultimo_emitido}",
+                        icono=a.get("imagen") or None)
+                except Exception as e:
+                    _sync_log.warning("push: %s", e)
+    if avisados:
+        db.set_config(_CFG_NOTIF_VISTO, json.dumps(visto))
+    return avisados
+
 
 def _notif_daemon_loop():
-    """Hilo daemon: comprueba nuevos episodios cada 4h y notifica."""
-    global _notif_last_seen
+    """Hilo daemon: comprueba nuevos episodios cada 2h (4h si solo hay email)."""
+    import push_web
     while True:
         try:
-            activos = db.listar_con_notif()
-            email = db.get_config("email_notif") or ""
-            if activos and email:
-                info = _fetch_ultimos_episodios(activos)
-                now_ts = _time.time()
-                for a in activos:
-                    meta = info.get(a["nombre"])
-                    if not meta:
-                        continue
-                    next_ep = meta.get("next_ep") or 0
-                    next_at = meta.get("next_at") or 0
-                    if next_ep and next_at > now_ts:
-                        ultimo_emitido = max(0, int(next_ep) - 1)
-                    else:
-                        ultimo_emitido = int(meta.get("total") or 0)
-                    vistos = int(a.get("episodios_vistos") or 0)
-                    prev_notified = _notif_last_seen.get(a["nombre"], vistos)
-                    if ultimo_emitido > vistos and ultimo_emitido > prev_notified:
-                        _notif_last_seen[a["nombre"]] = ultimo_emitido
-                        # Enviar notificación
-                        _notif_enviar_nuevo_disponible(a, vistos, ultimo_emitido, email)
+            _comprobar_nuevos_episodios()
         except Exception as e:
             _sync_log.warning("notif daemon: %s", e)
-        _time.sleep(4 * 3600)  # cada 4 horas
+        _time.sleep((2 if push_web.num_suscripciones() else 4) * 3600)
 
 
 def _notif_enviar_nuevo_disponible(anime: dict, vistos: int, disponible: int, email: str):
@@ -1015,6 +1053,23 @@ async def favicon():
         raise HTTPException(404, "No hay icono")
     return FileResponse(str(icono), media_type="image/x-icon",
                         headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    """Service Worker servido desde la raíz con alcance "/".
+
+    Antes se registraba en /static/sw.js y, sin la cabecera
+    Service-Worker-Allowed, su alcance quedaba en /static/: nunca controlaba
+    /app ni ninguna página (ni caché offline, ni push, y getRegistration()
+    desde /app devolvía undefined). no-cache: el navegador comprueba en cada
+    carga si hay versión nueva."""
+    sw = STATIC_DIR / "sw.js"
+    if not sw.exists():
+        raise HTTPException(404, "No hay service worker")
+    return FileResponse(str(sw), media_type="application/javascript",
+                        headers={"Service-Worker-Allowed": "/",
+                                 "Cache-Control": "no-cache"})
 
 
 @app.post("/api/apagar")

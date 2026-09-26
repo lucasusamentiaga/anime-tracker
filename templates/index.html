@@ -2526,6 +2526,7 @@ async function pedirPermiso() {
       clearInterval(window._notifInterval);
       window._notifInterval = null;
     }
+    _desuscribirPush();
     actualizarBotonAvisos();
     toast('🔕 ' + T('notif_off'), 'ok');
     return;
@@ -2547,11 +2548,86 @@ async function pedirPermiso() {
   }
   actualizarBotonAvisos();
   toast('🔔 ' + T('notif_on'), 'ok');
+  const push = await _suscribirPush();
   _mostrarNotif('Miraru', {
-    body: 'Te avisaremos cuando haya nuevos episodios de los animes con notificación.',
+    body: push ? 'Te avisaremos de nuevos episodios aunque cierres la pestaña (con Miraru abierto en segundo plano).'
+               : 'Te avisaremos cuando haya nuevos episodios de los animes con notificación.',
     icon: '/static/logo.png'
   });
   checkNotificaciones();
+}
+
+// ── Web Push: avisos con la pestaña cerrada ──────────────────────────────────
+// El servidor de Miraru envía el aviso al servicio de push del navegador y el
+// Service Worker (sw.js, evento 'push') lo muestra. Requiere contexto seguro
+// (127.0.0.1 lo es; una IP de la LAN por http no).
+function _b64uAU8(b64u) {
+  const pad = '='.repeat((4 - b64u.length % 4) % 4);
+  const bin = atob((b64u + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+async function _suscribirPush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext) return false;
+    const reg = await navigator.serviceWorker.register('/sw.js', {scope: '/'});
+    await navigator.serviceWorker.ready;
+    const rk = await fetch('/api/push/vapid');
+    if (!rk.ok) return false;
+    const {key} = await rk.json();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: _b64uAU8(key)});
+    }
+    let r = await fetch('/api/push/subscribe', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sub.toJSON())
+    });
+    if (!r.ok) {
+      // Clave del servidor distinta (p. ej. BD restaurada): rehacer la suscripción
+      await sub.unsubscribe();
+      sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: _b64uAU8(key)});
+      r = await fetch('/api/push/subscribe', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(sub.toJSON())
+      });
+    }
+    const ok = r.ok;
+    try { localStorage.setItem('push_ok', ok ? '1' : '0'); } catch(_) {}
+    return ok;
+  } catch(_) {
+    try { localStorage.setItem('push_ok', '0'); } catch(_) {}
+    return false;
+  }
+}
+
+// Envía un aviso de prueba por Web Push (suscribe primero si hace falta).
+async function probarPush() {
+  if (!('Notification' in window)) { toast('Tu navegador no soporta notificaciones', 'warn'); return; }
+  if (Notification.permission !== 'granted') {
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') { toast(T('notif_denied'), 'warn'); return; }
+  }
+  const ok = await _suscribirPush();
+  if (!ok) { toast('Este navegador no admite Web Push aquí (abre Miraru en 127.0.0.1)', 'warn'); return; }
+  try {
+    const r = await fetch('/api/push/test', {method: 'POST'});
+    const d = await r.json();
+    toast(r.ok && d.ok ? '🔔 Aviso enviado: cierra la pestaña y debería llegar igual'
+                       : 'No se pudo enviar el aviso', r.ok && d.ok ? 'ok' : 'err');
+  } catch(_) { toast(T('error'), 'err'); }
+}
+
+async function _desuscribirPush() {
+  try { localStorage.setItem('push_ok', '0'); } catch(_) {}
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    const sub = reg && await reg.pushManager.getSubscription();
+    if (!sub) return;
+    await fetch('/api/push/unsubscribe', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({endpoint: sub.endpoint})
+    });
+    await sub.unsubscribe();
+  } catch(_) {}
 }
 
 async function actualizarBotonAvisos() {
@@ -2590,7 +2666,7 @@ async function _mostrarNotif(titulo, opts) {
   opts = Object.assign({ data: { url: '/' } }, opts || {});
   try {
     if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
+      const reg = await navigator.serviceWorker.getRegistration('/');
       if (reg && reg.showNotification) { await reg.showNotification(titulo, opts); return; }
     }
   } catch(_) {}
@@ -2599,6 +2675,10 @@ async function _mostrarNotif(titulo, opts) {
 
 async function checkNotificaciones() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Con Web Push activo avisa el servidor; si además avisara la página, cada
+  // episodio saldría dos veces.
+  let _push; try { _push = localStorage.getItem('push_ok'); } catch(_) {}
+  if (_push === '1') return;
   try {
     // v2: el backend consulta AniList y devuelve solo animes con ep realmente nuevo.
     // Además guardamos el último ep notificado por anime en localStorage para no
@@ -3362,6 +3442,7 @@ function _paletteCommands() {
     {icon: '🎲', label: T('random') || 'Anime aleatorio', run: () => animeAleatorio()},
     {icon: '🌓', label: T('theme') || 'Cambiar tema', run: () => { if (typeof toggleTheme === 'function') toggleTheme(); }},
     {icon: '🔧', label: 'Refrescar metadatos (arreglar cap. erróneos)', run: () => refrescarMetadatos()},
+    {icon: '🔔', label: 'Probar notificación push', run: () => probarPush()},
   ];
   return cmds.filter(c => typeof c.run === 'function');
 }
@@ -3836,6 +3917,7 @@ function selectAllVisible() {
       // y, si se cerraba la app antes, nunca.
       setTimeout(checkNotificaciones, 8000);
     }
+    if (wasEnabled && Notification.permission === 'granted') _suscribirPush();
     actualizarBotonAvisos();
   }
   // v2.1: indicadores de sync + nueva versión
@@ -3879,8 +3961,13 @@ function selectAllVisible() {
 </a>
 <script>
 // PWA Service Worker
+// Alcance "/" (servido desde /sw.js con Service-Worker-Allowed). El registro
+// antiguo en /static/sw.js solo controlaba /static/: se da de baja.
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => {
+    try { if (new URL(r.scope).pathname === '/static/') r.unregister(); } catch(_) {}
+  })).catch(() => {});
+  navigator.serviceWorker.register('/sw.js', {scope: '/'}).catch(() => {});
 }
 </script>
 

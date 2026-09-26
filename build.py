@@ -129,6 +129,8 @@ HIDDEN = [
     "google.oauth2", "google.oauth2.service_account",
     "googleapiclient", "googleapiclient.discovery", "googleapiclient.http",
     "cachetools", "pyasn1", "rsa",
+    # Web Push (notificaciones con la pestaña cerrada)
+    "pywebpush", "py_vapid", "http_ece",
     # scraping
     "requests", "bs4", "beautifulsoup4",
     # urllib3 / certifi
