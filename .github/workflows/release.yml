@@ -35,11 +35,17 @@ jobs:
       - name: Build installer (.exe con accesos directos)
         run: python build.py
 
-      - name: Rename installer to Miraru
-        run: Copy-Item dist/AnimeTracker-Setup.exe dist/Miraru-Setup.exe
+      # build.py borra dist/ entero al empezar cada compilación: cada .exe se
+      # aparta a release/ nada más generarse (antes el portable borraba el Setup).
+      - name: Guardar el instalador
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item dist/AnimeTracker-Setup.exe release/Miraru-Setup.exe
 
       - name: Build portable (un único .exe)
-        run: python build.py --portable
+        run: |
+          python build.py --portable
+          Copy-Item dist/Miraru-Portable.exe release/Miraru-Portable.exe
 
       # ── Firma de código (opcional) ──────────────────────────────────────────
       # Sin firmar, Windows muestra SmartScreen ("editor desconocido"), que es lo
@@ -69,7 +75,7 @@ jobs:
           [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String("${{ secrets.WINDOWS_CERT_BASE64 }}"))
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
                       Sort-Object FullName -Descending | Select-Object -First 1
-          foreach ($exe in @("dist/Miraru-Setup.exe", "dist/Miraru-Portable.exe")) {
+          foreach ($exe in @("release/Miraru-Setup.exe", "release/Miraru-Portable.exe")) {
             & $signtool.FullName sign `
               /f $pfx /p "${{ secrets.WINDOWS_CERT_PASSWORD }}" `
               /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
@@ -78,7 +84,7 @@ jobs:
           }
           Remove-Item $pfx -Force
           # Comprobación: si la firma no valida, mejor fallar aquí que publicar
-          foreach ($exe in @("dist/Miraru-Setup.exe", "dist/Miraru-Portable.exe")) {
+          foreach ($exe in @("release/Miraru-Setup.exe", "release/Miraru-Portable.exe")) {
             & $signtool.FullName verify /pa /v $exe
             if ($LASTEXITCODE -ne 0) { throw "Firma inválida en $exe" }
           }
@@ -88,8 +94,8 @@ jobs:
         with:
           name: Miraru-Windows
           path: |
-            dist/Miraru-Setup.exe
-            dist/Miraru-Portable.exe
+            release/Miraru-Setup.exe
+            release/Miraru-Portable.exe
           if-no-files-found: error
 
       - name: Publish to GitHub Release
@@ -97,6 +103,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/Miraru-Setup.exe
-            dist/Miraru-Portable.exe
+            release/Miraru-Setup.exe
+            release/Miraru-Portable.exe
           generate_release_notes: true

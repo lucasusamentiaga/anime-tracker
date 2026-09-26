@@ -9,6 +9,7 @@ __pycache__/
 
 # Build output
 dist/
+release/
 _build_tmp/
 build/
 
