@@ -103,12 +103,13 @@ jobs:
           # main.py usa @app.<verbo>("/ruta"); los routers usan @router con prefix.
           rutas = []
           src = open('main.py').read()
-          rutas += [(m, p) for m, p in re.findall(r'@app\.(\w+)\("([^"]+)"', src)]
+          VERBOS = {'get', 'post', 'put', 'patch', 'delete', 'api_route', 'websocket'}
+          rutas += [(m, p) for m, p in re.findall(r'@app\.(\w+)\("([^"]+)"', src) if m in VERBOS]
           for f in glob.glob('routers/*.py'):
               s = open(f).read()
               pref = re.search(r'APIRouter\([^)]*prefix\s*=\s*"([^"]*)"', s)
               pref = pref.group(1) if pref else ''
-              rutas += [(m, pref + p) for m, p in re.findall(r'@router\.(\w+)\("([^"]*)"', s)]
+              rutas += [(m, pref + p) for m, p in re.findall(r'@router\.(\w+)\("([^"]*)"', s) if m in VERBOS]
           dupes = {k: v for k, v in Counter(f"{m}:{p}" for m, p in rutas).items() if v > 1}
           assert not dupes, f"Duplicate routes: {dupes}"
           print(f"OK: {len(rutas)} routes (main + routers), no duplicates")
