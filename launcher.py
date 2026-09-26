@@ -230,6 +230,15 @@ def _info(msg: str):
         log(msg)
 
 
+def _abrir_navegador():
+    """Abre Miraru en el navegador, salvo con MIRARU_NO_BROWSER=1 (pruebas del
+    .exe, o arrancarlo en segundo plano solo para los avisos Web Push)."""
+    if os.environ.get("MIRARU_NO_BROWSER") == "1":
+        log("MIRARU_NO_BROWSER=1 — no se abre el navegador")
+        return
+    webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
+
+
 def _uninstall():
     """Maneja `AnimeTracker.exe --uninstall` (lo registra el instalador como
     UninstallString). Antes esto abría la app por error: launcher ignoraba argv
@@ -318,7 +327,7 @@ def main():
     # Si ya hay instancia corriendo, abrir navegador y salir
     if puerto_en_uso(PORT):
         log("Puerto en uso — abriendo navegador")
-        webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
+        _abrir_navegador()
         return
 
     # Actualizar HOST según configuración antes de arrancar
@@ -386,7 +395,7 @@ def main():
         sys.exit(1)
 
     log("Servidor listo — abriendo navegador")
-    webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
+    _abrir_navegador()
 
     try:
         while hilo.is_alive():
