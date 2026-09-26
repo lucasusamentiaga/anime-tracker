@@ -164,3 +164,19 @@ def test_config_set_get(db):
     assert db.get_config("k") == "v1"
     db.set_config("k", "v2")
     assert db.get_config("k") == "v2"
+
+
+def test_activar_wal_reintenta_si_la_bd_esta_bloqueada(monkeypatch):
+    import database
+
+    llamadas = {"n": 0}
+
+    class Conn:
+        def execute(self, sql):
+            llamadas["n"] += 1
+            if llamadas["n"] < 3:
+                raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    database._activar_wal(Conn())
+    assert llamadas["n"] == 3

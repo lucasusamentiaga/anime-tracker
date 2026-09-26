@@ -134,11 +134,26 @@ _pool_lock = threading.Lock()
 _POOL_MAX = 4
 
 
+def _activar_wal(conn: sqlite3.Connection, intentos: int = 50) -> None:
+    """PRAGMA journal_mode=WAL no respeta el busy timeout: si otra conexión
+    está escribiendo (p. ej. hilos de fondo al crear la BD por primera vez)
+    falla al instante con "database is locked". Reintenta unos segundos."""
+    import time
+    for i in range(intentos):
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e) or i == intentos - 1:
+                raise
+            time.sleep(0.1)
+
+
 def _make_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_get_db_path(), check_same_thread=False, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.execute("PRAGMA journal_mode=WAL")
+    _activar_wal(conn)
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA cache_size=-8000")   # 8 MB de cache por conexión
     conn.execute("PRAGMA mmap_size=67108864")  # 64 MB mmap — lectura más rápida
