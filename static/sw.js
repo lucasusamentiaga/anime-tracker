@@ -37,7 +37,8 @@
 // v35 = alcance "/" (servido desde /sw.js), páginas red-primero, solo mismo
 //        origen, y evento 'push' (Web Push: avisos con la pestaña cerrada).
 // v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
-const CACHE_NAME = 'miraru-v36';
+// v37 = mensaje de PIN unificado en /mobile.
+const CACHE_NAME = 'miraru-v37';
 const STATIC_ASSETS = [
   '/',
   '/app',

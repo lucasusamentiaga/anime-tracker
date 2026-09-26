@@ -221,7 +221,7 @@ async function cambiarPin() {
   const err = document.getElementById('err-change');
   err.style.display = 'none';
   if (!/^\d{4,8}$/.test(pin)) {
-    err.textContent = 'PIN inválido.'; err.style.display = 'block'; return;
+    err.textContent = 'El PIN debe tener entre 4 y 8 dígitos numéricos.'; err.style.display = 'block'; return;
   }
   try {
     const r = await fetch('/api/mobile/enable', {
