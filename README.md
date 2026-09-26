@@ -1,130 +1,134 @@
 # Miraru
 
-![CI](https://github.com/lucasusamentiaga/anime-tracker/actions/workflows/ci.yml/badge.svg)
+[![Miraru CI](https://github.com/lucasusamentiaga/anime-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/lucasusamentiaga/anime-tracker/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/lucasusamentiaga/anime-tracker)](https://github.com/lucasusamentiaga/anime-tracker/releases/latest)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
-**Tu biblioteca personal de anime, series y películas** — app de escritorio con seguimiento de episodios, estadísticas, notificaciones, sincronización con Google Sheets y acceso móvil. Anime vía 8 fuentes; películas y series vía **TMDB**.
+**Tu biblioteca personal de anime, manga, series y películas.** App de escritorio para Windows
+que funciona en tu navegador: lleva la cuenta de los episodios que ves, te avisa cuando sale uno
+nuevo, te recomienda qué ver y te enseña tus estadísticas. Todo se guarda en tu PC, sin cuentas
+ni nube.
+
+**[⬇ Descargar la última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest)**
 
 ## 📸 Capturas
 
-> Añade tus capturas en la carpeta `screenshots/` y se mostrarán aquí.
-
 | Biblioteca (oscuro) | Biblioteca (claro) |
 |---|---|
-| ![Modo oscuro](screenshots/dark.png) | ![Modo claro](screenshots/light.png) |
+| ![Biblioteca en modo oscuro](screenshots/dark.png) | ![Biblioteca en modo claro](screenshots/light.png) |
 
 | Estadísticas | Calendario semanal |
 |---|---|
-| ![Estadísticas](screenshots/stats.png) | ![Calendario](screenshots/calendar.png) |
+| ![Estadísticas](screenshots/stats.png) | ![Calendario semanal](screenshots/calendar.png) |
 
-## ✨ Características
+## ✨ Qué puedes hacer
 
-- **8 fuentes** de búsqueda de anime: AniList, Jikan v4, Kitsu, Crunchyroll, AnimeFLV, AnimePlanet, AnimeAV1, MAL — o **todas a la vez**
-- 🎬 **Sección de películas y series** (no-anime) con datos de **TMDB**: búsqueda, fichas, estados, favoritos
-- Buscador con **vista previa** antes de añadir
-- **Paleta de comandos** (`Ctrl+K`): salta a cualquier anime, página o acción
-- Vista **grid** o **tabla compacta**
-- Listas personalizadas, favoritos, temporada, puntuación, notas
-- **Rating rápido** con estrellas desde la propia tarjeta (sin abrir el modal)
-- **Drag & drop** entre listas
-- **Atajos de teclado**: `Ctrl+K` paleta, `/` buscar, `Esc` cerrar, `N` nuevo anime
-- **Operadores de búsqueda**: `genre:`, `score:`, `eps:`, `year:`, `fav:`, etc.
-- Selección múltiple para acciones masivas (cambiar estado, lista, favorito, eliminar)
-- En cada ficha: **tráiler**, **dónde verlo** (plataformas) y **similares** (AniList)
-- Estadísticas con **donut chart**, genre pills y **tiempo hasta completar**
-- **Novedades**: próximos episodios y animes en emisión (AniList API)
-- **Calendario semanal** con recordatorio de los episodios que salen **hoy**
-- Widget **"Continuar viendo"** en la portada y modo **maratón**
-- **Recomendaciones automáticas** por géneros favoritos
-- **Web Notifications** para nuevos episodios
-- **Snackbar de deshacer** al eliminar (5 segundos para restaurar)
-- Google Sheets sync (opcional)
-- Acceso **móvil** por WiFi local (PWA instalable)
-- 4 idiomas: ES / EN / FR / DE
-- Modo claro y oscuro
+**Tu biblioteca**
+- Añade anime escribiendo el nombre (con autocompletado) o pegando un enlace de AniList o MyAnimeList
+- Busca en AniList, MyAnimeList (Jikan), Kitsu, AnimeFLV, AnimeAV1, Anime-Planet o Crunchyroll, o en todas a la vez
+- Estados (pendiente, viendo, completado, en pausa, abandonado), puntuación, favoritos, listas propias y notas
+- **+1 episodio** con un clic, notas por episodio y **deshacer** al borrar
+- Temporadas de una misma serie agrupadas en franquicias
+- **Manga**: seguimiento por volúmenes
+- **Películas y series** (no anime) con datos de TMDB
+- Vista en tarjetas o tabla, selección múltiple, arrastrar a listas y búsqueda con filtros (`genre:`, `score:`, `eps:`, `year:`, `fav:`…)
+- **Paleta de comandos** (`Ctrl+K`) y atajos: `/` buscar, `N` añadir, `?` ver todos
 
-## 📥 Instalación (usuarios) — elige la más cómoda
+**Descubrir y no perderte nada**
+- **Calendario semanal** de lo que estás viendo y **avisos de nuevos episodios**: en el navegador, por email o como notificación del sistema aunque cierres la pestaña
+- **¿Qué veo esta noche?**: te sugiere algo según tu ánimo y el tiempo que tengas
+- **Recomendaciones** según tus géneros favoritos y una selección para empezar en el anime
+- **Novedades**: estrenos por plataforma (Crunchyroll, Netflix, Amazon, Disney+) y noticias
+- En cada ficha: tráiler, dónde verlo, openings, personajes, títulos similares y puntuaciones de AniList, MAL y Kitsu
 
-Ninguna necesita Python: va embebido. Todo desde la [última release](https://github.com/lucasusamentiaga/anime-tracker/releases/latest).
+**Tus números**
+- Estadísticas con horas vistas, géneros, heatmap de actividad y tiempo hasta completar
+- Niveles, rachas y logros
+- "Mi año en anime" como imagen para compartir y página HTML con tu biblioteca
 
-**A) Portátil — el menor número de pasos (recomendado)**
-1. Descarga **`Miraru-Portable.exe`**.
-2. Doble clic. Ya está (se abre en el navegador). Sin instalar; tus datos se guardan junto al `.exe`.
+**Más**
+- **Sincronización con AniList** en los dos sentidos
+- **Carpeta vigilada**: marca como visto el episodio que acabas de descargar
+- Sincronización con Google Sheets (opcional)
+- Acceso desde el **móvil** por la WiFi de casa, con PIN (instalable como app)
+- Funciona sin conexión con lo que ya tienes guardado
+- 4 idiomas (español, inglés, francés, alemán), modo claro y oscuro y colores personalizables
+- Importa desde MyAnimeList (XML), AniList o pegando el texto de cualquier web; exporta a CSV y JSON; copias de seguridad automáticas
 
-**B) Instalador (con accesos directos / desinstalable)**
-1. Descarga **`Miraru-Setup.exe`** y ejecútalo.
-2. Pulsa **Instalar** → **Abrir**. Crea accesos directos en escritorio y menú inicio.
+## 📥 Instalación
 
-**C) Gestores de paquetes (avanzado)**
-Manifiestos listos en `packaging/` para publicar **una sola vez** en **Scoop** o
-**winget**; después tus usuarios instalan con `scoop install miraru` o
-`winget install Miraru`. Ver [`packaging/README.md`](packaging/README.md).
+No necesitas instalar Python: va incluido. Descarga desde la
+[última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest):
 
-> Windows puede mostrar SmartScreen («editor desconocido») porque el `.exe` no
-> está firmado: **Más información → Ejecutar de todas formas**. Cómo firmarlo
-> para que ese aviso desaparezca: ver `packaging/README.md`.
+**A) Portable (lo más rápido)**
+1. Descarga **`Miraru-Portable.exe`** y ábrelo con doble clic.
+2. Se abre en tu navegador. Tus datos se guardan en la misma carpeta que el `.exe`, así que ponlo en una carpeta propia.
 
-Para desinstalar (opción B): *Configuración → Aplicaciones → Miraru → Desinstalar*.
+**B) Instalador**
+1. Descarga **`Miraru-Setup.exe`** y ábrelo.
+2. Pulsa **Instalar** y luego **Abrir**. Crea accesos directos en el escritorio y en el menú Inicio.
+3. Para desinstalar: *Configuración → Aplicaciones → Miraru → Desinstalar*.
 
-## 🚀 Ejecutar desde el código fuente
+> **Aviso de Windows ("editor desconocido")**: aparece porque el `.exe` no está firmado.
+> Pulsa **Más información → Ejecutar de todas formas**.
 
-**Doble clic en `Miraru.vbs`.** Nada más. Sin ventana de consola.
+**Para cerrar Miraru**, usa el botón **⏻ Salir** del menú: cerrar la pestaña no apaga la app.
 
-Se encarga solo de todo: busca Python (usa el `venv/` del proyecto si existe),
-instala las dependencias que falten la primera vez y abre el navegador. Si
-Python no está instalado, lo dice en un cuadro de diálogo con el enlace de
-descarga.
+## 📱 Móvil
 
-Miraru **no crea accesos directos ni toca el escritorio**: todo lo suyo vive en
-la carpeta del proyecto. Si quieres abrirlo de un clic, haz clic derecho sobre
-`Miraru.vbs` → *Anclar a la barra de tareas* (o *Anclar a Inicio*).
+1. En el PC abre **📱 Acceso móvil**, elige un PIN y pulsa **Activar**.
+2. Cierra Miraru y vuelve a abrirlo.
+3. En el móvil, conectado a la misma WiFi, abre la dirección que te muestra esa pantalla
+   (`http://IP-de-tu-PC:8765/app`), introduce el PIN y usa **Añadir a pantalla de inicio**.
 
-**Para cerrar Miraru: botón «⏻ Salir» en el menú.** Como no hay consola que
-cerrar, ese botón es lo que apaga el servidor.
+Úsalo solo en redes de confianza, como la de tu casa.
 
-> Si algo falla al arrancar, `Miraru.vbs` muestra un cuadro de diálogo con el
-> error y guarda el detalle en `arranque.log` junto al propio archivo.
+## 🚀 Ejecutar desde el código
+
+Requiere **Python 3.10 o superior** ([python.org](https://www.python.org/downloads/)).
+
+En Windows, haz **doble clic en `Miraru.vbs`**. Busca Python, instala lo que falte la primera
+vez y abre el navegador, sin ventanas de consola. Si algo falla, lo explica en un cuadro de
+diálogo y guarda el detalle en `arranque.log`.
 
 <details>
-<summary>Arrancar a mano (desarrollo)</summary>
+<summary>A mano (cualquier sistema)</summary>
 
 ```bash
 git clone https://github.com/lucasusamentiaga/anime-tracker.git
 cd anime-tracker
 pip install -r requirements.txt
-python launcher.py     # experiencia completa (arranca y abre el navegador)
-# o, modo headless:    python main.py   →  http://localhost:8765
+python launcher.py        # arranca y abre el navegador
+# o solo el servidor:     python main.py  →  http://127.0.0.1:8765
 ```
 </details>
 
-## 📱 Móvil
-
-1. En el PC: 📱 Móvil → introduce PIN → Activar
-2. Reinicia la app
-3. En el móvil: misma WiFi → `http://IP:8765/app` → Añadir a pantalla inicio (PWA)
-
-## 🛠 Generar los ejecutables (desarrolladores)
-
-No hace falta a mano: al **empujar un tag** (`git tag v2.7.0 && git push --tags`), GitHub
-Actions compila y publica `Miraru-Setup.exe` y `Miraru-Portable.exe` en la Release
-(ver `.github/workflows/release.yml`). En local:
+<details>
+<summary>Desarrollo: tests y ejecutables</summary>
 
 ```bash
-compilar.bat                 # instalador (Miraru-Setup.exe)
-python build.py --portable   # portátil (Miraru-Portable.exe)
+pip install pytest ruff
+python -m pytest tests/ -q
+ruff check .
 ```
+
+Para publicar una versión basta con subir un tag (`git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z`):
+GitHub Actions compila `Miraru-Setup.exe` y `Miraru-Portable.exe` y los adjunta a la Release
+(`.github/workflows/release.yml`). En local: `python build.py` (instalador) o
+`python build.py --portable`. Para publicar en Scoop o winget, ver [`packaging/README.md`](packaging/README.md).
+</details>
 
 ## 📦 Tecnologías
 
-- **Backend**: Python 3.9+ / FastAPI / SQLite
-- **Frontend**: HTML/CSS/JS vanilla (sin frameworks)
-- **APIs**: AniList GraphQL, Jikan v4 REST, Kitsu JSON:API, Crunchyroll v2
-- **Empaquetado**: PyInstaller (--onedir)
+- **Backend**: Python 3.10+, FastAPI, SQLite
+- **Frontend**: HTML, CSS y JavaScript sin frameworks, Service Worker (sin conexión y notificaciones)
+- **Datos**: AniList (GraphQL), Jikan v4 (MyAnimeList), Kitsu, TMDB, AnimeThemes
+- **Empaquetado**: PyInstaller
 
 ## 📄 Licencia
 
-MIT — [@T0ff3_x](https://x.com/T0ff3_x)
+[MIT](LICENSE) — [@T0ff3_x](https://x.com/T0ff3_x)
 
 ---
 
