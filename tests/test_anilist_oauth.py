@@ -53,3 +53,4 @@ def test_estados_de_anilist_son_validos():
     import main
     for estado in anilist_sync._STATUS_FROM_ANILIST.values():
         assert estado in main.ESTADOS_VALIDOS, estado
+    assert anilist_sync._STATUS_FROM_ANILIST["PAUSED"] == "pausa"

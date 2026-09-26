@@ -44,9 +44,8 @@ _STATUS_TO_ANILIST = {
 _STATUS_FROM_ANILIST = {v: k for k, v in _STATUS_TO_ANILIST.items()}
 # AniList tiene REPEATING que no tenemos — lo mapeamos a "viendo"
 _STATUS_FROM_ANILIST["REPEATING"] = "viendo"
-# "pausa" no es un estado de Miraru (ESTADOS_VALIDOS): un anime importado así
-# desaparecía de filtros y estadísticas. En pausa = empezado → "viendo".
-_STATUS_FROM_ANILIST["PAUSED"] = "viendo"
+# PAUSED ↔ "pausa" (mapeo directo de _STATUS_TO_ANILIST; "pausa" es un estado
+# válido de Miraru: ver main.ESTADOS_VALIDOS).
 
 
 # ── Helpers de config ────────────────────────────────────────────────────────

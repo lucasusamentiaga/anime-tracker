@@ -281,3 +281,36 @@ def test_sync_sin_credenciales_da_400_claro(client, monkeypatch, tmp_path):
     r = client.post("/api/sync", json={"spreadsheet_id": "abc"})
     assert r.status_code == 400
     assert "credentials.json" in r.json()["detail"]
+
+
+def test_estado_pausa_se_acepta(client):
+    """El editor ofrece 'En pausa' pero el validador no lo aceptaba (422)."""
+    client.post("/api/animes/restore", json={"nombre": "Pausado", "capitulos": "12"})
+    r = client.patch("/api/animes/Pausado", json={"estado_usuario": "pausa"})
+    assert r.status_code == 200, r.text
+    assert client.patch("/api/animes/Pausado", json={"estado_usuario": "On-Hold"}).status_code == 200
+    assert db.obtener_anime("Pausado")["estado_usuario"] == "pausa"
+
+
+def test_anadir_por_url_anilist_usa_id_y_episodios_en_emision(client, monkeypatch):
+    from scrapers.base import AnimeData
+
+    class _AL:
+        def buscar_por_ids(self, ids, media_type="ANIME"):
+            return {21: AnimeData(nombre="ONE PIECE", capitulos="1179+", imagen="https://s4.anilist.co/op.jpg",
+                                  genero=[], sinopsis="", fuente="anilist", estado_anime="En emisión",
+                                  anilist_id=21)}
+        def buscar(self, n, media_type="ANIME"):
+            return None
+    monkeypatch.setitem(main.SCRAPERS, "anilist", _AL())
+    r = client.post("/api/animes", json={"nombre": "https://anilist.co/anime/21/", "fuente": "anilist"})
+    assert r.status_code == 200, r.text
+    d = r.json()["data"]
+    assert str(d["capitulos"]) == "1179+" and d["anilist_id"] == 21
+
+
+def test_menu_sin_version_escrita_a_mano():
+    import pathlib
+    import re
+    html = (pathlib.Path(main.__file__).parent / "templates" / "menu.html").read_text(encoding="utf-8")
+    assert not re.search(r">v\d+\.\d+\.\d+<", html)

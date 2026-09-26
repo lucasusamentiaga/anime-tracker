@@ -898,7 +898,10 @@ class BuscarRequest(BaseModel):
 # Estados que entienden las estadísticas, los filtros y la gamificación.
 # Cualquier otro valor se guardaba igual y luego no casaba con ninguna consulta:
 # el anime desaparecía de los recuentos sin que nada avisara.
-ESTADOS_VALIDOS = ("pendiente", "viendo", "completado", "abandonado")
+# "pausa" lo usan la UI (editor, filtros), las estadísticas y las importaciones
+# de MAL (On-Hold) y AniList (PAUSED); faltaba aquí y elegir "En pausa" en el
+# editor daba 422.
+ESTADOS_VALIDOS = ("pendiente", "viendo", "completado", "abandonado", "pausa")
 
 
 class ActualizarRequest(BaseModel):
@@ -931,7 +934,9 @@ class ActualizarRequest(BaseModel):
         # El inglés se aceptaba en otras partes del código; se normaliza aquí
         # para no acabar con "watching" y "viendo" conviviendo en la misma BD.
         equivalencias = {"watching": "viendo", "completed": "completado",
-                         "pending": "pendiente", "dropped": "abandonado"}
+                         "pending": "pendiente", "dropped": "abandonado",
+                         "paused": "pausa", "on-hold": "pausa", "on hold": "pausa",
+                         "en pausa": "pausa"}
         v = equivalencias.get(v, v)
         if v not in ESTADOS_VALIDOS:
             raise ValueError(
@@ -1446,37 +1451,15 @@ def _detect_url(s: str) -> Optional[tuple[str, str, str]]:
 
 
 def _buscar_por_anilist_id(anime_id: int) -> Optional[AnimeData]:
-    """Lookup directo en AniList por ID (más exacto que search)."""
-    query = """
-    query ($id: Int) {
-      Media(id: $id, type: ANIME) {
-        title { romaji english } episodes format coverImage { large }
-        genres description(asHtml:false) status
-      }
-    }"""
-    m = _anilist(query, {"id": anime_id}, timeout=10).get("Media")
-    if not m:
+    """Lookup directo en AniList por ID (añadir pegando una URL de AniList).
+
+    Usa el mismo parser que el resto (scrapers.anilist): antes esta consulta
+    propia no pedía nextAiringEpisode (One Piece entraba con "?" episodios) y
+    no devolvía el anilist_id, justo el dato que ya teníamos."""
+    anilist = SCRAPERS.get("anilist")
+    if not anilist or not hasattr(anilist, "buscar_por_ids"):
         return None
-    t = m.get("title") or {}
-    eps = m.get("episodes") or 0
-    fmt = (m.get("format") or "").upper()
-    if fmt == "MOVIE":
-        caps: int | str = "película"
-    elif eps > 0:
-        caps = eps
-    else:
-        caps = "?"
-    st_map = {"FINISHED":"Finalizado","RELEASING":"En emisión","NOT_YET_RELEASED":"Sin estrenar",
-              "CANCELLED":"Cancelado","HIATUS":"En pausa"}
-    return AnimeData(
-        nombre=t.get("english") or t.get("romaji") or f"#{anime_id}",
-        capitulos=caps,
-        imagen=(m.get("coverImage") or {}).get("large", ""),
-        genero=m.get("genres") or [],
-        sinopsis=(m.get("description") or "")[:500],
-        fuente="anilist",
-        estado_anime=st_map.get(m.get("status",""), "Desconocido"),
-    )
+    return anilist.buscar_por_ids([int(anime_id)]).get(int(anime_id))
 
 
 def _buscar_por_mal_id(mal_id: int) -> Optional[AnimeData]:
@@ -3562,7 +3545,7 @@ async def _fichas_gateway(pares: list) -> tuple:
                   for _i, t in faltan]
         rellenos = await asyncio.gather(*tareas, return_exceptions=True)
         recuperadas = 0
-        for (anime_id, _t), relleno in zip(faltan, rellenos):
+        for (anime_id, _t), relleno in zip(faltan, rellenos, strict=True):
             if isinstance(relleno, dict) and relleno.get("imagen"):
                 datos.setdefault(anime_id, {}).update(relleno)
                 recuperadas += 1
