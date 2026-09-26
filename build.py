@@ -22,6 +22,15 @@ import textwrap
 import zipfile
 from pathlib import Path
 
+# La consola de Windows suele ser cp1252 y los mensajes llevan "✓", "═"…:
+# sin esto `python build.py` (y el workflow de release) acababa en
+# UnicodeEncodeError.
+for _flujo in (sys.stdout, sys.stderr):
+    try:
+        _flujo.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT      = Path(__file__).parent.resolve()
 
 # La versión sale de core.py, que es la única fuente de verdad. Se lee del

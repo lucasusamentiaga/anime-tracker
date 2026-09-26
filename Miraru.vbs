@@ -68,7 +68,7 @@ If py = "" Then
     Dim appLocal, versiones, v, candidato
     appLocal = shell.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Programs\Python"
     versiones = Array("Python314", "Python313", "Python312", "Python311", _
-                      "Python310", "Python39", "Python38")
+                      "Python310")
     For Each v In versiones
         candidato = appLocal & "\" & v & "\python.exe"
         If fso.FileExists(candidato) Then
@@ -82,7 +82,7 @@ End If
 If py = "" Then
     Dim rutasC, rc
     rutasC = Array("C:\Python314", "C:\Python313", "C:\Python312", _
-                   "C:\Python311", "C:\Python310", "C:\Python39", "C:\Python38")
+                   "C:\Python311", "C:\Python310")
     For Each rc In rutasC
         If fso.FileExists(rc & "\python.exe") Then
             py = """" & rc & "\python.exe" & """"
@@ -96,8 +96,7 @@ If py = "" Then
     Dim rutasPF, rpf
     rutasPF = Array("C:\Program Files\Python314", "C:\Program Files\Python313", _
                     "C:\Program Files\Python312", "C:\Program Files\Python311", _
-                    "C:\Program Files\Python310", "C:\Program Files\Python39", _
-                    "C:\Program Files\Python38")
+                    "C:\Program Files\Python310")
     For Each rpf In rutasPF
         If fso.FileExists(rpf & "\python.exe") Then
             py = """" & rpf & "\python.exe" & """"
@@ -138,13 +137,13 @@ If py = "" Then
 End If
 
 
-' === 2. Verificar version minima (>= 3.9) ====================================
+' === 2. Verificar version minima (>= 3.10: la exigen FastAPI y pywebpush) ====================================
 ' Sin cmd /c: shell.Run ejecuta el proceso directamente, sin problemas de
 ' quote-stripping que cmd /c causa con rutas que contienen espacios.
 Dim rcVer
-rcVer = shell.Run(py & " -c ""import sys;exit(0 if sys.version_info>=(3,9) else 1)""", 0, True)
+rcVer = shell.Run(py & " -c ""import sys;exit(0 if sys.version_info>=(3,10) else 1)""", 0, True)
 If rcVer <> 0 Then
-    MsgBox "Miraru necesita Python 3.9 o superior." & vbCrLf & vbCrLf & _
+    MsgBox "Miraru necesita Python 3.10 o superior." & vbCrLf & vbCrLf & _
            "Actualiza Python desde https://www.python.org/downloads/", _
            vbExclamation, "Miraru"
     WScript.Quit 1
