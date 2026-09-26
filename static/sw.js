@@ -39,7 +39,7 @@
 // v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
 // v37 = mensaje de PIN unificado en /mobile.
 // v38 = versión 2.10.0.
-const CACHE_NAME = 'miraru-v40';
+const CACHE_NAME = 'miraru-v41';
 const STATIC_ASSETS = [
   '/',
   '/app',

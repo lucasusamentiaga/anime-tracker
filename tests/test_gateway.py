@@ -39,3 +39,16 @@ def test_todas_las_entradas_tienen_campos():
 def test_limite_respetado():
     r = G.recomendar_principiante(["Action"], limite=5)
     assert len(r["recomendaciones"]) == 5
+
+
+def test_no_recomienda_lo_que_ya_esta_en_la_lista():
+    # Attack on Titan (16498) por ID y Death Note por título
+    r = G.recomendar_principiante([], excluir_ids=[16498, 0, None], excluir_claves={"death note"})
+    titulos = [a["titulo"] for a in r["recomendaciones"]]
+    assert "Attack on Titan" not in titulos and "Death Note" not in titulos
+    assert r["empieza_aqui"]["titulo"].startswith("Fullmetal Alchemist")
+
+
+def test_todo_visto_devuelve_vacio():
+    r = G.recomendar_principiante([], excluir_ids=[a["id"] for a in G.GATEWAY])
+    assert r["empieza_aqui"] is None and r["recomendaciones"] == []

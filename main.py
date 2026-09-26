@@ -3581,7 +3581,12 @@ async def api_reco_principiante():
                 if g:
                     genre_weight[g] += 1
     top_genres = [g for g, _ in genre_weight.most_common(5)]
-    base = gateway_anime.recomendar_principiante(top_genres)
+    base = gateway_anime.recomendar_principiante(
+        top_genres,
+        excluir_ids=[a.get("anilist_id") for a in animes],
+        excluir_claves={db.clave_nombre(a.get("nombre") or "") for a in animes},
+        clave=db.clave_nombre,
+    )
 
     # `empieza_aqui` es el mismo objeto que recomendaciones[0], no una copia:
     # sin comprobarlo se enriquecería dos veces (y se buscaría dos veces en Kitsu).

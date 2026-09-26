@@ -62,13 +62,21 @@ GATEWAY = [
 ]
 
 
-def recomendar_principiante(top_genres, limite: int = 12) -> dict:
+def recomendar_principiante(top_genres, limite: int = 12, excluir_ids=(), excluir_claves=(),
+                            clave=lambda t: t.strip().lower()) -> dict:
     """Ordena los gateway por solapamiento con los géneros favoritos.
     Devuelve {empieza_aqui, recomendaciones, personalizado}.
-    Sin géneros → mantiene el orden curado (primer pick = mejor default)."""
+    Sin géneros → mantiene el orden curado (primer pick = mejor default).
+    `excluir_ids` (AniList) y `excluir_claves` (títulos ya normalizados con `clave`)
+    quitan lo que el usuario ya tiene en su lista: antes se recomendaba
+    "Attack on Titan" a quien ya lo había visto."""
     tg = {g.strip().lower() for g in (top_genres or []) if (g or "").strip()}
+    ids = {int(i) for i in excluir_ids if i}
+    claves = set(excluir_claves)
     scored = []
     for i, a in enumerate(GATEWAY):
+        if a["id"] in ids or clave(a["titulo"]) in claves:
+            continue
         gset = {g.lower() for g in a["generos"]}
         overlap = len(gset & tg)
         # dict(a): copia, para que quien enriquezca (portadas) no mute la lista base

@@ -152,6 +152,9 @@ async function cargarPrincipiante() {
     const d = await r.json();
     pintarAviso(d.aviso);
     const ea = d.empieza_aqui;
+    // Si ya tienes todos los "puerta de entrada" en tu lista, no mostrar la sección vacía.
+    const sec = document.getElementById('beginner');
+    if (sec) sec.style.display = (ea || (d.recomendaciones || []).length) ? '' : 'none';
     const hero = document.getElementById('beginner-hero');
     if (hero && ea) {
       const wrap = document.createElement('div');
