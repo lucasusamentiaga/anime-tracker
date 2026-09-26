@@ -4048,6 +4048,8 @@ async def anilist_connect(req: Request):
         viewer = anilist_sync.fetch_viewer(token)
         anilist_sync.save_token(token, viewer["name"], viewer["id"])
         return {"ok": True, "username": viewer["name"], "userid": viewer["id"]}
+    except HTTPException:
+        raise                      # antes el 400 de arriba acababa como 500
     except requests.HTTPError as e:
         raise HTTPException(400, f"Error OAuth: {e}")
     except Exception as e:
@@ -4098,6 +4100,10 @@ async def anilist_callback(code: str = ""):
     """Callback OAuth2 — AniList redirige aquí con ?code=..."""
     if not code:
         return HTMLResponse("<h2>Error: no se recibió código de autorización</h2>")
+    # El código va dentro de un <script>: json.dumps lo convierte en un literal
+    # JS válido (antes '{code}' se rompía con una comilla) y "</" se escapa para
+    # que no pueda cerrar la etiqueta.
+    code_js = json.dumps(code[:2048]).replace("</", "<\\/")
     # Devolver una página que envía el code al frontend vía postMessage o JS
     return HTMLResponse(f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Conectando con AniList...</title>
@@ -4114,7 +4120,7 @@ fetch('/api/anilist/connect', {{
   method: 'POST',
   headers: {{'Content-Type': 'application/json'}},
   body: JSON.stringify({{
-    code: '{code}',
+    code: {code_js},
     client_id: localStorage.getItem('anilist_client_id') || '',
     client_secret: localStorage.getItem('anilist_client_secret') || '',
     redirect_uri: window.location.origin + '/api/anilist/callback'
