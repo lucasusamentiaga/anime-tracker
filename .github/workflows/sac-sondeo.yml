@@ -1,0 +1,74 @@
+name: Sondeo de reputacion (Smart App Control)
+
+# Con la política SmartAppControl.xml aplicada, prueba qué módulos nativos de pip
+# deja cargar Windows (reputación en la nube) para varias versiones y Pythons.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sondeo:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.13.15', '3.12.10']
+    steps:
+      - name: Python oficial (MSI) y paquetes antes de la política
+        shell: powershell
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          $v = '${{ matrix.python }}'; $t = $env:RUNNER_TEMP; $py = "$t\py"
+          New-Item -ItemType Directory -Force "$t\msi", $py | Out-Null
+          foreach ($m in 'core','exe','lib') {
+            Invoke-WebRequest "https://www.python.org/ftp/python/$v/amd64/$m.msi" -OutFile "$t\msi\$m.msi" -UseBasicParsing
+            Start-Process msiexec.exe -Wait -ArgumentList '/a', "`"$t\msi\$m.msi`"", "TARGETDIR=`"$py`"", '/qn'
+          }
+          & "$py\python.exe" -m ensurepip -q 2>&1 | Out-Null
+          $paquetes = @(
+            'pydantic-core==2.41.5', 'pydantic-core==2.41.4', 'pydantic-core==2.40.1', 'pydantic-core==2.39.0',
+            'pydantic-core==2.35.2', 'pydantic-core==2.33.2', 'pydantic-core==2.27.2', 'pydantic-core==2.23.4',
+            'cryptography', 'cffi', 'charset-normalizer', 'multidict', 'yarl', 'frozenlist', 'propcache', 'aiohttp', 'protobuf')
+          foreach ($p in $paquetes) {
+            $dir = "$t\pk\" + ($p -replace '[=<>]', '_')
+            & "$py\python.exe" -m pip install -q --disable-pip-version-check --no-deps --only-binary=:all: --target $dir $p 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { "sin wheel: $p" }
+          }
+          # versión de pydantic-core que usa la app ahora mismo
+          & "$py\python.exe" -m pip download -q --no-deps --only-binary=:all: -d "$t\actual" pydantic==2.13.4 2>&1 | Out-Null
+          & "$py\python.exe" -m pip install -q --disable-pip-version-check --target "$t\pk\app_actual" pydantic==2.13.4 2>&1 | Out-Null
+          Get-ChildItem "$t\pk\app_actual" -Directory -Filter 'pydantic_core*' -Name
+
+      - name: Aplicar SmartAppControl.xml y cargar cada módulo
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $t = $env:RUNNER_TEMP; $py = "$t\py\python.exe"
+          $xml = "$t\sac.xml"
+          Copy-Item "$env:windir\schemas\CodeIntegrity\ExamplePolicies\SmartAppControl.xml" $xml
+          [xml]$p = Get-Content $xml
+          foreach ($r in @($p.SiPolicy.Rules.Rule)) { if ($r.Option -like '*Conditional Windows Lockdown*') { [void]$p.SiPolicy.Rules.RemoveChild($r) } }
+          $p.Save($xml)
+          Set-RuleOption -FilePath $xml -Option 3 -Delete
+          Set-CIPolicyIdInfo -FilePath $xml -ResetPolicyID | Out-Null
+          ConvertFrom-CIPolicy -XmlFilePath $xml -BinaryFilePath "$t\sac.cip" | Out-Null
+          CiTool.exe --update-policy "$t\sac.cip" -json | Out-Null
+          Start-Sleep 5
+          $modulos = @{
+            'pydantic_core' = 'import pydantic_core._pydantic_core as m';
+            'cryptography' = 'from cryptography.hazmat.bindings._rust import openssl';
+            'cffi' = 'import _cffi_backend';
+            'charset-normalizer' = 'import charset_normalizer.md as m; assert m.__file__.endswith(".pyd"), m.__file__';
+            'multidict' = 'import multidict._multidict'; 'yarl' = 'import yarl._quoting_c';
+            'frozenlist' = 'import frozenlist._frozenlist'; 'propcache' = 'import propcache._helpers_c';
+            'aiohttp' = 'import aiohttp._http_parser'; 'protobuf' = 'import google._upb._message'
+          }
+          foreach ($dir in Get-ChildItem "$t\pk" -Directory) {
+            $clave = ($modulos.Keys | Where-Object { $dir.Name -like ($_ -replace '_','*') + '*' -or $dir.Name -like ($_ + '*') } | Select-Object -First 1)
+            if ($dir.Name -eq 'app_actual') { $clave = 'pydantic_core' }
+            if (-not $clave) { continue }
+            $env:PYTHONPATH = $dir.FullName
+            $o = & $py -c ($modulos[$clave] + "; print('OK')") 2>&1 | Out-String
+            $estado = if ($o -match 'OK') { 'PERMITIDO' } elseif ($o -match 'Application Control') { 'BLOQUEADO' } else { 'ERROR ' + ($o.Trim() -split "`n")[-1] }
+            '{0,-34} {1}' -f $dir.Name, $estado
+          }
