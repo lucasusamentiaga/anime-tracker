@@ -84,9 +84,15 @@ function Miraru-InstalarPython {
         throw 'El instalador de Python descargado no tiene una firma valida de la Python Software Foundation.'
     }
     Miraru-Paso 'Instalando Python solo para tu usuario (no necesita permisos de administrador)...'
-    $p = Start-Process $exe -Wait -PassThru -ArgumentList @(
+    $p = Start-Process $exe -PassThru -ArgumentList @(
         '/quiet', 'InstallAllUsers=0', 'PrependPath=0', 'Include_launcher=0', 'Include_test=0',
         'Include_doc=0', 'Shortcuts=0', 'AssociateFiles=0')
+    # Si Windows bloquea parte del instalador, este puede quedarse esperando para siempre.
+    Wait-Process -Id $p.Id -Timeout 600 -ErrorAction SilentlyContinue
+    if (-not $p.HasExited) {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+        throw 'La instalacion de Python no termino en 10 minutos (puede que Windows la este bloqueando). Instala Python 3.13 desde python.org y vuelve a ejecutar este comando.'
+    }
     Remove-Item $exe -Force -ErrorAction SilentlyContinue
     if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "La instalacion de Python ha fallado (codigo $($p.ExitCode))." }
     $carpeta = 'Python' + ($MiraruPython -replace '^(\d+)\.(\d+)\..*$', '$1$2')

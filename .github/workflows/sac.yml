@@ -15,6 +15,13 @@ jobs:
   sac:
     runs-on: windows-2025
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # isg: con reputación en la nube (como Smart App Control de verdad);
+        # estricta: solo firmas permitidas por la política (más dura que SAC).
+        modo: [isg, estricta]
+    name: sac (${{ matrix.modo }})
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +53,9 @@ jobs:
           $p.Save($xml)
           Set-RuleOption -FilePath $xml -Option 3 -Delete      # quitar Audit Mode -> obligatorio
           Set-RuleOption -FilePath $xml -Option 16             # Update Policy No Reboot
+          if ('${{ matrix.modo }}' -eq 'isg') {
+            Set-RuleOption -FilePath $xml -Option 14           # Intelligent Security Graph (reputación)
+          }
           Set-CIPolicyIdInfo -FilePath $xml -ResetPolicyID | Out-Null
           [xml]$p = Get-Content $xml
           '== Reglas aplicadas =='; $p.SiPolicy.Rules.Rule | ForEach-Object { '  ' + $_.Option }
@@ -59,7 +69,7 @@ jobs:
 
           # --- 1. ¿La política bloquea como Smart App Control? --------------------------
           '== Modo de PowerShell en un proceso nuevo =='
-          powershell -NoProfile -Command '$ExecutionContext.SessionState.LanguageMode'
+          powershell -NoProfile -Command '$ExecutionContext.SessionState.LanguageMode' 2>&1
           '== Miraru-Portable.exe (sin firma): debe bloquearse =='
           try {
             $proc = Start-Process "$t\Miraru-Portable.exe" -PassThru -ErrorAction Stop
@@ -73,7 +83,11 @@ jobs:
           $env:MIRARU_ZIP = "$t\src.zip"
           $env:MIRARU_SIN_ABRIR = '1'
           $env:MIRARU_FORZAR_PYTHON = '1'
-          powershell -NoProfile -Command 'Get-Content install.ps1 -Raw | iex'
+          $inst = Start-Process powershell -PassThru -NoNewWindow -RedirectStandardOutput "$t\inst.out" -RedirectStandardError "$t\inst.err" `
+            -ArgumentList '-NoProfile', '-Command', 'Get-Content install.ps1 -Raw | iex'
+          Wait-Process -Id $inst.Id -Timeout 1200 -ErrorAction SilentlyContinue
+          if (-not $inst.HasExited) { 'install.ps1 NO TERMINO en 20 min'; Stop-Process -Id $inst.Id -Force }
+          Get-Content "$t\inst.out", "$t\inst.err" -ErrorAction SilentlyContinue
           Remove-Item Env:MIRARU_FORZAR_PYTHON, Env:MIRARU_SIN_ABRIR, Env:MIRARU_ZIP
 
           # --- 3. La app instalada arranca y responde -------------------------------------
