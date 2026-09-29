@@ -150,7 +150,7 @@ HIDDEN = [
     "email", "email.mime", "email.mime.text", "email.mime.multipart",
     "xml.etree.ElementTree", "html.parser",
     # bs4 parsers
-    "lxml", "html5lib",
+    # (sin lxml ni html5lib: los scrapers usan html.parser)
     # propios: se añaden abajo, descubiertos automáticamente
 ]
 

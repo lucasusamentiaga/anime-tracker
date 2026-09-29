@@ -13,8 +13,7 @@ python-multipart>=0.0.9
 # ── Scrapers / red ────────────────────────────────────────────────────────────
 # requests ya incluye urllib3, de donde sale el Retry con backoff (scrapers/net.py)
 requests>=2.32.0
-beautifulsoup4==4.14.3
-lxml>=5.0.0
+beautifulsoup4==4.14.3   # con html.parser (sin lxml: menos DLL sin firma)
 
 # ── Google Sheets (sincronización opcional) ───────────────────────────────────
 google-auth>=2.30.0
@@ -22,9 +21,6 @@ google-api-python-client==2.196.0
 
 # ── Notificaciones Web Push (llegan con la pestaña cerrada) ──────────────────
 pywebpush>=2.0.0
-
-# ── Imágenes (avatar, iconos del build) ───────────────────────────────────────
-Pillow>=10.0.0
 
 # ── Opcionales ────────────────────────────────────────────────────────────────
 # Discord Rich Presence: si falta, la función se desactiva sola (no rompe nada).

@@ -37,6 +37,10 @@ for p in [str(FROZEN_DIR), str(FROZEN_DIR / "scrapers")]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
+# protobuf (Google Sheets) en Python puro: su módulo nativo es otra DLL sin firma
+# que el Control inteligente de aplicaciones de Windows podría bloquear.
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
 # Env vars para todos los módulos
 os.environ.update({
     "ANIME_FROZEN_DIR": str(FROZEN_DIR),
