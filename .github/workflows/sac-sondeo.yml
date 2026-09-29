@@ -17,14 +17,14 @@ jobs:
       - name: Python oficial (MSI) y paquetes antes de la política
         shell: powershell
         run: |
-          $ProgressPreference = 'SilentlyContinue'
+          $ProgressPreference = 'SilentlyContinue'; $ErrorActionPreference = 'Continue'
           $v = '${{ matrix.python }}'; $t = $env:RUNNER_TEMP; $py = "$t\py"
           New-Item -ItemType Directory -Force "$t\msi", $py | Out-Null
           foreach ($m in 'core','exe','lib') {
             Invoke-WebRequest "https://www.python.org/ftp/python/$v/amd64/$m.msi" -OutFile "$t\msi\$m.msi" -UseBasicParsing
             Start-Process msiexec.exe -Wait -ArgumentList '/a', "`"$t\msi\$m.msi`"", "TARGETDIR=`"$py`"", '/qn'
           }
-          & "$py\python.exe" -m ensurepip -q 2>&1 | Out-Null
+          & "$py\python.exe" -m ensurepip 2>&1 | Out-Null
           $paquetes = @(
             'pydantic-core==2.41.5', 'pydantic-core==2.41.4', 'pydantic-core==2.40.1', 'pydantic-core==2.39.0',
             'pydantic-core==2.35.2', 'pydantic-core==2.33.2', 'pydantic-core==2.27.2', 'pydantic-core==2.23.4',
