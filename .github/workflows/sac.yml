@@ -1,0 +1,112 @@
+name: Prueba con Smart App Control
+
+# Aplica en un Windows desechable de GitHub la política de ejemplo de Windows
+# "SmartAppControl.xml" (la base del Control inteligente de aplicaciones) en modo
+# obligatorio y comprueba:
+#   1. que el .exe sin firma queda bloqueado (reproduce el WinError 4551 de usuarios),
+#   2. que install.ps1 instala Miraru y la app arranca y responde,
+#   3. qué archivos bloquea Windows (registro CodeIntegrity).
+# Solo se lanza a mano (Actions -> Run workflow).
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sac:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar código y .exe publicado
+        shell: powershell
+        run: |
+          git archive --prefix=anime-tracker-sac/ -o "$env:RUNNER_TEMP\src.zip" HEAD
+          gh release download --repo $env:GITHUB_REPOSITORY --pattern Miraru-Portable.exe --dir $env:RUNNER_TEMP
+          Get-ChildItem $env:RUNNER_TEMP | Select-Object Name, Length
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Aplicar la política de Smart App Control y probar
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $t = $env:RUNNER_TEMP
+          $ejemplo = "$env:windir\schemas\CodeIntegrity\ExamplePolicies\SmartAppControl.xml"
+          if (-not (Test-Path $ejemplo)) { Get-ChildItem "$env:windir\schemas\CodeIntegrity\ExamplePolicies" -Name; throw 'No existe SmartAppControl.xml en este Windows' }
+
+          # --- Política: SmartAppControl.xml en modo obligatorio y sin reinicio -------------
+          $xml = "$t\sac.xml"
+          Copy-Item $ejemplo $xml
+          [xml]$p = Get-Content $xml
+          '== Reglas originales =='; $p.SiPolicy.Rules.Rule | ForEach-Object { '  ' + $_.Option }
+          # La regla "Conditional Windows Lockdown Policy" no se admite fuera de SAC.
+          $reglas = @($p.SiPolicy.Rules.Rule)
+          foreach ($r in $reglas) { if ($r.Option -like '*Conditional Windows Lockdown*') { [void]$p.SiPolicy.Rules.RemoveChild($r) } }
+          $p.Save($xml)
+          Set-RuleOption -FilePath $xml -Option 3 -Delete      # quitar Audit Mode -> obligatorio
+          Set-RuleOption -FilePath $xml -Option 16             # Update Policy No Reboot
+          Set-CIPolicyIdInfo -FilePath $xml -ResetPolicyID | Out-Null
+          [xml]$p = Get-Content $xml
+          '== Reglas aplicadas =='; $p.SiPolicy.Rules.Rule | ForEach-Object { '  ' + $_.Option }
+          $id = $p.SiPolicy.PolicyID
+          ConvertFrom-CIPolicy -XmlFilePath $xml -BinaryFilePath "$t\sac.cip" | Out-Null
+          Start-Service AppIDSvc -ErrorAction SilentlyContinue
+          Get-Service AppIDSvc, WinDefend -ErrorAction SilentlyContinue | Format-Table Name, Status -AutoSize
+          CiTool.exe --update-policy "$t\sac.cip" -json
+          Start-Sleep 5
+          $inicioEventos = Get-Date
+
+          # --- 1. ¿La política bloquea como Smart App Control? --------------------------
+          '== Modo de PowerShell en un proceso nuevo =='
+          powershell -NoProfile -Command '$ExecutionContext.SessionState.LanguageMode'
+          '== Miraru-Portable.exe (sin firma): debe bloquearse =='
+          try {
+            $proc = Start-Process "$t\Miraru-Portable.exe" -PassThru -ErrorAction Stop
+            Start-Sleep 5; if (-not $proc.HasExited) { Stop-Process $proc -Force }
+            'RESULTADO_EXE: se ejecuto (NO bloqueado)'
+          } catch { "RESULTADO_EXE: bloqueado -> $($_.Exception.Message)" }
+
+          # --- 2. install.ps1 tal cual lo ejecuta un usuario ----------------------------
+          '== install.ps1 =='
+          $env:MIRARU_DESTINO = "$t\Miraru"
+          $env:MIRARU_ZIP = "$t\src.zip"
+          $env:MIRARU_SIN_ABRIR = '1'
+          $env:MIRARU_FORZAR_PYTHON = '1'
+          powershell -NoProfile -Command 'Get-Content install.ps1 -Raw | iex'
+          Remove-Item Env:MIRARU_FORZAR_PYTHON, Env:MIRARU_SIN_ABRIR, Env:MIRARU_ZIP
+
+          # --- 3. La app instalada arranca y responde -------------------------------------
+          '== Arranque de la app =='
+          $d = "$t\Miraru"
+          $env:MIRARU_NO_BROWSER = '1'
+          $ok = $false
+          if (Test-Path "$d\.venv\Scripts\pythonw.exe") {
+            Start-Process "$d\.venv\Scripts\pythonw.exe" -ArgumentList "`"$d\launcher.py`"" -WorkingDirectory $d
+            foreach ($i in 1..45) { Start-Sleep 2; try { $v = Invoke-RestMethod http://127.0.0.1:8765/api/version; $ok = $true; break } catch { } }
+          }
+          if ($ok) {
+            "RESULTADO_APP: responde (version $($v.version))"
+            foreach ($u in '/app', '/stats', '/api/animes/slim', '/api/stats', '/api/lang') {
+              try { $r = Invoke-WebRequest "http://127.0.0.1:8765$u" -UseBasicParsing; "  $u -> $($r.StatusCode)" } catch { "  $u -> ERROR $($_.Exception.Message)" }
+            }
+            $cuerpo = '{"nombre":"Frieren","fuente":"anilist"}'
+            try { $r = Invoke-RestMethod -Method Post http://127.0.0.1:8765/api/animes -Body $cuerpo -ContentType 'application/json'; "  anadir anime -> ok $($r | ConvertTo-Json -Compress -Depth 2)" } catch { "  anadir anime -> ERROR $($_.Exception.Message)" }
+            try { Invoke-RestMethod -Method Post http://127.0.0.1:8765/api/apagar | Out-Null } catch { }
+          } else {
+            'RESULTADO_APP: NO responde'
+            Get-Content "$d\anime_tracker.log" -Tail 40 -ErrorAction SilentlyContinue
+          }
+
+          # --- Qué ha bloqueado Windows ----------------------------------------------------
+          '== Bloqueos de CodeIntegrity (3077 = bloqueado) =='
+          Get-WinEvent -LogName 'Microsoft-Windows-CodeIntegrity/Operational' -ErrorAction SilentlyContinue |
+            Where-Object { $_.TimeCreated -ge $inicioEventos -and $_.Id -in 3077, 3033, 3034, 3089 } |
+            ForEach-Object { "  [$($_.Id)] " + (($_.Message -split "`n")[0]) } | Sort-Object -Unique | Select-Object -First 60
+          '== Bloqueos de scripts/MSI (AppLocker MSI and Script 8029/8028) =='
+          Get-WinEvent -LogName 'Microsoft-Windows-AppLocker/MSI and Script' -ErrorAction SilentlyContinue |
+            Where-Object { $_.TimeCreated -ge $inicioEventos -and $_.Id -in 8028, 8029 } |
+            ForEach-Object { "  [$($_.Id)] " + (($_.Message -split "`n")[0]) } | Sort-Object -Unique | Select-Object -First 30
+
+          CiTool.exe --remove-policy $id -json | Out-Null
+          if (-not $ok) { exit 1 }
