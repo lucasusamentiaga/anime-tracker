@@ -307,13 +307,16 @@ def _uninstall():
             bat = Path(tempfile.gettempdir()) / "_at_uninstall.bat"
             bat.write_text(
                 "@echo off\r\n"
+                # Salir de la carpeta antes de borrarla: si el proceso está
+                # "dentro", Windows la deja vacía pero no la elimina.
+                'cd /d "%TEMP%"\r\n'
                 "ping 127.0.0.1 -n 3 >nul\r\n"          # esperar ~2s a que cierre
                 f'rmdir /s /q "{install_dir}"\r\n'
                 'del "%~f0"\r\n',
                 encoding="utf-8",
             )
             DETACHED_PROCESS = 0x00000008
-            subprocess.Popen(["cmd", "/c", str(bat)],
+            subprocess.Popen(["cmd", "/c", str(bat)], cwd=tempfile.gettempdir(),
                              creationflags=DETACHED_PROCESS, close_fds=True)
         except Exception as e:
             log(f"No se pudo programar el borrado de la carpeta: {e}")
