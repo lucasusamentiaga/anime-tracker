@@ -15,13 +15,6 @@ jobs:
   sac:
     runs-on: windows-2025
     timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        # isg: con reputación en la nube (como Smart App Control de verdad);
-        # estricta: solo firmas permitidas por la política (más dura que SAC).
-        modo: [isg, estricta]
-    name: sac (${{ matrix.modo }})
     steps:
       - uses: actions/checkout@v4
 
@@ -53,9 +46,6 @@ jobs:
           $p.Save($xml)
           Set-RuleOption -FilePath $xml -Option 3 -Delete      # quitar Audit Mode -> obligatorio
           Set-RuleOption -FilePath $xml -Option 16             # Update Policy No Reboot
-          if ('${{ matrix.modo }}' -eq 'isg') {
-            Set-RuleOption -FilePath $xml -Option 14           # Intelligent Security Graph (reputación)
-          }
           Set-CIPolicyIdInfo -FilePath $xml -ResetPolicyID | Out-Null
           [xml]$p = Get-Content $xml
           '== Reglas aplicadas =='; $p.SiPolicy.Rules.Rule | ForEach-Object { '  ' + $_.Option }
@@ -76,6 +66,15 @@ jobs:
             Start-Sleep 5; if (-not $proc.HasExited) { Stop-Process $proc -Force }
             'RESULTADO_EXE: se ejecuto (NO bloqueado)'
           } catch { "RESULTADO_EXE: bloqueado -> $($_.Exception.Message)" }
+
+          # Control de la reputación (ISG): t64.exe de pip no tiene firma pero está en
+          # millones de equipos. Si se bloquea, la reputación en la nube no funciona en
+          # este Windows y los .pyd de pip se bloquearán aunque en un PC real no.
+          $t64 = Get-ChildItem "$env:ProgramFiles\*Python*", "C:\hostedtoolcache\windows\Python" -Recurse -Filter t64.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($t64) {
+            try { $c = Start-Process $t64.FullName -PassThru -ErrorAction Stop; Start-Sleep 2; if (-not $c.HasExited) { Stop-Process $c -Force }; 'RESULTADO_ISG: t64.exe se ejecuto (reputacion en la nube activa)' }
+            catch { "RESULTADO_ISG: t64.exe bloqueado (sin reputacion en la nube en este equipo) -> $($_.Exception.Message)" }
+          } else { 'RESULTADO_ISG: no se encontro t64.exe para comprobarlo' }
 
           # --- 2. install.ps1 tal cual lo ejecuta un usuario ----------------------------
           '== install.ps1 =='

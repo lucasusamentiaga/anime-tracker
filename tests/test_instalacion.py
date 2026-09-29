@@ -39,6 +39,16 @@ def test_install_ps1_verifica_la_firma_de_python():
     assert "Get-AuthenticodeSignature" in PS1 and "Python Software Foundation" in PS1
 
 
+def test_python_desde_msi_sin_instalador():
+    """El instalador python-X-amd64.exe extrae PythonBA.dll (sin firma) y con Smart App
+    Control se queda colgado: se usan los .msi firmados con msiexec /a."""
+    codigo = "\n".join(l for l in PS1.splitlines() if not l.lstrip().startswith("#"))
+    assert "-amd64.exe" not in codigo
+    assert "msiexec.exe" in codigo and "'/a'" in codigo
+    for m in ("core", "exe", "lib", "tcltk"):
+        assert f"'{m}'" in codigo
+
+
 def test_desinstalar_solo_borra_instalaciones_reales(tmp_path):
     codigo = tmp_path / "a" / "b" / "Miraru"
     codigo.mkdir(parents=True)

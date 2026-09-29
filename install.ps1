@@ -52,6 +52,8 @@ function Miraru-ProbarPython($exe, $previos) {
 
 function Miraru-BuscarPython {
     $candidatos = @()
+    $privado = Join-Path $MiraruDestino 'python\python.exe'
+    if (Test-Path $privado) { $candidatos += , @($privado, $null) }
     foreach ($nombre in @('py', 'python', 'python3')) {
         foreach ($c in @(Get-Command $nombre -All -ErrorAction SilentlyContinue)) {
             # El "python" de WindowsApps es un alias que abre la Microsoft Store: no se toca.
@@ -74,30 +76,41 @@ function Miraru-BuscarPython {
 }
 
 function Miraru-InstalarPython {
+    # Python privado de Miraru a partir de los paquetes MSI oficiales (firmados por la PSF),
+    # extraidos con msiexec /a. No se usa el instalador python-X.exe: su motor extrae una
+    # DLL sin firma (PythonBA.dll) que Smart App Control bloquea y el instalador se cuelga.
+    # Sin registro ni entrada en "Aplicaciones": vive en <Miraru>\python y se borra con Miraru.
+    $carpeta = Join-Path $MiraruDestino 'python'
+    $temporal = Join-Path $env:TEMP ('miraru-python-' + (Get-Random))
+    New-Item -ItemType Directory -Force $temporal | Out-Null
+    Remove-Item $carpeta -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $carpeta | Out-Null
     Miraru-Paso "Descargando Python $MiraruPython oficial (python.org)..."
-    $url = "https://www.python.org/ftp/python/$MiraruPython/python-$MiraruPython-amd64.exe"
-    $exe = Join-Path $env:TEMP "python-$MiraruPython-amd64.exe"
-    Invoke-WebRequest $url -OutFile $exe -UseBasicParsing
-    $firma = Get-AuthenticodeSignature $exe
-    if ("$($firma.Status)" -ne 'Valid' -or "$($firma.SignerCertificate.Subject)" -notmatch 'Python Software Foundation') {
-        Remove-Item $exe -Force -ErrorAction SilentlyContinue
-        throw 'El instalador de Python descargado no tiene una firma valida de la Python Software Foundation.'
+    foreach ($m in @('core', 'exe', 'lib', 'tcltk')) {
+        $msi = Join-Path $temporal "$m.msi"
+        Invoke-WebRequest "https://www.python.org/ftp/python/$MiraruPython/amd64/$m.msi" -OutFile $msi -UseBasicParsing
+        $firma = Get-AuthenticodeSignature $msi
+        if ("$($firma.Status)" -ne 'Valid' -or "$($firma.SignerCertificate.Subject)" -notmatch 'Python Software Foundation') {
+            Remove-Item $temporal -Recurse -Force -ErrorAction SilentlyContinue
+            throw "El paquete $m.msi de Python no tiene una firma valida de la Python Software Foundation."
+        }
     }
-    Miraru-Paso 'Instalando Python solo para tu usuario (no necesita permisos de administrador)...'
-    $p = Start-Process $exe -PassThru -ArgumentList @(
-        '/quiet', 'InstallAllUsers=0', 'PrependPath=0', 'Include_launcher=0', 'Include_test=0',
-        'Include_doc=0', 'Shortcuts=0', 'AssociateFiles=0')
-    # Si Windows bloquea parte del instalador, este puede quedarse esperando para siempre.
-    Wait-Process -Id $p.Id -Timeout 600 -ErrorAction SilentlyContinue
-    if (-not $p.HasExited) {
-        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-        throw 'La instalacion de Python no termino en 10 minutos (puede que Windows la este bloqueando). Instala Python 3.13 desde python.org y vuelve a ejecutar este comando.'
+    Miraru-Paso 'Preparando Python (sin instalador ni permisos de administrador)...'
+    foreach ($m in @('core', 'exe', 'lib', 'tcltk')) {
+        $msi = Join-Path $temporal "$m.msi"
+        $p = Start-Process 'msiexec.exe' -PassThru -ArgumentList @('/a', "`"$msi`"", "TARGETDIR=`"$carpeta`"", '/qn')
+        Wait-Process -Id $p.Id -Timeout 300 -ErrorAction SilentlyContinue
+        if (-not $p.HasExited) {
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            throw "Windows no termino de extraer $m.msi en 5 minutos."
+        }
+        if ($p.ExitCode -ne 0) { throw "No se pudo extraer $m.msi (codigo $($p.ExitCode))." }
     }
-    Remove-Item $exe -Force -ErrorAction SilentlyContinue
-    if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "La instalacion de Python ha fallado (codigo $($p.ExitCode))." }
-    $carpeta = 'Python' + ($MiraruPython -replace '^(\d+)\.(\d+)\..*$', '$1$2')
-    $ruta = Miraru-ProbarPython (Join-Path $env:LOCALAPPDATA "Programs\Python\$carpeta\python.exe") $null
-    if (-not $ruta) { throw 'Python se ha instalado pero no responde.' }
+    # msiexec /a deja una copia de cada .msi junto a los archivos
+    Get-ChildItem $carpeta -Filter '*.msi' | Remove-Item -Force -ErrorAction SilentlyContinue
+    Remove-Item $temporal -Recurse -Force -ErrorAction SilentlyContinue
+    $ruta = Miraru-ProbarPython (Join-Path $carpeta 'python.exe') $null
+    if (-not $ruta) { throw 'Python se ha preparado pero no responde (puede que Windows lo este bloqueando).' }
     return $ruta
 }
 
