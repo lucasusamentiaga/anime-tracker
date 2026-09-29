@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.10.2
+
+- **Windows 11 con Control inteligente de aplicaciones**: si Windows bloquea abrir Miraru
+  después de instalarlo, el instalador ya no lo muestra como "Error de instalación" con el
+  texto técnico de Windows: explica qué pasa y qué hacer (la instalación sí se completa).
+- **Recomendaciones**: "Empieza por aquí" ya no te sugiere animes que ya tienes en tu lista.
+- README con capturas reales.
+
 ## v2.10.1 — Revisión antes de publicar
 
 ### Miraru en inglés, francés y alemán de verdad
