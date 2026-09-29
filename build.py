@@ -274,6 +274,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Creando accesos directos...","reg":"Finalizando instalación...",
                    "done":"Instalación completada.",
                    "ask_open":"Instalación completada.\n¿Abrir Miraru ahora?",
+                   "blocked":"Miraru se ha instalado, pero Windows no deja abrirlo.\n\nEl Control inteligente de aplicaciones de Windows 11 (o una directiva de tu empresa o centro) bloquea los programas que aún no tienen firma digital.\n\nPuedes usar Miraru desde el código fuente con Python (ver README en GitHub) o esperar a una versión firmada.",
                    "err":"Error de instalación","lang":"Idioma / Language:"},
             "en": {"title":"Install Miraru","ver":"Version {v}",
                    "folder":"Installation folder:","desktop":"Create desktop shortcut",
@@ -282,6 +283,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Creating shortcuts...","reg":"Finishing installation...",
                    "done":"Installation complete.",
                    "ask_open":"Installation complete.\nOpen Miraru now?",
+                   "blocked":"Miraru was installed, but Windows won't let it open.\n\nWindows 11 Smart App Control (or a policy from your company or school) blocks programs that don't have a digital signature yet.\n\nYou can run Miraru from source with Python (see the README on GitHub) or wait for a signed version.",
                    "err":"Installation error","lang":"Idioma / Language:"},
             "fr": {"title":"Installer Miraru","ver":"Version {v}",
                    "folder":"Dossier d'installation :","desktop":"Raccourci sur le bureau",
@@ -290,6 +292,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Création des raccourcis...","reg":"Finalisation...",
                    "done":"Installation terminée.",
                    "ask_open":"Installation terminée.\nOuvrir Miraru maintenant ?",
+                   "blocked":"Miraru est installé, mais Windows refuse de l'ouvrir.\n\nLe Contrôle intelligent des applications de Windows 11 (ou une stratégie de ton entreprise ou établissement) bloque les programmes sans signature numérique.\n\nTu peux lancer Miraru depuis le code source avec Python (voir le README sur GitHub) ou attendre une version signée.",
                    "err":"Erreur d'installation","lang":"Idioma / Language:"},
             "de": {"title":"Miraru installieren","ver":"Version {v}",
                    "folder":"Installationsordner:","desktop":"Desktop-Verknüpfung",
@@ -298,6 +301,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Verknüpfungen erstellen...","reg":"Abschließen...",
                    "done":"Installation abgeschlossen.",
                    "ask_open":"Installation abgeschlossen.\nMiraru jetzt öffnen?",
+                   "blocked":"Miraru wurde installiert, aber Windows lässt es nicht starten.\n\nDie intelligente App-Steuerung von Windows 11 (oder eine Richtlinie deiner Firma oder Schule) blockiert Programme ohne digitale Signatur.\n\nDu kannst Miraru mit Python aus dem Quellcode starten (siehe README auf GitHub) oder auf eine signierte Version warten.",
                    "err":"Installationsfehler","lang":"Idioma / Language:"},
         }
         _lang = "es"
@@ -542,7 +546,16 @@ def _write_installer_source(path: Path):
 
                     self._st(T("done"), 100)
                     if messagebox.askyesno(APP_NAME, T("ask_open")):
-                        os.startfile(str(exe))
+                        try:
+                            os.startfile(str(exe))
+                        except OSError as e:
+                            # 4551: Control inteligente de aplicaciones (Smart App Control) o
+                            # una directiva de la empresa/centro bloquea el .exe sin firma.
+                            # La instalación ya está hecha: no es un "error de instalación".
+                            if getattr(e, "winerror", None) in (4551, 1260):
+                                messagebox.showwarning(APP_NAME, T("blocked"))
+                            else:
+                                raise
                     self.destroy()
 
                 except Exception as e:

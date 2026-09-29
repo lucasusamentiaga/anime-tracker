@@ -48,3 +48,20 @@ def test_hidden_imports_cubren_paquetes():
         if p.stem != "__init__":
             assert f"routers.{p.stem}" in build.HIDDEN
     assert "metadatos" in build.HIDDEN
+
+
+def test_instalador_explica_el_bloqueo_de_smart_app_control(tmp_path):
+    """WinError 4551 al abrir la app tras instalar: antes salía como
+    "Error de instalación" con el texto crudo de Windows."""
+    src = tmp_path / "inst.py"
+    build._write_installer_source(src)
+    codigo = src.read_text(encoding="utf-8")
+    ast.parse(codigo)  # el instalador generado es Python válido
+    assert "4551" in codigo
+    arbol = ast.parse(codigo)
+    textos = next(
+        ast.literal_eval(n.value) for n in ast.walk(arbol)
+        if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "TEXTS"
+    )
+    for lang in ("es", "en", "fr", "de"):
+        assert "\n" in textos[lang]["blocked"], lang

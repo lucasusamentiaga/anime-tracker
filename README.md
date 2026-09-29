@@ -70,8 +70,13 @@ No necesitas instalar Python: va incluido. Descarga desde la
 2. Pulsa **Instalar** y luego **Abrir**. Crea accesos directos en el escritorio y en el menú Inicio.
 3. Para desinstalar: *Configuración → Aplicaciones → Miraru → Desinstalar*.
 
-> **Aviso de Windows ("editor desconocido")**: aparece porque el `.exe` no está firmado.
+> **Aviso de Windows ("editor desconocido")**: aparece porque el `.exe` aún no tiene firma digital.
 > Pulsa **Más información → Ejecutar de todas formas**.
+>
+> **"Una directiva de Control de aplicaciones bloqueó este archivo"**: en Windows 11 con el
+> *Control inteligente de aplicaciones* activado (o en equipos de empresa o centro educativo)
+> los programas sin firma no se pueden abrir y no hay botón para saltarlo. Mientras Miraru no
+> tenga firma, en esos equipos úsalo [desde el código](#-ejecutar-desde-el-código).
 
 **Para cerrar Miraru**, usa el botón **⏻ Salir** del menú: cerrar la pestaña no apaga la app.
 
