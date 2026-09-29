@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.11.0 — Instalación con un comando (funciona con el Control inteligente de aplicaciones)
+
+Windows 11 con el *Control inteligente de aplicaciones* bloquea los `.exe` sin firma digital
+sin dejar abrirlos. Ahora Miraru se instala pegando una línea en PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1 | iex
+```
+
+- No usa ningún `.exe` propio: instala Python oficial de python.org (firmado; comprueba la
+  firma antes de usarlo) si no lo tienes, y el código de Miraru en `%LOCALAPPDATA%\Miraru`.
+- Sin permisos de administrador. Crea accesos directos y aparece en *Aplicaciones instaladas*.
+- Para actualizar, el mismo comando: tu lista y tu configuración se conservan.
+- Si usabas el instalador `.exe`, se trae tu lista la primera vez.
+- Probado en cada cambio en Windows real con PowerShell en modo restringido.
+- Las dependencias de la app ya no incluyen herramientas de desarrollo (más rápida de instalar).
+
+Los `.exe` siguen disponibles para quien los prefiera.
+
 ## v2.10.2
 
 - **Windows 11 con Control inteligente de aplicaciones**: si Windows bloquea abrir Miraru

@@ -36,5 +36,5 @@
     { "name": "Recomendaciones", "url": "/recomendaciones" },
     { "name": "Pelis y series",  "url": "/peliculas" }
   ],
-  "version": "2.10.2"
+  "version": "2.11.0"
 }
