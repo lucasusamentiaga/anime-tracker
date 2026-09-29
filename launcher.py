@@ -212,6 +212,10 @@ MARCA_INSTALACION = ".miraru-instalado"
 
 
 def _confirm(msg: str, default: bool = True) -> bool:
+    # MIRARU_SIN_DIALOGOS=1: pruebas automáticas (CI), responde "sí" sin ventana.
+    if os.environ.get("MIRARU_SIN_DIALOGOS") == "1":
+        log(f"(sin diálogos) {msg!r} -> sí")
+        return True
     try:
         import tkinter as tk
         from tkinter import messagebox
@@ -224,6 +228,9 @@ def _confirm(msg: str, default: bool = True) -> bool:
 
 
 def _info(msg: str):
+    if os.environ.get("MIRARU_SIN_DIALOGOS") == "1":
+        log(msg)
+        return
     try:
         import tkinter as tk
         from tkinter import messagebox

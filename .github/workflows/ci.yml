@@ -208,3 +208,40 @@ jobs:
           }
           if (-not $ok) { Get-Content "$d\anime_tracker.log" -Tail 30; throw 'Miraru no arranco' }
           "Miraru $($v.version) responde"
+          Invoke-RestMethod -Method Post http://127.0.0.1:8765/api/apagar | Out-Null
+          Start-Sleep 3
+
+      - name: Actualizar con el mismo comando conserva los datos
+        shell: powershell
+        env:
+          MIRARU_DESTINO: ${{ runner.temp }}\Miraru
+          MIRARU_ZIP: ${{ runner.temp }}\src.zip
+          MIRARU_SIN_ABRIR: '1'
+        run: |
+          $db = Join-Path $env:MIRARU_DESTINO 'anime_tracker.db'
+          if (-not (Test-Path $db)) { throw 'No se creo la base de datos' }
+          Set-Content (Join-Path $env:MIRARU_DESTINO 'marca-datos.txt') 'no borrar'
+          $antes = (Get-Item $db).LastWriteTime
+          powershell -NoProfile -Command '$ExecutionContext.SessionState.LanguageMode = ''ConstrainedLanguage''; Get-Content install.ps1 -Raw | iex'
+          if (-not (Test-Path $db)) { throw 'La actualizacion borro la base de datos' }
+          if (-not (Test-Path (Join-Path $env:MIRARU_DESTINO 'marca-datos.txt'))) { throw 'La actualizacion borro archivos del usuario' }
+          'Actualizacion OK: datos conservados'
+
+      - name: Desinstalar desde Aplicaciones instaladas
+        shell: powershell
+        env:
+          MIRARU_SIN_DIALOGOS: '1'
+        run: |
+          $d = "$env:RUNNER_TEMP\Miraru"
+          $clave = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Miraru'
+          $cmd = (Get-ItemProperty $clave).UninstallString
+          "UninstallString: $cmd"
+          # Ejecutar exactamente la orden registrada (como hace Windows)
+          $exe = ($cmd -split '"')[1]; $arg = $cmd.Substring($cmd.IndexOf('"', $exe.Length + 2))
+          Start-Process $exe -ArgumentList $arg -Wait
+          Start-Sleep 6
+          $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Miraru.lnk'
+          if (Test-Path $clave) { throw 'Sigue la entrada en Aplicaciones instaladas' }
+          if (Test-Path $lnk) { throw 'Sigue el acceso directo del menu Inicio' }
+          if (Test-Path $d) { Get-ChildItem $d -Force | Select-Object -First 10; throw 'No se borro la carpeta de Miraru' }
+          'Desinstalacion OK: carpeta, accesos directos y registro eliminados'
