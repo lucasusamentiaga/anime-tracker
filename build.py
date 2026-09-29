@@ -103,7 +103,7 @@ def check_deps():
     if missing:
         print(f"\n  ERROR: Faltan paquetes: {', '.join(missing)}")
         print(f"  Python: {sys.executable}")
-        print("\n  Ejecuta primero:\n    pip install -r requirements.txt")
+        print("\n  Ejecuta primero:\n    pip install -r requirements-dev.txt")
         sys.exit(1)
     print(f"  Dependencias OK  (Python {sys.version.split()[0]})")
 
@@ -274,7 +274,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Creando accesos directos...","reg":"Finalizando instalación...",
                    "done":"Instalación completada.",
                    "ask_open":"Instalación completada.\n¿Abrir Miraru ahora?",
-                   "blocked":"Miraru se ha instalado, pero Windows no deja abrirlo.\n\nEl Control inteligente de aplicaciones de Windows 11 (o una directiva de tu empresa o centro) bloquea los programas que aún no tienen firma digital.\n\nPuedes usar Miraru desde el código fuente con Python (ver README en GitHub) o esperar a una versión firmada.",
+                   "blocked":"Miraru se ha instalado, pero Windows no deja abrirlo.\n\nEl Control inteligente de aplicaciones de Windows 11 (o una directiva de tu empresa o centro) bloquea los programas que aún no tienen firma digital.\n\nSolución: instálalo con el comando de PowerShell que indica la página de Miraru en GitHub (github.com/lucasusamentiaga/anime-tracker). Ese método sí funciona con este bloqueo.",
                    "err":"Error de instalación","lang":"Idioma / Language:"},
             "en": {"title":"Install Miraru","ver":"Version {v}",
                    "folder":"Installation folder:","desktop":"Create desktop shortcut",
@@ -283,7 +283,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Creating shortcuts...","reg":"Finishing installation...",
                    "done":"Installation complete.",
                    "ask_open":"Installation complete.\nOpen Miraru now?",
-                   "blocked":"Miraru was installed, but Windows won't let it open.\n\nWindows 11 Smart App Control (or a policy from your company or school) blocks programs that don't have a digital signature yet.\n\nYou can run Miraru from source with Python (see the README on GitHub) or wait for a signed version.",
+                   "blocked":"Miraru was installed, but Windows won't let it open.\n\nWindows 11 Smart App Control (or a policy from your company or school) blocks programs that don't have a digital signature yet.\n\nFix: install it with the PowerShell command shown on Miraru's GitHub page (github.com/lucasusamentiaga/anime-tracker). That method works with this block.",
                    "err":"Installation error","lang":"Idioma / Language:"},
             "fr": {"title":"Installer Miraru","ver":"Version {v}",
                    "folder":"Dossier d'installation :","desktop":"Raccourci sur le bureau",
@@ -292,7 +292,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Création des raccourcis...","reg":"Finalisation...",
                    "done":"Installation terminée.",
                    "ask_open":"Installation terminée.\nOuvrir Miraru maintenant ?",
-                   "blocked":"Miraru est installé, mais Windows refuse de l'ouvrir.\n\nLe Contrôle intelligent des applications de Windows 11 (ou une stratégie de ton entreprise ou établissement) bloque les programmes sans signature numérique.\n\nTu peux lancer Miraru depuis le code source avec Python (voir le README sur GitHub) ou attendre une version signée.",
+                   "blocked":"Miraru est installé, mais Windows refuse de l'ouvrir.\n\nLe Contrôle intelligent des applications de Windows 11 (ou une stratégie de ton entreprise ou établissement) bloque les programmes sans signature numérique.\n\nSolution : installe-le avec la commande PowerShell indiquée sur la page GitHub de Miraru (github.com/lucasusamentiaga/anime-tracker). Cette méthode fonctionne malgré ce blocage.",
                    "err":"Erreur d'installation","lang":"Idioma / Language:"},
             "de": {"title":"Miraru installieren","ver":"Version {v}",
                    "folder":"Installationsordner:","desktop":"Desktop-Verknüpfung",
@@ -301,7 +301,7 @@ def _write_installer_source(path: Path):
                    "shortcuts":"Verknüpfungen erstellen...","reg":"Abschließen...",
                    "done":"Installation abgeschlossen.",
                    "ask_open":"Installation abgeschlossen.\nMiraru jetzt öffnen?",
-                   "blocked":"Miraru wurde installiert, aber Windows lässt es nicht starten.\n\nDie intelligente App-Steuerung von Windows 11 (oder eine Richtlinie deiner Firma oder Schule) blockiert Programme ohne digitale Signatur.\n\nDu kannst Miraru mit Python aus dem Quellcode starten (siehe README auf GitHub) oder auf eine signierte Version warten.",
+                   "blocked":"Miraru wurde installiert, aber Windows lässt es nicht starten.\n\nDie intelligente App-Steuerung von Windows 11 (oder eine Richtlinie deiner Firma oder Schule) blockiert Programme ohne digitale Signatur.\n\nLösung: Installiere es mit dem PowerShell-Befehl auf der GitHub-Seite von Miraru (github.com/lucasusamentiaga/anime-tracker). Diese Methode funktioniert trotz der Sperre.",
                    "err":"Installationsfehler","lang":"Idioma / Language:"},
         }
         _lang = "es"
