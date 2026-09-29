@@ -58,25 +58,36 @@ ni nube.
 
 ## 📥 Instalación
 
-No necesitas instalar Python: va incluido. Descarga desde la
-[última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest):
+### Recomendada: un comando (Windows 10 y 11)
 
-**A) Portable (lo más rápido)**
-1. Descarga **`Miraru-Portable.exe`** y ábrelo con doble clic.
-2. Se abre en tu navegador. Tus datos se guardan en la misma carpeta que el `.exe`, así que ponlo en una carpeta propia.
+1. Abre **PowerShell**: pulsa `Win`, escribe *PowerShell* y pulsa Intro.
+2. Pega esta línea y pulsa Intro:
 
-**B) Instalador**
-1. Descarga **`Miraru-Setup.exe`** y ábrelo.
-2. Pulsa **Instalar** y luego **Abrir**. Crea accesos directos en el escritorio y en el menú Inicio.
-3. Para desinstalar: *Configuración → Aplicaciones → Miraru → Desinstalar*.
+```powershell
+irm https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1 | iex
+```
 
-> **Aviso de Windows ("editor desconocido")**: aparece porque el `.exe` aún no tiene firma digital.
-> Pulsa **Más información → Ejecutar de todas formas**.
->
-> **"Una directiva de Control de aplicaciones bloqueó este archivo"**: en Windows 11 con el
-> *Control inteligente de aplicaciones* activado (o en equipos de empresa o centro educativo)
-> los programas sin firma no se pueden abrir y no hay botón para saltarlo. Mientras Miraru no
-> tenga firma, en esos equipos úsalo [desde el código](#-ejecutar-desde-el-código).
+En un par de minutos Miraru se abre en tu navegador y queda en el menú Inicio y en el
+escritorio. No pide permisos de administrador y **funciona aunque Windows tenga activado el
+Control inteligente de aplicaciones**, porque no usa ningún `.exe` sin firma: instala Python
+oficial de [python.org](https://www.python.org) (si no lo tienes) y el código de Miraru en
+`%LOCALAPPDATA%\Miraru`.
+
+- **Actualizar**: vuelve a ejecutar el mismo comando. Tu lista y tu configuración se conservan.
+- **Desinstalar**: *Configuración → Aplicaciones → Miraru → Desinstalar* (borra también tus datos).
+- Si antes usabas el instalador `.exe`, la primera vez se trae tu lista automáticamente.
+
+### Alternativa: descargar un `.exe`
+
+Desde la [última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest):
+**`Miraru-Portable.exe`** (doble clic y listo; guarda tus datos junto al `.exe`) o
+**`Miraru-Setup.exe`** (instalador con accesos directos).
+
+> Los `.exe` aún no tienen firma digital:
+> - Windows puede avisar de *"editor desconocido"*: pulsa **Más información → Ejecutar de todas formas**.
+> - Con el *Control inteligente de aplicaciones* activado (o en equipos de empresa o centro
+>   educativo) Windows **no deja abrirlos** (*"Una directiva de Control de aplicaciones bloqueó
+>   este archivo"*). En ese caso usa la instalación con un comando.
 
 **Para cerrar Miraru**, usa el botón **⏻ Salir** del menú: cerrar la pestaña no apaga la app.
 
@@ -113,7 +124,7 @@ python launcher.py        # arranca y abre el navegador
 <summary>Desarrollo: tests y ejecutables</summary>
 
 ```bash
-pip install pytest ruff
+pip install -r requirements-dev.txt
 python -m pytest tests/ -q
 ruff check .
 ```

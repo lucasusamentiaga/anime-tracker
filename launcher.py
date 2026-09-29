@@ -205,6 +205,10 @@ APP_NAME_LEGACY = ["Anime Tracker"]
 # rompería la desinstalación de las instalaciones ya existentes.
 EXE_NAME = "AnimeTracker.exe"
 REG_KEY  = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AnimeTracker"
+# Instalación con install.ps1 (Python firmado + código, sin .exe propio): su clave
+# de "Aplicaciones instaladas" y el archivo que la marca como instalación real.
+REG_KEY_PS = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Miraru"
+MARCA_INSTALACION = ".miraru-instalado"
 
 
 def _confirm(msg: str, default: bool = True) -> bool:
@@ -239,6 +243,17 @@ def _abrir_navegador():
     webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
 
 
+def _es_carpeta_instalada(carpeta: Path) -> bool:
+    """¿Se puede borrar esta carpeta al desinstalar? Solo si es una instalación
+    real: la del instalador .exe (AnimeTracker.exe + _internal) o la de
+    install.ps1 (archivo de marca). Nunca una copia del código ni la raíz de un disco."""
+    if len(carpeta.parts) < 3:
+        return False
+    exe = (carpeta / EXE_NAME).exists() and (carpeta / "_internal").exists()
+    ps1 = (carpeta / MARCA_INSTALACION).exists() and (carpeta / "launcher.py").exists()
+    return exe or ps1
+
+
 def _uninstall():
     """Maneja `AnimeTracker.exe --uninstall` (lo registra el instalador como
     UninstallString). Antes esto abría la app por error: launcher ignoraba argv
@@ -266,21 +281,18 @@ def _uninstall():
                 pass
 
     # 2) Clave de registro (Agregar o quitar programas)
-    try:
-        import winreg
-        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, REG_KEY)
-    except Exception:
-        pass
+    for clave in (REG_KEY, REG_KEY_PS):
+        try:
+            import winreg
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, clave)
+        except Exception:
+            pass
 
     # 3) Carpeta de instalación. No podemos borrar el .exe en ejecución, así que
     #    lanzamos un .bat desacoplado que espera a que cerremos y hace rmdir.
     #    Guardas: solo si parece una instalación real (evita borrados accidentales).
     install_dir = APP_DIR
-    safe = (
-        (install_dir / EXE_NAME).exists()
-        and (install_dir / "_internal").exists()
-        and len(install_dir.parts) >= 3            # no borrar raíz de disco
-    )
+    safe = _es_carpeta_instalada(install_dir)
     if safe:
         try:
             import subprocess
