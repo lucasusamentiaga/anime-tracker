@@ -312,7 +312,8 @@ def _lanzar_actualizador() -> None:
     import subprocess
     env = dict(os.environ)
     env.update(MIRARU_DESTINO=str(APP_DIR), MIRARU_PAUSA="1", MIRARU_IDIOMA=get_lang() or "es")
-    for k in ("MIRARU_SIN_ABRIR", "MIRARU_SIN_ACCESOS", "MIRARU_ZIP", "MIRARU_FORZAR_PYTHON"):
+    # MIRARU_SIN_ACCESOS se conserva: si se instaló sin accesos directos, se actualiza igual.
+    for k in ("MIRARU_SIN_ABRIR", "MIRARU_ZIP", "MIRARU_FORZAR_PYTHON"):
         env.pop(k, None)
     subprocess.Popen(
         ["powershell.exe", "-NoProfile", "-Command", f"irm {_URL_INSTALADOR} | iex"],
