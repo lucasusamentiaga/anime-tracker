@@ -135,6 +135,20 @@ GitHub Actions compila `Miraru-Setup.exe` y `Miraru-Portable.exe` y los adjunta 
 `python build.py --portable`. Para publicar en Scoop o winget, ver [`packaging/README.md`](packaging/README.md).
 </details>
 
+## 🔏 Política de firma de código / Code signing policy
+
+> **Estado:** solicitud a SignPath Foundation en trámite. Hasta que se apruebe, los `.exe`
+> se publican **sin firma**; la [instalación con un comando](#-instalación) no los necesita.
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
+
+- **Autores y revisores (committers and reviewers):** [@lucasusamentiaga](https://github.com/lucasusamentiaga)
+- **Aprobadores (approvers):** [@lucasusamentiaga](https://github.com/lucasusamentiaga)
+- Solo se firman los binarios de Miraru (`Miraru-Setup.exe`, `Miraru-Portable.exe` y el `AnimeTracker.exe` que va dentro del instalador), compilados automáticamente por GitHub Actions desde este repositorio público ([`release.yml`](.github/workflows/release.yml)). Cada firma la aprueba a mano un aprobador.
+
+**Privacidad / Privacy:** This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+Miraru guarda tu lista en tu propio equipo. Solo se conecta a servicios externos para lo que tú usas: buscar datos de anime (AniList, MyAnimeList, Kitsu…), películas (TMDB), comprobar si hay una versión nueva en GitHub, y los avisos, AniList o Google Sheets si los activas. No hay analíticas ni telemetría.
+
 ## 📦 Tecnologías
 
 - **Backend**: Python 3.10+, FastAPI, SQLite

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuración de artefacto "instaladores" en SignPath: firma el instalador y el portable. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Miraru-Setup.exe" product-name="Miraru">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="Miraru-Portable.exe" product-name="Miraru">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

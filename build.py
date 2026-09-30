@@ -685,8 +685,24 @@ if __name__ == "__main__":
     print(f"  Directorio: {ROOT}\n")
 
     portable = "--portable" in sys.argv[1:]
+    # Compilación en dos fases para poder firmar la app ANTES de meterla en el
+    # instalador (el Setup lleva AnimeTracker.exe dentro): --solo-app y luego,
+    # tras firmar dist/AnimeTracker/AnimeTracker.exe, --solo-instalador.
+    solo_app = "--solo-app" in sys.argv[1:]
+    solo_instalador = "--solo-instalador" in sys.argv[1:]
     check_deps()
-    if portable:
+    if solo_app:
+        build_app()
+        cleanup()
+        print(f"\n  App compilada en {APP_DIST}. Siguiente: python build.py --solo-instalador")
+    elif solo_instalador:
+        if not (APP_DIST / "AnimeTracker.exe").exists():
+            print(f"\n  Falta {APP_DIST / 'AnimeTracker.exe'}: ejecuta antes python build.py --solo-app")
+            sys.exit(1)
+        build_installer()
+        cleanup()
+        print(f"\n  Instalador: {SETUP_EXE}")
+    elif portable:
         # Build portable: un único .exe (sin instalador). Para `python build.py --portable`.
         build_app(onefile=True)
         cleanup()

@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: read      # SignPath descarga los artefactos a firmar
 
 jobs:
   build-windows:
@@ -32,22 +33,93 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Build installer (.exe con accesos directos)
-        run: python build.py
+      # ── Compilación en dos fases ─────────────────────────────────────────────
+      # El instalador lleva dentro AnimeTracker.exe: si hay firma con SignPath, se
+      # firma la app ANTES de empaquetarla (si no, el .exe instalado iría sin firma).
+      # build.py borra dist/ entero en cada compilación: cada .exe se aparta a release/.
+      - name: Compilar la app (dist/AnimeTracker)
+        run: python build.py --solo-app
 
-      # build.py borra dist/ entero al empezar cada compilación: cada .exe se
-      # aparta a release/ nada más generarse (antes el portable borraba el Setup).
-      - name: Guardar el instalador
+      - name: ¿Está configurado SignPath?
+        id: sp
+        shell: bash
         run: |
+          if [ -n "${{ secrets.SIGNPATH_API_TOKEN }}" ] && [ -n "${{ vars.SIGNPATH_ORGANIZATION_ID }}" ]; then
+            echo "firmar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "firmar=false" >> "$GITHUB_OUTPUT"
+            echo "SignPath sin configurar: se publican los .exe sin firma (ver packaging/FIRMA.md)."
+          fi
+
+      - name: Subir AnimeTracker.exe para firmar
+        if: steps.sp.outputs.firmar == 'true'
+        id: app-sin-firmar
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-sin-firmar
+          path: dist/AnimeTracker/AnimeTracker.exe
+          if-no-files-found: error
+
+      - name: Firmar AnimeTracker.exe (SignPath)
+        if: steps.sp.outputs.firmar == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'miraru' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.app-sin-firmar.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: firmado-app
+
+      - name: Usar la app firmada
+        if: steps.sp.outputs.firmar == 'true'
+        run: Copy-Item firmado-app/AnimeTracker.exe dist/AnimeTracker/AnimeTracker.exe -Force
+
+      - name: Compilar el instalador
+        run: |
+          python build.py --solo-instalador
           New-Item -ItemType Directory -Force release | Out-Null
           Copy-Item dist/AnimeTracker-Setup.exe release/Miraru-Setup.exe
 
-      - name: Build portable (un único .exe)
+      - name: Compilar el portable (un único .exe)
         run: |
           python build.py --portable
           Copy-Item dist/Miraru-Portable.exe release/Miraru-Portable.exe
 
-      # ── Firma de código (opcional) ──────────────────────────────────────────
+      - name: Subir instalador y portable para firmar
+        if: steps.sp.outputs.firmar == 'true'
+        id: exes-sin-firmar
+        uses: actions/upload-artifact@v4
+        with:
+          name: exes-sin-firmar
+          path: |
+            release/Miraru-Setup.exe
+            release/Miraru-Portable.exe
+          if-no-files-found: error
+
+      - name: Firmar instalador y portable (SignPath)
+        if: steps.sp.outputs.firmar == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'miraru' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: instaladores
+          github-artifact-id: ${{ steps.exes-sin-firmar.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: firmado-exes
+
+      - name: Usar los .exe firmados
+        if: steps.sp.outputs.firmar == 'true'
+        run: |
+          Copy-Item firmado-exes/Miraru-Setup.exe release/Miraru-Setup.exe -Force
+          Copy-Item firmado-exes/Miraru-Portable.exe release/Miraru-Portable.exe -Force
+          Get-AuthenticodeSignature release/*.exe | Format-Table Status, Path -AutoSize
+
+      # ── Firma con certificado propio (.pfx, alternativa a SignPath) ─────────
       # Sin firmar, Windows muestra SmartScreen ("editor desconocido"), que es lo
       # que más frena a quien instala. Este paso se SALTA solo si no hay
       # certificado configurado, así que el workflow sigue funcionando tal cual
@@ -105,4 +177,5 @@ jobs:
           files: |
             release/Miraru-Setup.exe
             release/Miraru-Portable.exe
+          body_path: packaging/signpath/notas-release.md
           generate_release_notes: true

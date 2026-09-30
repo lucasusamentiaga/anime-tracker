@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Configuración de artefacto "app" en SignPath: firma AnimeTracker.exe (la app que va
+     dentro del instalador). El artefacto que sube GitHub es un .zip con ese único archivo. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="AnimeTracker.exe" product-name="Miraru">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
