@@ -296,8 +296,11 @@ _MARCA_INSTALACION = ".miraru-instalado"   # la escribe install.ps1 (igual que l
 
 def _tipo_instalacion() -> str:
     """'ps1' = instalada con install.ps1 (se puede actualizar desde la app),
-    'exe' = instalador/portable .exe, 'codigo' = copia del repositorio."""
+    'exe' = instalador/portable .exe, 'store' = Microsoft Store (se actualiza solo),
+    'codigo' = copia del repositorio."""
     import sys
+    if os.environ.get("ANIME_EMPAQUETADO") == "1":
+        return "store"
     if getattr(sys, "frozen", False):
         return "exe"
     if os.name == "nt" and (APP_DIR / _MARCA_INSTALACION).exists():

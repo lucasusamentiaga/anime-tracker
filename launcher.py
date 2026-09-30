@@ -25,7 +25,52 @@ from pathlib import Path
 # ── Rutas ─────────────────────────────────────────────────────────────────────
 FROZEN     = getattr(sys, "frozen", False)
 FROZEN_DIR = Path(sys._MEIPASS) if FROZEN else Path(__file__).parent
-APP_DIR    = Path(sys.executable).parent if FROZEN else Path(__file__).parent
+
+
+def _en_paquete_msix() -> bool:
+    """¿Se ejecuta instalado desde Microsoft Store (paquete MSIX)? Ahí la carpeta del
+    programa (WindowsApps) es de solo lectura: los datos van a %LOCALAPPDATA%\\Miraru."""
+    if not FROZEN or os.name != "nt":
+        return False
+    try:
+        import ctypes
+        largo = ctypes.c_uint32(0)
+        # APPMODEL_ERROR_NO_PACKAGE (15700) = proceso sin identidad de paquete
+        return ctypes.windll.kernel32.GetCurrentPackageFullName(ctypes.byref(largo), None) != 15700
+    except Exception:
+        return "\\WindowsApps\\" in str(sys.executable)
+
+
+EMPAQUETADO = _en_paquete_msix()
+if EMPAQUETADO:
+    APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "Miraru"
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    APP_DIR = Path(sys.executable).parent if FROZEN else Path(__file__).parent
+
+
+def _traer_datos_de_otra_instalacion(destino: Path, origenes: list[Path]) -> Path | None:
+    """Primera vez desde Microsoft Store: si el usuario ya tenía Miraru instalado con el
+    comando (%LOCALAPPDATA%\\Miraru ya es el mismo sitio) o con el instalador .exe
+    antiguo (%LOCALAPPDATA%\\AnimeTracker), copia su lista. Nunca sobrescribe."""
+    import shutil
+    if (destino / "anime_tracker.db").exists():
+        return None
+    for origen in origenes:
+        if (origen / "anime_tracker.db").exists() and origen.resolve() != destino.resolve():
+            for nombre in ("anime_tracker.db", "anime_tracker.db-wal", "anime_tracker.db-shm", "credentials.json"):
+                if (origen / nombre).exists():
+                    shutil.copy2(origen / nombre, destino / nombre)
+            return origen
+    return None
+
+
+if EMPAQUETADO:
+    try:
+        _traer_datos_de_otra_instalacion(
+            APP_DIR, [Path(os.environ.get("LOCALAPPDATA", "")) / "AnimeTracker"])
+    except Exception:
+        pass
 
 LOG_FILE = APP_DIR / "anime_tracker.log"
 
@@ -46,6 +91,7 @@ os.environ.update({
     "ANIME_FROZEN_DIR": str(FROZEN_DIR),
     "ANIME_APP_DIR":    str(APP_DIR),
     "ANIME_DB_PATH":    str(APP_DIR / "anime_tracker.db"),
+    "ANIME_EMPAQUETADO": "1" if EMPAQUETADO else "",
 })
 
 HOST_LOCAL   = "127.0.0.1"   # solo PC

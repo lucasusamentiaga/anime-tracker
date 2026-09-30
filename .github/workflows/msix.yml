@@ -1,0 +1,97 @@
+name: Paquete para Microsoft Store (MSIX)
+
+# Compila Miraru, lo empaqueta como MSIX y lo prueba de verdad: lo firma con un
+# certificado de pruebas, lo instala con Add-AppxPackage, lo abre y comprueba que
+# responde y guarda los datos fuera de WindowsApps. Si existen las variables
+# MIRARU_MSIX_NAME / MIRARU_MSIX_PUBLISHER (identidad de Partner Center), sube
+# además el .msix SIN firmar listo para Microsoft Store (la Store lo firma).
+
+on:
+  workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+jobs:
+  msix:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Dependencias
+        shell: powershell
+        run: python -m pip install -q -r requirements-dev.txt
+
+      - name: Compilar la app
+        shell: powershell
+        run: python build.py --solo-app
+
+      - name: Empaquetar MSIX de pruebas
+        shell: powershell
+        run: python build_msix.py
+
+      - name: Firmar con certificado de pruebas, instalar y abrir
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=MiraruPruebas' -KeyUsage DigitalSignature `
+            -CertStoreLocation Cert:\CurrentUser\My -FriendlyName 'Miraru pruebas' `
+            -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+          $pwd = ConvertTo-SecureString -String 'pruebas' -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "$env:RUNNER_TEMP\p.pfx" -Password $pwd | Out-Null
+          Export-Certificate -Cert $cert -FilePath "$env:RUNNER_TEMP\p.cer" | Out-Null
+          Import-Certificate -FilePath "$env:RUNNER_TEMP\p.cer" -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+          $signtool = (Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.*\x64\signtool.exe' | Sort-Object FullName | Select-Object -Last 1).FullName
+          & $signtool sign /fd SHA256 /f "$env:RUNNER_TEMP\p.pfx" /p pruebas dist\Miraru.msix
+          if ($LASTEXITCODE -ne 0) { throw 'signtool fallo' }
+
+          Add-AppxPackage -Path dist\Miraru.msix
+          $pkg = Get-AppxPackage -Name 'Miraru.Pruebas'
+          if (-not $pkg) { throw 'El paquete no se instalo' }
+          "Instalado: $($pkg.PackageFullName) en $($pkg.InstallLocation)"
+
+          Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!Miraru"
+          $ok = $false
+          foreach ($i in 1..60) { Start-Sleep 2; try { $v = Invoke-RestMethod http://127.0.0.1:8765/api/version; $ok = $true; break } catch { } }
+          if (-not $ok) {
+            Get-ChildItem "$env:LOCALAPPDATA\Packages\$($pkg.PackageFamilyName)" -Recurse -Filter *.log -ErrorAction SilentlyContinue | ForEach-Object { "== $($_.FullName)"; Get-Content $_.FullName -Tail 40 }
+            Get-Content "$env:LOCALAPPDATA\Miraru\anime_tracker.log" -Tail 40 -ErrorAction SilentlyContinue
+            throw 'Miraru instalado desde el MSIX no responde'
+          }
+          "Responde: version $($v.version)"
+          $ultima = Invoke-RestMethod http://127.0.0.1:8765/api/version/latest
+          "Tipo de instalacion: $($ultima.instalacion)"
+          if ($ultima.instalacion -ne 'store') { throw 'Deberia detectarse como instalacion de Microsoft Store' }
+          foreach ($u in '/app', '/stats', '/api/animes/slim') {
+            $r = Invoke-WebRequest "http://127.0.0.1:8765$u" -UseBasicParsing; "  $u -> $($r.StatusCode)"
+          }
+          $r = Invoke-RestMethod -Method Post http://127.0.0.1:8765/api/animes -Body '{"nombre":"Frieren","fuente":"anilist"}' -ContentType 'application/json'
+          "  anadir anime -> $($r | ConvertTo-Json -Compress -Depth 2)"
+          $dbs = @(Get-ChildItem "$env:LOCALAPPDATA\Miraru\anime_tracker.db", "$env:LOCALAPPDATA\Packages\$($pkg.PackageFamilyName)\LocalCache\Local\Miraru\anime_tracker.db" -ErrorAction SilentlyContinue)
+          "BD: $($dbs.FullName -join ', ')"
+          if (-not $dbs) { throw 'No se encontro la base de datos fuera de WindowsApps' }
+          try { Invoke-RestMethod -Method Post http://127.0.0.1:8765/api/apagar | Out-Null } catch { }
+          Start-Sleep 3
+          Remove-AppxPackage -Package $pkg.PackageFullName
+          'Desinstalado'
+
+      - name: MSIX para Microsoft Store (sin firmar)
+        if: ${{ vars.MIRARU_MSIX_NAME != '' && vars.MIRARU_MSIX_PUBLISHER != '' }}
+        shell: powershell
+        env:
+          MIRARU_MSIX_NAME: ${{ vars.MIRARU_MSIX_NAME }}
+          MIRARU_MSIX_PUBLISHER: ${{ vars.MIRARU_MSIX_PUBLISHER }}
+          MIRARU_MSIX_PUBLISHER_NAME: ${{ vars.MIRARU_MSIX_PUBLISHER_NAME }}
+        run: python build_msix.py
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ vars.MIRARU_MSIX_NAME != '' && vars.MIRARU_MSIX_PUBLISHER != '' }}
+        with:
+          name: Miraru-para-Microsoft-Store
+          path: dist/Miraru.msix

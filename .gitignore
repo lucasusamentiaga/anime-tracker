@@ -42,3 +42,6 @@ Thumbs.db
 tests/__pycache__/
 *.rar
 *.zip
+
+# Notas internas del proyecto (skill miraru-log): no se publican
+skills/

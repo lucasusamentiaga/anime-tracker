@@ -3227,6 +3227,7 @@ async function comprobarActualizacion() {
     if (!r.ok) return;
     const d = await r.json();
     if (!d.update_available || !d.latest) return;
+    if (d.instalacion === 'store') return;   // Microsoft Store la actualiza sola
     el.href = d.url || `https://github.com/lucasusamentiaga/anime-tracker/releases`;
     document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
     el.style.display = 'inline-flex';

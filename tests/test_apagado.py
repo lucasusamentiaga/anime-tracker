@@ -179,3 +179,8 @@ def test_pestana_que_espera_la_actualizacion(client_local):
     r = client_local.get("/api/actualizacion/espera")
     assert r.status_code == 200 and r.json()["version"] == main.VERSION
     assert main._pestana_esperando["ts"] > 0
+
+
+def test_tipo_instalacion_microsoft_store(monkeypatch):
+    monkeypatch.setenv("ANIME_EMPAQUETADO", "1")
+    assert main._tipo_instalacion() == "store"

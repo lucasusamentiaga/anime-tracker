@@ -100,3 +100,22 @@ def test_tras_actualizar_abre_pestana_si_la_cerraron(monkeypatch):
 
 def test_install_ps1_avisa_si_windows_es_de_32_bits():
     assert "PROCESSOR_ARCHITEW6432" in PS1
+
+
+def test_microsoft_store_trae_la_lista_de_otra_instalacion(tmp_path):
+    destino, viejo = tmp_path / "Miraru", tmp_path / "AnimeTracker"
+    destino.mkdir()
+    viejo.mkdir()
+    (viejo / "anime_tracker.db").write_bytes(b"lista")
+    (viejo / "credentials.json").write_text("{}")
+    assert launcher._traer_datos_de_otra_instalacion(destino, [viejo]) == viejo
+    assert (destino / "anime_tracker.db").read_bytes() == b"lista"
+    assert (destino / "credentials.json").exists()
+    # Nunca pisa una lista que ya existe
+    (viejo / "anime_tracker.db").write_bytes(b"otra")
+    assert launcher._traer_datos_de_otra_instalacion(destino, [viejo]) is None
+    assert (destino / "anime_tracker.db").read_bytes() == b"lista"
+
+
+def test_fuera_de_un_paquete_msix_no_se_considera_store():
+    assert launcher.EMPAQUETADO is False
