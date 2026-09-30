@@ -142,6 +142,12 @@ UI: dict[str, tuple[str, str, str]] = {
     "Actividad reciente": ("Recent activity", "Activité récente", "Letzte Aktivität"),
     "En emisión ahora": ("Airing now", "En diffusion maintenant", "Läuft gerade"),
     "Próximamente — esta semana": ("Coming up — this week", "Bientôt — cette semaine", "Demnächst — diese Woche"),
+    "Se abrirá una ventana que descarga la nueva versión. Miraru se cerrará y volverá a abrirse solo en uno o dos minutos. Tu lista no se toca. ¿Actualizar ahora?": (
+        "A window will open to download the new version. Miraru will close and reopen by itself in a minute or two. Your list is not touched. Update now?",
+        "Une fenêtre va s'ouvrir pour télécharger la nouvelle version. Miraru se fermera et se rouvrira tout seul d'ici une ou deux minutes. Ta liste n'est pas modifiée. Mettre à jour maintenant ?",
+        "Ein Fenster öffnet sich und lädt die neue Version herunter. Miraru schließt sich und öffnet sich in ein bis zwei Minuten von selbst wieder. Deine Liste bleibt unverändert. Jetzt aktualisieren?"),
+    "No se pudo iniciar la actualización": ("Could not start the update", "Impossible de lancer la mise à jour", "Update konnte nicht gestartet werden"),
+    "Actualizando Miraru… se volverá a abrir solo.": ("Updating Miraru… it will reopen by itself.", "Mise à jour de Miraru… il se rouvrira tout seul.", "Miraru wird aktualisiert… es öffnet sich von selbst wieder."),
     "Nueva versión disponible en GitHub": ("New version available on GitHub",
                                            "Nouvelle version disponible sur GitHub",
                                            "Neue Version auf GitHub verfügbar"),
@@ -590,6 +596,9 @@ UI: dict[str, tuple[str, str, str]] = {
 
 # Textos con números u otras partes variables. Se prueban en orden.
 PATTERNS: list[tuple[str, tuple[str, str, str]]] = [
+    (r"^Actualizar a v([\d.]+) \(tienes v([\d.]+)\)$", ("Update to v$1 (you have v$2)",
+                                                        "Mettre à jour vers v$1 (tu as v$2)",
+                                                        "Auf v$1 aktualisieren (du hast v$2)")),
     (r"^(\d+) días? seguidos viendo algo$", ("$1 days in a row watching something",
                                              "$1 jours d'affilée à regarder quelque chose",
                                              "$1 Tage in Folge etwas geschaut")),

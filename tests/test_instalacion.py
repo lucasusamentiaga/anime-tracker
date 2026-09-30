@@ -64,3 +64,15 @@ def test_requirements_de_usuario_sin_herramientas_de_desarrollo():
     for dev in ("pyinstaller", "pytest", "ruff", "httpx"):
         assert not re.search(rf"^{dev}\b", usuario, re.M), dev
     assert "-r requirements.txt" in (RAIZ / "requirements-dev.txt").read_text(encoding="utf-8")
+
+
+def test_install_ps1_pensado_para_el_usuario():
+    """Pasos numerados, idioma del sistema, registro para soporte, pausa al actualizar
+    desde la app y alternativa si la API de GitHub falla (límite de 60 consultas/hora)."""
+    assert "$PSUICulture" in PS1 and "MIRARU_IDIOMA" in PS1
+    assert "Start-Transcript" in PS1 and "miraru-instalacion.log" in PS1
+    assert "MIRARU_PAUSA" in PS1
+    assert "/releases/latest" in PS1 and "/releases/tag/" in PS1
+    assert "Get-PSDrive" in PS1  # espacio libre antes de empezar
+    n = int(re.search(r"\$MiraruEtapas = (\d+)", PS1).group(1))
+    assert len(re.findall(r"^\s*Miraru-Etapa '", PS1, re.M)) >= n

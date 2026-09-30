@@ -60,22 +60,34 @@ ni nube.
 
 ### Recomendada: un comando (Windows 10 y 11)
 
-1. Abre **PowerShell**: pulsa `Win`, escribe *PowerShell* y pulsa Intro.
-2. Pega esta línea y pulsa Intro:
+1. **Abre PowerShell**: pulsa la tecla `Windows`, escribe `powershell` y pulsa `Intro`.
+   Se abre una ventana azul o negra (no hace falta abrirla como administrador).
+2. **Copia esta línea** (botón de copiar a la derecha del recuadro):
 
-```powershell
-irm https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1 | iex
-```
+   ```powershell
+   irm https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1 | iex
+   ```
 
-En un par de minutos Miraru se abre en tu navegador y queda en el menú Inicio y en el
-escritorio. No pide permisos de administrador y **funciona aunque Windows tenga activado el
-Control inteligente de aplicaciones**, porque no usa ningún `.exe` sin firma: instala Python
-oficial de [python.org](https://www.python.org) (si no lo tienes) y el código de Miraru en
-`%LOCALAPPDATA%\Miraru`.
+3. **Pégala en PowerShell** con clic derecho (o `Ctrl + V`) y pulsa `Intro`.
+4. **Espera** a que termine (la primera vez, 2-5 minutos). Verás los pasos `[1/6]` … `[6/6]`
+   y al final un recuadro verde. Miraru se abre solo en tu navegador.
 
-- **Actualizar**: vuelve a ejecutar el mismo comando. Tu lista y tu configuración se conservan.
-- **Desinstalar**: *Configuración → Aplicaciones → Miraru → Desinstalar* (borra también tus datos).
-- Si antes usabas el instalador `.exe`, la primera vez se trae tu lista automáticamente.
+Desde entonces ábrelo con el icono **Miraru** del menú Inicio o del escritorio.
+
+¿Por qué así y no con un `.exe`? Porque **funciona aunque Windows tenga activado el Control
+inteligente de aplicaciones**: no usa ningún programa sin firma. Instala Python oficial de
+[python.org](https://www.python.org) solo para Miraru (se comprueba su firma digital) y el
+código de Miraru en `%LOCALAPPDATA%\Miraru`. No pide permisos de administrador.
+
+- **Actualizar**: cuando haya versión nueva aparece un aviso amarillo `⬆ vX.Y.Z` arriba en la
+  app; púlsalo y Miraru se actualiza y vuelve a abrirse solo. También puedes repetir el comando.
+  Tu lista y tu configuración se conservan.
+- **Desinstalar**: *Configuración → Aplicaciones → Miraru → Desinstalar* (borra también tus datos;
+  si quieres guardar tu lista, antes usa el botón **⬇ Exportar** de la app).
+- **Si antes usabas el instalador `.exe`** (AnimeTracker), la primera vez se trae tu lista
+  automáticamente. Después puedes desinstalar AnimeTracker desde *Configuración → Aplicaciones*.
+- **Si algo falla**, el instalador lo explica en rojo y guarda un registro en
+  `%TEMP%\miraru-instalacion.log`: adjúntalo en un [aviso](https://github.com/lucasusamentiaga/anime-tracker/issues).
 
 ### Alternativa: descargar un `.exe`
 

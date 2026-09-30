@@ -118,3 +118,50 @@ def test_todas_las_paginas_declaran_el_icono(client_local, ruta):
     al salir del menú."""
     html = client_local.get(ruta).text
     assert '<link rel="icon" href="/static/icon.ico">' in html
+
+
+# ── Actualizar con un clic (/api/actualizar) ──────────────────────────────────
+
+def test_actualizar_rechaza_a_un_cliente_de_la_red(client_remoto):
+    with patch.object(main, "_lanzar_actualizador") as lanzar:
+        r = client_remoto.post("/api/actualizar")
+    assert r.status_code in (401, 403)
+    lanzar.assert_not_called()
+
+
+def test_actualizar_rechaza_otra_web(client_local):
+    """Una página cualquiera abierta en el navegador no puede lanzar el actualizador."""
+    with patch.object(main, "_tipo_instalacion", return_value="ps1"), \
+         patch.object(main, "_lanzar_actualizador") as lanzar:
+        r = client_local.post("/api/actualizar", headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403
+    lanzar.assert_not_called()
+
+
+def test_actualizar_solo_instalaciones_con_install_ps1(client_local):
+    with patch.object(main, "_tipo_instalacion", return_value="codigo"), \
+         patch.object(main, "_lanzar_actualizador") as lanzar:
+        r = client_local.post("/api/actualizar")
+    assert r.status_code == 409
+    lanzar.assert_not_called()
+
+
+def test_actualizar_lanza_el_instalador_oficial(client_local):
+    with patch.object(main, "_tipo_instalacion", return_value="ps1"), \
+         patch("subprocess.Popen") as popen:
+        r = client_local.post("/api/actualizar", headers={"Origin": "http://127.0.0.1:8765"})
+    assert r.status_code == 200 and r.json()["ok"]
+    args, kwargs = popen.call_args
+    orden = args[0]
+    assert orden[0] == "powershell.exe"
+    assert "raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1" in orden[-1]
+    assert kwargs["env"]["MIRARU_DESTINO"] == str(main.APP_DIR)
+    assert kwargs["env"]["MIRARU_PAUSA"] == "1"
+
+
+def test_tipo_instalacion(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "APP_DIR", tmp_path)
+    assert main._tipo_instalacion() == "codigo"
+    (tmp_path / ".miraru-instalado").write_text("install.ps1 v2")
+    esperado = "ps1" if os.name == "nt" else "codigo"
+    assert main._tipo_instalacion() == esperado

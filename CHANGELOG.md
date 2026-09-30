@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.11.2 — Actualizar con un clic e instalador más claro
+
+- **Actualizar desde la app**: si instalaste Miraru con el comando, el aviso amarillo
+  `⬆ vX.Y.Z` ya no te manda a GitHub: lo pulsas, confirmas y se abre una ventana que
+  descarga la versión nueva, cierra Miraru y lo vuelve a abrir. Tu lista no se toca.
+- **Instalador en tu idioma** (español o inglés según Windows), con pasos numerados
+  `[1/6]`…`[6/6]`, cuánto tarda cada uno y un recuadro final verde (o rojo si falla).
+- **Errores que se entienden**: sin conexión, sin espacio en disco o descarga incompleta
+  explican qué hacer. Reintenta las descargas y guarda un registro en
+  `%TEMP%\miraru-instalacion.log` para poder pedir ayuda.
+- Si GitHub limita las consultas, busca la última versión por otra vía.
+- Avisa si sigue instalada la versión antigua (AnimeTracker) y cómo quitarla.
+- README: pasos más sencillos para instalar, actualizar y desinstalar.
+
 ## v2.11.1 — Funciona con el Control inteligente de aplicaciones (probado)
 
 Probado aplicando la política real de Windows (*SmartAppControl.xml*) en un equipo de

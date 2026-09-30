@@ -3231,7 +3231,26 @@ async function comprobarActualizacion() {
     document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
     el.style.display = 'inline-flex';
     el.title = `Nueva versión: ${d.name || d.latest}. Tú tienes v${d.current}.`;
+    // v2.11.2: instalado con install.ps1 -> se actualiza con un clic (sin ir a GitHub)
+    if (d.instalacion === 'ps1') {
+      el.removeAttribute('target');
+      el.title = `Actualizar a v${d.latest} (tienes v${d.current})`;
+      el.onclick = (ev) => { ev.preventDefault(); actualizarMiraru(d.latest); };
+    }
   } catch(_) {}
+}
+
+async function actualizarMiraru(version) {
+  const tr = s => (window.miraruTraducir ? window.miraruTraducir(s) : s);
+  if (!confirm(tr('Se abrirá una ventana que descarga la nueva versión. Miraru se cerrará y volverá a abrirse solo en uno o dos minutos. Tu lista no se toca. ¿Actualizar ahora?'))) return;
+  try {
+    const r = await fetch('/api/actualizar', {method: 'POST'});
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { toast(d.detail || tr('No se pudo iniciar la actualización'), 'err'); return; }
+    toast(tr('Actualizando Miraru… se volverá a abrir solo.'));
+  } catch(_) {
+    toast(tr('No se pudo iniciar la actualización'), 'err');
+  }
 }
 
 // v2.1: badge "URL detectada" cuando el usuario pega un link resoluble.

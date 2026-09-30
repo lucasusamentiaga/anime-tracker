@@ -283,9 +283,57 @@ async def latest_version():
         return _update_cache["data"]
     loop = asyncio.get_running_loop()
     data = await loop.run_in_executor(executor, _check_github_release)
+    data["instalacion"] = _tipo_instalacion()
     _update_cache["ts"] = now
     _update_cache["data"] = data
     return data
+
+
+# ── Actualizar con un clic (instalaciones hechas con install.ps1) ─────────────
+_URL_INSTALADOR = "https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1"
+_MARCA_INSTALACION = ".miraru-instalado"   # la escribe install.ps1 (igual que launcher.py)
+
+
+def _tipo_instalacion() -> str:
+    """'ps1' = instalada con install.ps1 (se puede actualizar desde la app),
+    'exe' = instalador/portable .exe, 'codigo' = copia del repositorio."""
+    import sys
+    if getattr(sys, "frozen", False):
+        return "exe"
+    if os.name == "nt" and (APP_DIR / _MARCA_INSTALACION).exists():
+        return "ps1"
+    return "codigo"
+
+
+def _lanzar_actualizador() -> None:
+    """Abre una ventana de PowerShell visible que ejecuta el instalador oficial sobre
+    esta misma carpeta. El instalador cierra Miraru (/api/apagar), actualiza el código
+    sin tocar la lista y vuelve a abrirlo. Solo usa programas firmados (powershell.exe)."""
+    import subprocess
+    env = dict(os.environ)
+    env.update(MIRARU_DESTINO=str(APP_DIR), MIRARU_PAUSA="1", MIRARU_IDIOMA=get_lang() or "es")
+    for k in ("MIRARU_SIN_ABRIR", "MIRARU_SIN_ACCESOS", "MIRARU_ZIP", "MIRARU_FORZAR_PYTHON"):
+        env.pop(k, None)
+    subprocess.Popen(
+        ["powershell.exe", "-NoProfile", "-Command", f"irm {_URL_INSTALADOR} | iex"],
+        cwd=tempfile.gettempdir(), env=env,
+        creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
+    )
+
+
+@app.post("/api/actualizar")
+async def actualizar(request: Request):
+    """Actualiza Miraru a la última versión publicada. Solo desde este ordenador y
+    solo si se instaló con install.ps1 (el .exe sin firma no puede actualizarse solo)."""
+    if not _is_loopback(_client_ip(request)):
+        raise HTTPException(403, "Miraru solo puede actualizarse desde este ordenador.")
+    origen = request.headers.get("origin")
+    if origen and not re.match(r"^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$", origen):
+        raise HTTPException(403, "Origen no permitido.")
+    if _tipo_instalacion() != "ps1":
+        raise HTTPException(409, "Esta copia de Miraru no se instaló con el instalador: descarga la nueva versión desde GitHub.")
+    _lanzar_actualizador()
+    return {"ok": True, "mensaje": "Se ha abierto el actualizador. Miraru se cerrará y volverá a abrirse solo."}
 
 
 def _check_github_release() -> dict:
