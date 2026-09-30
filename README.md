@@ -10,7 +10,7 @@ que funciona en tu navegador: lleva la cuenta de los episodios que ves, te avisa
 nuevo, te recomienda qué ver y te enseña tus estadísticas. Todo se guarda en tu PC, sin cuentas
 ni nube.
 
-**[⬇ Descargar la última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest)**
+**[⬇ Descargar Miraru para Windows](https://github.com/lucasusamentiaga/anime-tracker/releases/latest/download/Miraru-Setup.exe)**
 
 ## 📸 Capturas
 
@@ -58,50 +58,45 @@ ni nube.
 
 ## 📥 Instalación
 
-### Recomendada: un comando (Windows 10 y 11)
+### Descargar e instalar (Windows 10 y 11)
 
-1. **Abre PowerShell**: pulsa la tecla `Windows`, escribe `powershell` y pulsa `Intro`.
-   Se abre una ventana azul o negra (no hace falta abrirla como administrador).
-2. **Copia esta línea** (botón de copiar a la derecha del recuadro):
+1. Pulsa **[⬇ Descargar Miraru](https://github.com/lucasusamentiaga/anime-tracker/releases/latest/download/Miraru-Setup.exe)**
+   y abre el archivo `Miraru-Setup.exe` cuando termine de bajar.
+2. Si aparece la pantalla azul *"Windows protegió su PC"*, pulsa **Más información** y después
+   **Ejecutar de todas formas** (sale porque Miraru es nuevo y aún no tiene firma digital).
+3. Sigue el instalador. Miraru queda en el menú Inicio y en el escritorio, y se abre en tu navegador.
+
+Si ya lo tenías instalado, instalar la versión nueva conserva tu lista.
+
+**Para cerrar Miraru**, usa el botón **⏻ Salir** del menú: cerrar la pestaña no apaga la app.
+**Desinstalar**: *Configuración → Aplicaciones → Miraru*.
+
+¿Prefieres no instalar nada? Descarga **[Miraru-Portable.exe](https://github.com/lucasusamentiaga/anime-tracker/releases/latest/download/Miraru-Portable.exe)**:
+doble clic y listo (guarda tus datos junto al `.exe`).
+
+### Si Windows dice que *"Una directiva de Control de aplicaciones bloqueó este archivo"*
+
+Es el **Control inteligente de aplicaciones** de Windows 11, que solo deja abrir programas con
+firma digital. Miraru **llegará a Microsoft Store** (Microsoft lo firma y se actualiza solo) y
+tendrá firma propia; mientras tanto, en esos equipos se puede instalar así:
+
+<details>
+<summary>Instalación alternativa con un comando</summary>
+
+1. Pulsa la tecla `Windows`, escribe `powershell` y pulsa `Intro`.
+2. Copia esta línea, pégala con clic derecho y pulsa `Intro`:
 
    ```powershell
    irm https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/install.ps1 | iex
    ```
 
-3. **Pégala en PowerShell** con clic derecho (o `Ctrl + V`) y pulsa `Intro`.
-4. **Espera** a que termine (la primera vez, 2-5 minutos). Verás los pasos `[1/6]` … `[6/6]`
-   y al final un recuadro verde. Miraru se abre solo en tu navegador.
+3. Espera al recuadro verde (2-5 minutos). Usa solo programas firmados (Python oficial de
+   [python.org](https://www.python.org), con su firma comprobada) y no pide permisos de administrador.
 
-Desde entonces ábrelo con el icono **Miraru** del menú Inicio o del escritorio.
-
-¿Por qué así y no con un `.exe`? Porque **funciona aunque Windows tenga activado el Control
-inteligente de aplicaciones**: no usa ningún programa sin firma. Instala Python oficial de
-[python.org](https://www.python.org) solo para Miraru (se comprueba su firma digital) y el
-código de Miraru en `%LOCALAPPDATA%\Miraru`. No pide permisos de administrador.
-
-- **Actualizar**: cuando haya versión nueva aparece un aviso amarillo `⬆ vX.Y.Z` arriba en la
-  app; púlsalo y Miraru se actualiza y vuelve a abrirse solo. También puedes repetir el comando.
-  Tu lista y tu configuración se conservan.
-- **Desinstalar**: *Configuración → Aplicaciones → Miraru → Desinstalar* (borra también tus datos;
-  si quieres guardar tu lista, antes usa el botón **⬇ Exportar** de la app).
-- **Si antes usabas el instalador `.exe`** (AnimeTracker), la primera vez se trae tu lista
-  automáticamente. Después puedes desinstalar AnimeTracker desde *Configuración → Aplicaciones*.
-- **Si algo falla**, el instalador lo explica en rojo y guarda un registro en
-  `%TEMP%\miraru-instalacion.log`: adjúntalo en un [aviso](https://github.com/lucasusamentiaga/anime-tracker/issues).
-
-### Alternativa: descargar un `.exe`
-
-Desde la [última versión](https://github.com/lucasusamentiaga/anime-tracker/releases/latest):
-**`Miraru-Portable.exe`** (doble clic y listo; guarda tus datos junto al `.exe`) o
-**`Miraru-Setup.exe`** (instalador con accesos directos).
-
-> Los `.exe` aún no tienen firma digital:
-> - Windows puede avisar de *"editor desconocido"*: pulsa **Más información → Ejecutar de todas formas**.
-> - Con el *Control inteligente de aplicaciones* activado (o en equipos de empresa o centro
->   educativo) Windows **no deja abrirlos** (*"Una directiva de Control de aplicaciones bloqueó
->   este archivo"*). En ese caso usa la instalación con un comando.
-
-**Para cerrar Miraru**, usa el botón **⏻ Salir** del menú: cerrar la pestaña no apaga la app.
+Instalado así, la app se actualiza con un clic desde el aviso amarillo `⬆ vX.Y.Z`. Si algo
+falla, el instalador guarda un registro en `%TEMP%\miraru-instalacion.log`: adjúntalo en un
+[aviso](https://github.com/lucasusamentiaga/anime-tracker/issues).
+</details>
 
 ## 📱 Móvil
 

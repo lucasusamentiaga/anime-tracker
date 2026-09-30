@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.11.4 — Preparado para Microsoft Store
+
+- Miraru ya se puede publicar en **Microsoft Store**: la Store lo firma, así que abrirá
+  también en los PC con el Control inteligente de aplicaciones, y se actualizará solo.
+  Cada versión genera y prueba el paquete (instalarlo, abrirlo, añadir un anime).
+- Instalado desde la Store, guarda los datos en tu carpeta de usuario y la primera vez
+  se trae la lista de la versión anterior con instalador.
+- README: la instalación principal vuelve a ser **descargar e instalar**; el comando de
+  PowerShell queda como alternativa para los PC que bloquean programas sin firma.
+
 ## v2.11.3 — Actualizar sin perder la pestaña
 
 - Al pulsar **Actualizar**, la página muestra "Actualizando Miraru…" y **se recarga sola**

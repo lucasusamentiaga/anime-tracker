@@ -23,6 +23,11 @@ jobs:
   smart-app-control:
     uses: ./.github/workflows/sac.yml
 
+  # Paquete MSIX para Microsoft Store: se prueba instalándolo y, si están las
+  # variables de Partner Center, deja el .msix listo para subir como artefacto.
+  microsoft-store:
+    uses: ./.github/workflows/msix.yml
+
   build-windows:
     needs: smart-app-control
     runs-on: windows-latest
