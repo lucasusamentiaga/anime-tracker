@@ -2,11 +2,15 @@
 # Versiones verificadas con Python 3.13. Herramientas de desarrollo: requirements-dev.txt
 
 # ── Núcleo ────────────────────────────────────────────────────────────────────
-fastapi==0.136.1
+# FastAPI 0.125 es la última compatible con Pydantic 1. Pydantic 1 se instala en su
+# versión en Python puro (wheel py3-none-any): Pydantic 2 depende de pydantic_core, una
+# DLL sin firma que el Control inteligente de aplicaciones de Windows bloquea y la app
+# no arranca (probado con la política real en .github/workflows/sac.yml).
+fastapi==0.125.0
 # Sin [standard]: Miraru no necesita sus extras (httptools, watchfiles, websockets…)
 # y cada módulo nativo de más es otra DLL sin firma que Smart App Control revisa.
 uvicorn>=0.30.0
-pydantic==2.13.4
+pydantic @ https://files.pythonhosted.org/packages/1f/98/556e82f00b98486def0b8af85da95e69d2be7e367cf2431408e108bc3095/pydantic-1.10.26-py3-none-any.whl
 anyio>=4.0.0
 python-multipart>=0.0.9
 

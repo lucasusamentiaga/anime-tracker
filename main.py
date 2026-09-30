@@ -58,7 +58,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
+
+try:
+    from pydantic import field_validator
+except ImportError:  # Pydantic 1 (Python puro): el que usa install.ps1, sin DLL que
+    # el Control inteligente de aplicaciones de Windows pueda bloquear.
+    from pydantic import validator as _validator
+
+    def field_validator(*campos):
+        def deco(f):
+            f = f.__func__ if isinstance(f, classmethod) else f
+            return _validator(*campos, allow_reuse=True)(f)
+        return deco
 
 import anilist_sync
 import database as db
