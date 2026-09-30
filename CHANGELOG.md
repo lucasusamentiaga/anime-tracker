@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.11.1 — Funciona con el Control inteligente de aplicaciones (probado)
+
+Probado aplicando la política real de Windows (*SmartAppControl.xml*) en un equipo de
+pruebas: los `.exe` sin firma se bloquean, pero **la instalación con un comando
+funciona y Miraru abre y responde**. Para conseguirlo:
+
+- **Python sin instalador**: se extraen los paquetes oficiales firmados de python.org
+  (`msiexec /a`) en la carpeta de Miraru. El instalador `python-X.exe` se quedaba
+  colgado porque Windows bloquea una DLL que extrae.
+- **Núcleo de la app sin código nativo**: Pydantic 1 en Python puro y FastAPI 0.125.
+  Pydantic 2 usa una DLL sin firma que Windows bloqueaba y la app no arrancaba.
+- Menos dependencias con código nativo (sin lxml ni Pillow en la app).
+- Si Windows bloquea una función opcional (avisos Web Push, Google Sheets), solo se
+  desactiva esa función.
+- **Desinstalar** ya borra la carpeta de Miraru (antes quedaba vacía).
+- El instalador nunca se queda colgado: da un mensaje claro si algo tarda demasiado.
+- Cada versión se publica solo si pasa esa prueba con la política de Windows.
+- Preparado para firmar los `.exe` con SignPath cuando se apruebe la solicitud.
+
 ## v2.11.0 — Instalación con un comando (funciona con el Control inteligente de aplicaciones)
 
 Windows 11 con el *Control inteligente de aplicaciones* bloquea los `.exe` sin firma digital
