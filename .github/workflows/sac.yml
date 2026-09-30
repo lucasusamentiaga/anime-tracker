@@ -6,10 +6,11 @@ name: Prueba con Smart App Control
 #   1. que el .exe sin firma queda bloqueado (reproduce el WinError 4551 de usuarios),
 #   2. que install.ps1 instala Miraru y la app arranca y responde,
 #   3. qué archivos bloquea Windows (registro CodeIntegrity).
-# Solo se lanza a mano (Actions -> Run workflow).
+# Se lanza a mano (Actions -> Run workflow) y antes de cada release (release.yml).
 
 on:
   workflow_dispatch: {}
+  workflow_call: {}     # release.yml la exige antes de publicar
 
 jobs:
   sac:

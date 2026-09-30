@@ -18,7 +18,13 @@ permissions:
   actions: read      # SignPath descarga los artefactos a firmar
 
 jobs:
+  # No se publica nada si la app no arranca con la política del Control inteligente
+  # de aplicaciones de Windows (instalación con install.ps1).
+  smart-app-control:
+    uses: ./.github/workflows/sac.yml
+
   build-windows:
+    needs: smart-app-control
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
