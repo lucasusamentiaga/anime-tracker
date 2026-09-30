@@ -15,6 +15,7 @@ Uso (como desarrollador):
   Abrir compilar.bat  →  esperar ~5 min  →  dist/AnimeTracker-Setup.exe listo
 """
 
+import re
 import shutil
 import subprocess
 import sys
@@ -127,7 +128,7 @@ HIDDEN = [
     "starlette.concurrency", "starlette.datastructures",
     "starlette.exceptions", "starlette.types",
     # pydantic
-    "pydantic", "pydantic.v1",
+    "pydantic",   # Pydantic 1 en Python puro (ver requirements.txt)
     # anyio / h11
     "anyio", "anyio._backends._asyncio", "h11",
     # email
@@ -182,6 +183,35 @@ def validate_sources():
     print(f"  ✓ {len(to_check)} archivos validados sin errores")
 
 
+def version_file(nombre: str, descripcion: str) -> Path:
+    """Metadatos del .exe (Propiedades → Detalles). SignPath exige que todos los
+    binarios firmados lleven el mismo nombre de producto y versión."""
+    import tempfile
+    partes = [int(x) for x in re.findall(r"\d+", VERSION)[:3]]
+    partes += [0] * (4 - len(partes))
+    tupla = tuple(partes[:4])
+    contenido = f"""VSVersionInfo(
+  ffi=FixedFileInfo(filevers={tupla}, prodvers={tupla}, mask=0x3f, flags=0x0,
+                    OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[
+    StringFileInfo([StringTable('040904B0', [
+      StringStruct('CompanyName', 'lucasusamentiaga'),
+      StringStruct('FileDescription', {descripcion!r}),
+      StringStruct('FileVersion', {VERSION!r}),
+      StringStruct('InternalName', {nombre!r}),
+      StringStruct('LegalCopyright', 'MIT License'),
+      StringStruct('OriginalFilename', {nombre + '.exe'!r}),
+      StringStruct('ProductName', 'Miraru'),
+      StringStruct('ProductVersion', {VERSION!r})])]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+"""
+    ruta = Path(tempfile.gettempdir()) / f"miraru_version_{nombre}.txt"
+    ruta.write_text(contenido, encoding="utf-8")
+    return ruta
+
+
 def build_app(onefile: bool = False):
     step(1, f"Compilando la app con PyInstaller ({'portable --onefile' if onefile else '--onedir'})")
 
@@ -226,6 +256,8 @@ def build_app(onefile: bool = False):
         *datas_args,
         *hidden_args,
         *icon_args,
+        "--version-file", str(version_file("Miraru-Portable" if onefile else "AnimeTracker",
+                                           "Miraru - biblioteca de anime")),
         str(ROOT / "launcher.py"),
     ])
 
@@ -618,6 +650,7 @@ def build_installer():
         "--add-data", f"{bundle}{SEP}.",
         *logo_args,
         *icon_args,
+        "--version-file", str(version_file("AnimeTracker-Setup", "Instalador de Miraru")),
         "--hidden-import", "PIL",
         "--hidden-import", "PIL.Image",
         "--hidden-import", "PIL.ImageTk",

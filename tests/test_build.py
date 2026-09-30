@@ -65,3 +65,16 @@ def test_instalador_explica_el_bloqueo_de_smart_app_control(tmp_path):
     )
     for lang in ("es", "en", "fr", "de"):
         assert "\n" in textos[lang]["blocked"], lang
+
+
+def test_exes_llevan_metadatos_de_producto():
+    """SignPath exige el mismo nombre de producto y versión en todos los binarios."""
+    import core
+
+    for nombre in ("Miraru-Portable", "AnimeTracker", "AnimeTracker-Setup"):
+        texto = build.version_file(nombre, "prueba").read_text(encoding="utf-8")
+        assert "StringStruct('ProductName', 'Miraru')" in texto
+        assert f"StringStruct('ProductVersion', '{core.VERSION}')" in texto
+        assert f"StringStruct('OriginalFilename', '{nombre}.exe')" in texto
+    fuente = (RAIZ / "build.py").read_text(encoding="utf-8")
+    assert fuente.count('"--version-file"') == 2
