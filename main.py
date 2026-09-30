@@ -311,7 +311,8 @@ def _lanzar_actualizador() -> None:
     sin tocar la lista y vuelve a abrirlo. Solo usa programas firmados (powershell.exe)."""
     import subprocess
     env = dict(os.environ)
-    env.update(MIRARU_DESTINO=str(APP_DIR), MIRARU_PAUSA="1", MIRARU_IDIOMA=get_lang() or "es")
+    env.update(MIRARU_DESTINO=str(APP_DIR), MIRARU_PAUSA="1", MIRARU_IDIOMA=get_lang() or "es",
+               MIRARU_TRAS_ACTUALIZAR="1")
     # MIRARU_SIN_ACCESOS se conserva: si se instaló sin accesos directos, se actualiza igual.
     for k in ("MIRARU_SIN_ABRIR", "MIRARU_ZIP", "MIRARU_FORZAR_PYTHON"):
         env.pop(k, None)
@@ -320,6 +321,17 @@ def _lanzar_actualizador() -> None:
         cwd=tempfile.gettempdir(), env=env,
         creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0),
     )
+
+
+# La pestaña que lanzó la actualización consulta esto hasta que Miraru vuelve;
+# launcher.py lo mira para no abrir una segunda pestaña (MIRARU_TRAS_ACTUALIZAR).
+_pestana_esperando = {"ts": 0.0}
+
+
+@app.get("/api/actualizacion/espera")
+async def actualizacion_espera():
+    _pestana_esperando["ts"] = _time.time()
+    return {"version": VERSION}
 
 
 @app.post("/api/actualizar")

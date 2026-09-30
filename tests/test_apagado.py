@@ -165,3 +165,17 @@ def test_tipo_instalacion(tmp_path, monkeypatch):
     (tmp_path / ".miraru-instalado").write_text("install.ps1 v2")
     esperado = "ps1" if os.name == "nt" else "codigo"
     assert main._tipo_instalacion() == esperado
+
+
+def test_actualizar_avisa_al_launcher_para_no_abrir_otra_pestana(client_local):
+    with patch.object(main, "_tipo_instalacion", return_value="ps1"), \
+         patch("subprocess.Popen") as popen:
+        client_local.post("/api/actualizar")
+    assert popen.call_args.kwargs["env"]["MIRARU_TRAS_ACTUALIZAR"] == "1"
+
+
+def test_pestana_que_espera_la_actualizacion(client_local):
+    main._pestana_esperando["ts"] = 0.0
+    r = client_local.get("/api/actualizacion/espera")
+    assert r.status_code == 200 and r.json()["version"] == main.VERSION
+    assert main._pestana_esperando["ts"] > 0

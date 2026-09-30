@@ -254,6 +254,22 @@ def _abrir_navegador():
     webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
 
 
+def _pestana_ya_abierta(espera: float = 12.0, paso: float = 0.5) -> bool:
+    """Tras actualizar desde la app (MIRARU_TRAS_ACTUALIZAR=1), la pestaña que lo
+    pidió sigue abierta y se reconecta sola consultando /api/actualizacion/espera.
+    Si lo hace en unos segundos no se abre otra pestaña; si no (la cerraron), sí."""
+    if os.environ.pop("MIRARU_TRAS_ACTUALIZAR", None) != "1":
+        return False
+    inicio = time.time()
+    while time.time() - inicio < espera:
+        modulo = sys.modules.get("main")
+        marca = getattr(modulo, "_pestana_esperando", None) if modulo else None
+        if marca and marca.get("ts", 0) >= inicio - 5:
+            return True
+        time.sleep(paso)
+    return False
+
+
 def _es_carpeta_instalada(carpeta: Path) -> bool:
     """¿Se puede borrar esta carpeta al desinstalar? Solo si es una instalación
     real: la del instalador .exe (AnimeTracker.exe + _internal) o la de
@@ -420,8 +436,11 @@ def main():
         )
         sys.exit(1)
 
-    log("Servidor listo — abriendo navegador")
-    _abrir_navegador()
+    if _pestana_ya_abierta():
+        log("Servidor listo — la pestaña que pidió la actualización ya se ha reconectado")
+    else:
+        log("Servidor listo — abriendo navegador")
+        _abrir_navegador()
 
     try:
         while hilo.is_alive():

@@ -3247,10 +3247,56 @@ async function actualizarMiraru(version) {
     const r = await fetch('/api/actualizar', {method: 'POST'});
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { toast(d.detail || tr('No se pudo iniciar la actualización'), 'err'); return; }
-    toast(tr('Actualizando Miraru… se volverá a abrir solo.'));
+    _esperarActualizacion();
   } catch(_) {
     toast(tr('No se pudo iniciar la actualización'), 'err');
   }
+}
+
+// Capa "Actualizando…": espera a que el servidor se cierre y vuelva, y recarga.
+// La consulta a /api/actualizacion/espera avisa a launcher.py de que esta pestaña
+// sigue abierta (así no abre otra).
+function _esperarActualizacion() {
+  const tr = s => (window.miraruTraducir ? window.miraruTraducir(s) : s);
+  document.getElementById('capa-actualizando')?.remove();
+  const capa = document.createElement('div');
+  capa.id = 'capa-actualizando';
+  capa.setAttribute('role', 'status');
+  capa.setAttribute('aria-live', 'polite');
+  capa.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(10,10,16,.86);color:#fff;text-align:center;padding:24px';
+  const caja = document.createElement('div');
+  caja.style.cssText = 'max-width:440px';
+  const titulo = document.createElement('div');
+  titulo.style.cssText = 'font-size:18px;font-weight:700;margin-bottom:10px';
+  titulo.textContent = tr('Actualizando Miraru…');
+  const texto = document.createElement('div');
+  texto.style.cssText = 'font-size:14px;opacity:.85;line-height:1.5';
+  texto.textContent = tr('Se ha abierto una ventana que descarga la nueva versión. No cierres esta pestaña: se recargará sola cuando termine.');
+  caja.append(titulo, texto);
+  capa.appendChild(caja);
+  document.body.appendChild(capa);
+
+  const inicio = Date.now();
+  let caido = false;
+  if (window._actualizandoInterval) clearInterval(window._actualizandoInterval);
+  window._actualizandoInterval = setInterval(async () => {
+    try {
+      const r = await fetch('/api/actualizacion/espera', {cache: 'no-store'});
+      if (r.ok && caido) { clearInterval(window._actualizandoInterval); location.reload(); return; }
+      if (!r.ok) caido = true;
+    } catch(_) { caido = true; }
+    if (Date.now() - inicio > 6 * 60 * 1000) {
+      clearInterval(window._actualizandoInterval);
+      texto.textContent = tr('Está tardando más de lo normal. Mira la ventana de PowerShell: si muestra un error, sigue lo que indica. Si se cerró, abre Miraru desde el menú Inicio.');
+      const cerrar = document.createElement('button');
+      cerrar.className = 'btn btn-ghost btn-sm';
+      cerrar.style.marginTop = '14px';
+      cerrar.textContent = tr('Cerrar');
+      cerrar.onclick = () => capa.remove();
+      caja.appendChild(cerrar);
+      cerrar.focus();
+    }
+  }, 2000);
 }
 
 // v2.1: badge "URL detectada" cuando el usuario pega un link resoluble.

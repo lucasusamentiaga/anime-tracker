@@ -76,3 +76,27 @@ def test_install_ps1_pensado_para_el_usuario():
     assert "Get-PSDrive" in PS1  # espacio libre antes de empezar
     n = int(re.search(r"\$MiraruEtapas = (\d+)", PS1).group(1))
     assert len(re.findall(r"^\s*Miraru-Etapa '", PS1, re.M)) >= n
+
+
+def test_tras_actualizar_no_abre_otra_pestana_si_la_de_antes_vuelve(monkeypatch):
+    import sys
+    import time
+    import types
+    falso = types.SimpleNamespace(_pestana_esperando={"ts": time.time()})
+    monkeypatch.setitem(sys.modules, "main", falso)
+    monkeypatch.setenv("MIRARU_TRAS_ACTUALIZAR", "1")
+    assert launcher._pestana_ya_abierta(espera=1, paso=0.05)
+    # Sin la variable (arranque normal) siempre se abre el navegador.
+    assert not launcher._pestana_ya_abierta(espera=1, paso=0.05)
+
+
+def test_tras_actualizar_abre_pestana_si_la_cerraron(monkeypatch):
+    import sys
+    import types
+    monkeypatch.setitem(sys.modules, "main", types.SimpleNamespace(_pestana_esperando={"ts": 0.0}))
+    monkeypatch.setenv("MIRARU_TRAS_ACTUALIZAR", "1")
+    assert not launcher._pestana_ya_abierta(espera=0.3, paso=0.05)
+
+
+def test_install_ps1_avisa_si_windows_es_de_32_bits():
+    assert "PROCESSOR_ARCHITEW6432" in PS1

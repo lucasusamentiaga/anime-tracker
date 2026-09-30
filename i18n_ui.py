@@ -147,7 +147,15 @@ UI: dict[str, tuple[str, str, str]] = {
         "Une fenêtre va s'ouvrir pour télécharger la nouvelle version. Miraru se fermera et se rouvrira tout seul d'ici une ou deux minutes. Ta liste n'est pas modifiée. Mettre à jour maintenant ?",
         "Ein Fenster öffnet sich und lädt die neue Version herunter. Miraru schließt sich und öffnet sich in ein bis zwei Minuten von selbst wieder. Deine Liste bleibt unverändert. Jetzt aktualisieren?"),
     "No se pudo iniciar la actualización": ("Could not start the update", "Impossible de lancer la mise à jour", "Update konnte nicht gestartet werden"),
-    "Actualizando Miraru… se volverá a abrir solo.": ("Updating Miraru… it will reopen by itself.", "Mise à jour de Miraru… il se rouvrira tout seul.", "Miraru wird aktualisiert… es öffnet sich von selbst wieder."),
+    "Actualizando Miraru…": ("Updating Miraru…", "Mise à jour de Miraru…", "Miraru wird aktualisiert…"),
+    "Se ha abierto una ventana que descarga la nueva versión. No cierres esta pestaña: se recargará sola cuando termine.": (
+        "A window has opened to download the new version. Don't close this tab: it will reload by itself when it's done.",
+        "Une fenêtre s'est ouverte pour télécharger la nouvelle version. Ne ferme pas cet onglet : il se rechargera tout seul à la fin.",
+        "Ein Fenster lädt gerade die neue Version herunter. Schließe diesen Tab nicht: Er lädt sich von selbst neu, wenn es fertig ist."),
+    "Está tardando más de lo normal. Mira la ventana de PowerShell: si muestra un error, sigue lo que indica. Si se cerró, abre Miraru desde el menú Inicio.": (
+        "This is taking longer than usual. Check the PowerShell window: if it shows an error, follow what it says. If it closed, open Miraru from the Start menu.",
+        "C'est plus long que d'habitude. Regarde la fenêtre PowerShell : si elle affiche une erreur, suis ses indications. Si elle s'est fermée, ouvre Miraru depuis le menu Démarrer.",
+        "Das dauert länger als üblich. Sieh im PowerShell-Fenster nach: Zeigt es einen Fehler, folge den Hinweisen. Wurde es geschlossen, öffne Miraru über das Startmenü."),
     "Nueva versión disponible en GitHub": ("New version available on GitHub",
                                            "Nouvelle version disponible sur GitHub",
                                            "Neue Version auf GitHub verfügbar"),

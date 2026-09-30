@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.11.3 — Actualizar sin perder la pestaña
+
+- Al pulsar **Actualizar**, la página muestra "Actualizando Miraru…" y **se recarga sola**
+  con la versión nueva cuando termina. Ya no se abre una segunda pestaña (solo si
+  cerraste la de antes). Si tarda más de 6 minutos, explica qué mirar.
+- El instalador avisa claramente si Windows es de 32 bits (Miraru necesita 64 bits).
+
 ## v2.11.2 — Actualizar con un clic e instalador más claro
 
 - **Actualizar desde la app**: si instalaste Miraru con el comando, el aviso amarillo

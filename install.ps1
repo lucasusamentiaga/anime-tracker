@@ -227,6 +227,10 @@ function Miraru-Instalar {
     Miraru-Etapa 'Comprobando el equipo' 'Checking this computer'
     $anterior = Miraru-VersionInstalada
     if ($anterior) { Miraru-Paso "Version instalada: $anterior" "Installed version: $anterior" }
+    # Python oficial para Miraru es de 64 bits: Windows de 32 bits no puede usarlo.
+    if ("$env:PROCESSOR_ARCHITECTURE" -eq 'x86' -and -not $env:PROCESSOR_ARCHITEW6432) {
+        throw (Miraru-T 'Este Windows es de 32 bits y Miraru necesita Windows de 64 bits.' 'This is 32-bit Windows and Miraru needs 64-bit Windows.')
+    }
     $libreMB = Miraru-EspacioLibreMB
     $necesarioMB = 150
     if (-not (Test-Path (Join-Path $MiraruDestino '.venv'))) { $necesarioMB = 500 }
