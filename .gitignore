@@ -45,3 +45,4 @@ tests/__pycache__/
 
 # Notas internas del proyecto (skill miraru-log): no se publican
 skills/
+store/
