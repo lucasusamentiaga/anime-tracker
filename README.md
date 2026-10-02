@@ -58,12 +58,24 @@ ni nube.
 
 ## 📥 Instalación
 
-### Descargar e instalar (Windows 10 y 11)
+### Microsoft Store (recomendado, Windows 10 y 11)
+
+<a href="https://apps.microsoft.com/detail/9PJZK97ZG03G"><img src="https://get.microsoft.com/images/en%20dark.svg" alt="Descárgalo de Microsoft Store" width="200"></a>
+
+1. Pulsa el botón **[Descárgalo de Microsoft Store](https://apps.microsoft.com/detail/9PJZK97ZG03G)**.
+2. En la página que se abre, pulsa **Obtener** (o **Instalar**). Es gratis.
+3. Abre **Miraru** desde el menú Inicio. Se abre en tu navegador.
+
+Funciona en todos los equipos (también con el *Control inteligente de aplicaciones* activado)
+y **se actualiza solo**. Si antes tenías Miraru instalado de otra forma, la versión de la Store
+recupera tu lista automáticamente la primera vez que la abres.
+
+### Descargar el instalador
 
 1. Pulsa **[⬇ Descargar Miraru](https://github.com/lucasusamentiaga/anime-tracker/releases/latest/download/Miraru-Setup.exe)**
    y abre el archivo `Miraru-Setup.exe` cuando termine de bajar.
 2. Si aparece la pantalla azul *"Windows protegió su PC"*, pulsa **Más información** y después
-   **Ejecutar de todas formas** (sale porque Miraru es nuevo y aún no tiene firma digital).
+   **Ejecutar de todas formas** (sale porque el instalador no tiene firma digital).
 3. Sigue el instalador. Miraru queda en el menú Inicio y en el escritorio, y se abre en tu navegador.
 
 Si ya lo tenías instalado, instalar la versión nueva conserva tu lista.
@@ -77,8 +89,8 @@ doble clic y listo (guarda tus datos junto al `.exe`).
 ### Si Windows dice que *"Una directiva de Control de aplicaciones bloqueó este archivo"*
 
 Es el **Control inteligente de aplicaciones** de Windows 11, que solo deja abrir programas con
-firma digital. Miraru **llegará a Microsoft Store** (Microsoft lo firma y se actualiza solo) y
-tendrá firma propia; mientras tanto, en esos equipos se puede instalar así:
+firma digital. **Instala Miraru desde [Microsoft Store](https://apps.microsoft.com/detail/9PJZK97ZG03G)**:
+Microsoft lo firma y no se bloquea. Si no puedes usar la Store, también se puede instalar así:
 
 <details>
 <summary>Instalación alternativa con un comando</summary>
@@ -144,10 +156,9 @@ GitHub Actions compila `Miraru-Setup.exe` y `Miraru-Portable.exe` y los adjunta 
 
 ## 🔏 Política de firma de código / Code signing policy
 
-> **Estado:** solicitud a SignPath Foundation en trámite. Hasta que se apruebe, los `.exe`
-> se publican **sin firma**; la [instalación con un comando](#-instalación) no los necesita.
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
+> **Estado:** la versión de [Microsoft Store](https://apps.microsoft.com/detail/9PJZK97ZG03G) está
+> firmada por Microsoft. Los `.exe` de GitHub se publican **sin firma** de momento (la solicitud
+> gratuita a SignPath Foundation se volverá a presentar cuando el proyecto tenga más difusión).
 
 - **Autores y revisores (committers and reviewers):** [@lucasusamentiaga](https://github.com/lucasusamentiaga)
 - **Aprobadores (approvers):** [@lucasusamentiaga](https://github.com/lucasusamentiaga)
