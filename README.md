@@ -60,7 +60,7 @@ ni nube.
 
 ### Microsoft Store (recomendado, Windows 10 y 11)
 
-<a href="https://apps.microsoft.com/detail/9PJZK97ZG03G"><img src="https://get.microsoft.com/images/en%20dark.svg" alt="Descárgalo de Microsoft Store" width="200"></a>
+<a href="https://apps.microsoft.com/detail/9PJZK97ZG03G"><img src="https://get.microsoft.com/images/es%20dark.svg" alt="Descárgalo de Microsoft Store" width="200"></a>
 
 1. Pulsa el botón **[Descárgalo de Microsoft Store](https://apps.microsoft.com/detail/9PJZK97ZG03G)**.
 2. En la página que se abre, pulsa **Obtener** (o **Instalar**). Es gratis.
