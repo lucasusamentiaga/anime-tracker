@@ -5,13 +5,21 @@ name: Paquete para Microsoft Store (MSIX)
 # responde y guarda los datos fuera de WindowsApps. Si existen las variables
 # MIRARU_MSIX_NAME / MIRARU_MSIX_PUBLISHER (identidad de Partner Center), sube
 # además el .msix SIN firmar listo para Microsoft Store (la Store lo firma).
+#
+# v2.12: ese .msix también se deja, partido en trozos, en la rama `store-upload`.
+# Desde raw.githubusercontent.com (que sí permite CORS) la página de Partner
+# Center puede descargarlo y rellenar el campo de subida sin pasar por el disco:
+# así se publica una versión nueva en la Store sin arrastrar archivos a mano.
 
 on:
   workflow_dispatch: {}
   workflow_call: {}
+  push:
+    branches: [main]
+    paths: ['.github/workflows/msix.yml']
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   msix:
@@ -95,3 +103,35 @@ jobs:
         with:
           name: Miraru-para-Microsoft-Store
           path: dist/Miraru.msix
+
+      - name: Dejar el paquete en la rama store-upload
+        if: ${{ vars.MIRARU_MSIX_NAME != '' && vars.MIRARU_MSIX_PUBLISHER != '' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $d = Join-Path $env:RUNNER_TEMP 'store-upload'
+          New-Item -ItemType Directory -Force $d | Out-Null
+          $bytes = [IO.File]::ReadAllBytes((Resolve-Path 'dist\Miraru.msix').Path)
+          $tam = 40MB
+          $n = [Math]::Ceiling($bytes.Length / $tam)
+          for ($i = 0; $i -lt $n; $i++) {
+            $ini = $i * $tam
+            $len = [Math]::Min($tam, $bytes.Length - $ini)
+            $parte = New-Object byte[] $len
+            [Array]::Copy($bytes, $ini, $parte, 0, $len)
+            [IO.File]::WriteAllBytes((Join-Path $d "Miraru.msix.parte$i"), $parte)
+          }
+          $sha = (Get-FileHash 'dist\Miraru.msix' -Algorithm SHA256).Hash.ToLower()
+          $version = (python -c "import build_msix; print(build_msix.version_msix())").Trim()
+          $info = [ordered]@{ version = $version; bytes = $bytes.Length; sha256 = $sha; partes = $n; commit = $env:GITHUB_SHA }
+          [IO.File]::WriteAllText((Join-Path $d 'info.json'), ($info | ConvertTo-Json))
+          [IO.File]::WriteAllText((Join-Path $d 'README.md'), "Rama automatica: paquete MSIX SIN firmar de Miraru $version para subirlo a Microsoft Partner Center. No se puede instalar directamente: instala Miraru desde Microsoft Store.`n")
+          Set-Location $d
+          git init -q
+          git checkout -q -b store-upload
+          git add -A
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -q -m "Paquete MSIX $version"
+          git push -q -f "https://x-access-token:$($env:GH_TOKEN)@github.com/$($env:GITHUB_REPOSITORY).git" store-upload
+          "Rama store-upload: $version, $n partes, sha256 $sha"
