@@ -7,11 +7,24 @@ tiene que funcionar con PowerShell en modo de lenguaje restringido.
 """
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
 import _acceso_directo
-import launcher
+
+# launcher, al importarse, apunta ANIME_APP_DIR/ANIME_DB_PATH a la carpeta del
+# proyecto (es lo que hace al arrancar la app de verdad). En los tests eso hizo
+# que otro módulo vaciara la lista real: se restauran las variables al momento.
+_ENV_ANTES = {k: os.environ.get(k) for k in
+              ("ANIME_FROZEN_DIR", "ANIME_APP_DIR", "ANIME_DB_PATH", "ANIME_EMPAQUETADO")}
+import launcher  # noqa: E402
+
+for _k, _v in _ENV_ANTES.items():
+    if _v is None:
+        os.environ.pop(_k, None)
+    else:
+        os.environ[_k] = _v
 
 RAIZ = Path(__file__).resolve().parent.parent
 PS1 = (RAIZ / "install.ps1").read_text(encoding="utf-8")
@@ -86,8 +99,20 @@ def test_tras_actualizar_no_abre_otra_pestana_si_la_de_antes_vuelve(monkeypatch)
     monkeypatch.setitem(sys.modules, "main", falso)
     monkeypatch.setenv("MIRARU_TRAS_ACTUALIZAR", "1")
     assert launcher._pestana_ya_abierta(espera=1, paso=0.05)
-    # Sin la variable (arranque normal) siempre se abre el navegador.
-    assert not launcher._pestana_ya_abierta(espera=1, paso=0.05)
+    # v2.12: también en un arranque normal, si una pestaña que se quedó abierta
+    # (PC apagado con el navegador abierto) se reconecta, no se abre otra.
+    assert launcher._pestana_ya_abierta(espera=1, paso=0.05, espera_normal=0.3)
+
+
+def test_arranque_normal_sin_pestana_abre_el_navegador(monkeypatch):
+    import sys
+    import time
+    import types
+    monkeypatch.setitem(sys.modules, "main", types.SimpleNamespace(_pestana_esperando={"ts": 0.0}))
+    monkeypatch.delenv("MIRARU_TRAS_ACTUALIZAR", raising=False)
+    inicio = time.time()
+    assert not launcher._pestana_ya_abierta(espera=5, paso=0.05, espera_normal=0.3)
+    assert time.time() - inicio < 2   # la espera corta, no la de actualizar
 
 
 def test_tras_actualizar_abre_pestana_si_la_cerraron(monkeypatch):
