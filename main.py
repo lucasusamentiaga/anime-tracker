@@ -284,8 +284,13 @@ async def latest_version():
     if _update_cache["data"] and (now - _update_cache["ts"]) < _UPDATE_TTL:
         return _update_cache["data"]
     loop = asyncio.get_running_loop()
-    data = await loop.run_in_executor(executor, _check_github_release)
-    data["instalacion"] = _tipo_instalacion()
+    instalacion = _tipo_instalacion()
+    # v2.12.1: instalada desde Microsoft Store, lo que cuenta es la versión que la
+    # Store ofrece YA (tras certificar), no la de GitHub: la release sale horas o
+    # días antes y avisar entonces mandaría a una Store que aún no la tiene.
+    comprobar = _check_store_version if instalacion == "store" else _check_github_release
+    data = await loop.run_in_executor(executor, comprobar)
+    data["instalacion"] = instalacion
     _update_cache["ts"] = now
     _update_cache["data"] = data
     return data
@@ -375,6 +380,39 @@ def _check_github_release() -> dict:
         }
     except Exception as e:
         return {"current": VERSION, "latest": None, "update_available": False, "error": str(e)[:120]}
+
+
+STORE_ID = "9PJZK97ZG03G"
+STORE_URL_APP = f"ms-windows-store://pdp/?productid={STORE_ID}"
+STORE_URL_WEB = f"https://apps.microsoft.com/detail/{STORE_ID}"
+_URL_CATALOGO_STORE = ("https://displaycatalog.mp.microsoft.com/v7.0/products"
+                       f"?bigIds={STORE_ID}&market=ES&languages=es-es&MS-CV=miraru.0")
+
+
+def version_en_store(texto_catalogo: str) -> str:
+    """Saca la versión publicada del catálogo público de Microsoft Store.
+    El JSON trae p. ej. "PackageFullName":"LucasUsamentiaga.Miraru_2.11.4.0_x64__…";
+    de ahí sale "2.11.4". Devuelve la más alta si hay varias, o "" si no hay."""
+    versiones = re.findall(r'"PackageFullName"\s*:\s*"[^"_]+_(\d+)\.(\d+)\.(\d+)\.\d+_',
+                           texto_catalogo or "")
+    if not versiones:
+        return ""
+    return ".".join(str(n) for n in max(tuple(int(x) for x in v) for v in versiones))
+
+
+def _check_store_version() -> dict:
+    base = {"current": VERSION, "latest": None, "update_available": False,
+            "url": STORE_URL_APP, "url_web": STORE_URL_WEB, "fuente": "store"}
+    try:
+        resp = requests.get(_URL_CATALOGO_STORE, timeout=10,
+                            headers={"User-Agent": f"Miraru/{VERSION}", "Accept": "application/json"})
+        if resp.status_code != 200:
+            return {**base, "error": f"HTTP {resp.status_code}"}
+        v = version_en_store(resp.text)
+        return {**base, "latest": v or None, "name": f"v{v}" if v else "",
+                "update_available": bool(v and _is_newer(v, VERSION))}
+    except Exception as e:
+        return {**base, "error": str(e)[:120]}
 
 
 def _is_newer(a: str, b: str) -> bool:

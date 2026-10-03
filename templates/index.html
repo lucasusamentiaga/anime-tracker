@@ -3492,7 +3492,19 @@ async function comprobarActualizacion() {
     if (!r.ok) return;
     const d = await r.json();
     if (!d.update_available || !d.latest) return;
-    if (d.instalacion === 'store') return;   // Microsoft Store la actualiza sola
+    // v2.12.1: instalada desde Microsoft Store → aviso emergente (una vez por
+    // versión) cuando la Store ya ofrece la nueva; el servidor compara con la
+    // versión publicada en la Store, no con GitHub.
+    if (d.instalacion === 'store') {
+      document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
+      el.removeAttribute('target');
+      el.href = '#';
+      el.title = _tr('Hay una versión nueva en Microsoft Store');
+      el.style.display = 'inline-flex';
+      el.onclick = (ev) => { ev.preventDefault(); _avisoVersionStore(d, true); };
+      _avisoVersionStore(d, false);
+      return;
+    }
     el.href = d.url || `https://github.com/lucasusamentiaga/anime-tracker/releases`;
     document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
     el.style.display = 'inline-flex';
@@ -3504,6 +3516,54 @@ async function comprobarActualizacion() {
       el.onclick = (ev) => { ev.preventDefault(); actualizarMiraru(d.latest); };
     }
   } catch(_) {}
+}
+
+function _avisoVersionStore(d, forzar) {
+  let visto = '';
+  try { visto = localStorage.getItem('aviso_store_version') || ''; } catch(_) {}
+  if (!forzar && visto === d.latest) return;
+  try { localStorage.setItem('aviso_store_version', d.latest); } catch(_) {}
+  document.getElementById('modal-version-store')?.remove();
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg open';
+  bg.id = 'modal-version-store';
+  bg.setAttribute('role', 'dialog');
+  bg.setAttribute('aria-modal', 'true');
+  bg.setAttribute('aria-labelledby', 'mvs-titulo');
+  const cerrar = () => bg.remove();
+  bg.addEventListener('click', e => { if (e.target === bg) cerrar(); });
+  bg.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
+  const caja = document.createElement('div');
+  caja.className = 'modal';
+  caja.style.maxWidth = '440px';
+  const h = document.createElement('h3');
+  h.id = 'mvs-titulo';
+  h.textContent = '⬆ ' + _tr('Hay una versión nueva de Miraru') + ' (v' + d.latest + ')';
+  const p1 = document.createElement('p');
+  p1.style.cssText = 'font-size:13px;line-height:1.6;color:var(--fg);margin:8px 0';
+  p1.textContent = _tr('Microsoft Store la instala sola en segundo plano, normalmente en uno o dos días.');
+  const p2 = document.createElement('p');
+  p2.style.cssText = 'font-size:13px;line-height:1.6;color:var(--muted);margin:0 0 14px';
+  p2.textContent = _tr('Si la quieres ya: pulsa «Abrir Microsoft Store», luego «Actualizar», y después cierra Miraru con ⏻ Salir y vuelve a abrirlo. Tu lista no se toca.');
+  const acciones = document.createElement('div');
+  acciones.className = 'modal-actions';
+  const luego = document.createElement('button');
+  luego.className = 'btn btn-g';
+  luego.textContent = _tr('Más tarde');
+  luego.onclick = cerrar;
+  const abrir = document.createElement('button');
+  abrir.type = 'button';
+  abrir.className = 'btn btn-p';
+  abrir.textContent = _tr('Abrir Microsoft Store');
+  abrir.onclick = () => {
+    location.href = d.url || 'ms-windows-store://pdp/?productid=9PJZK97ZG03G';
+    setTimeout(cerrar, 300);
+  };
+  acciones.append(luego, abrir);
+  caja.append(h, p1, p2, acciones);
+  bg.appendChild(caja);
+  document.body.appendChild(bg);
+  abrir.focus();
 }
 
 async function actualizarMiraru(version) {

@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.12.1 — Aviso de versión nueva en la versión de Microsoft Store
+
+- Si instalaste Miraru desde **Microsoft Store**, cuando la Store publique una versión
+  nueva aparece un aviso (una sola vez por versión) que explica que se instala sola y,
+  si la quieres ya, abre la Store para pulsar «Actualizar». El aviso amarillo `⬆ vX`
+  también aparece y vuelve a mostrarlo.
+- Se compara con la versión que la Store ofrece de verdad (su catálogo público), no con
+  GitHub: así nunca avisa de una versión que Microsoft aún está revisando.
+
 ## v2.12.0 — Sincronizar con AnimeAV1 y barras de progreso
 
 - **Sincronizar con AnimeAV1** desde el mismo botón 🔗 que AniList: importa tus listas

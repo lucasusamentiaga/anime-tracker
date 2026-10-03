@@ -23,6 +23,12 @@ LANGS = ("en", "fr", "de")
 
 UI: dict[str, tuple[str, str, str]] = {
     # ── v2.12: Miraru cerrado, progreso, fechas, AnimeAV1 ─────────────────────
+    "Hay una versión nueva en Microsoft Store": ("There's a new version on Microsoft Store", "Une nouvelle version est disponible sur Microsoft Store", "Im Microsoft Store gibt es eine neue Version"),
+    "Hay una versión nueva de Miraru": ("There's a new version of Miraru", "Une nouvelle version de Miraru est disponible", "Es gibt eine neue Version von Miraru"),
+    "Microsoft Store la instala sola en segundo plano, normalmente en uno o dos días.": ("Microsoft Store installs it on its own in the background, usually within a day or two.", "Microsoft Store l'installe toute seule en arrière-plan, en général sous un ou deux jours.", "Der Microsoft Store installiert sie selbst im Hintergrund, meist innerhalb von ein bis zwei Tagen."),
+    "Si la quieres ya: pulsa «Abrir Microsoft Store», luego «Actualizar», y después cierra Miraru con ⏻ Salir y vuelve a abrirlo. Tu lista no se toca.": ("Want it now? Press “Open Microsoft Store”, then “Update”, then close Miraru with ⏻ Exit and open it again. Your list isn't touched.", "Vous la voulez tout de suite ? Appuyez sur « Ouvrir Microsoft Store », puis « Mettre à jour », fermez Miraru avec ⏻ Quitter et rouvrez-le. Votre liste n'est pas modifiée.", "Sofort? Drücke „Microsoft Store öffnen“, dann „Aktualisieren“, schließe Miraru mit ⏻ Beenden und öffne es wieder. Deine Liste bleibt unverändert."),
+    "Más tarde": ("Later", "Plus tard", "Später"),
+    "Abrir Microsoft Store": ("Open Microsoft Store", "Ouvrir Microsoft Store", "Microsoft Store öffnen"),
     "Miraru está cerrado.": ("Miraru is closed.", "Miraru est fermé.", "Miraru ist geschlossen."),
     "Ábrelo (Miraru en el menú Inicio o Miraru.vbs) y esta página se pondrá al día sola. Mientras tanto ves tu lista guardada, pero los cambios no se guardan.": (
         "Open it (Miraru in the Start menu or Miraru.vbs) and this page will catch up on its own. Meanwhile you see your saved list, but changes aren't saved.",
