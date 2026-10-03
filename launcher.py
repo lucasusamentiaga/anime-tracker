@@ -300,14 +300,19 @@ def _abrir_navegador():
     webbrowser.open(f"http://{CONNECT_HOST}:{PORT}")
 
 
-def _pestana_ya_abierta(espera: float = 12.0, paso: float = 0.5) -> bool:
-    """Tras actualizar desde la app (MIRARU_TRAS_ACTUALIZAR=1), la pestaña que lo
-    pidió sigue abierta y se reconecta sola consultando /api/actualizacion/espera.
-    Si lo hace en unos segundos no se abre otra pestaña; si no (la cerraron), sí."""
-    if os.environ.pop("MIRARU_TRAS_ACTUALIZAR", None) != "1":
-        return False
+def _pestana_ya_abierta(espera: float = 12.0, paso: float = 0.5,
+                        espera_normal: float = 2.5) -> bool:
+    """¿Hay ya una pestaña de Miraru esperando al servidor? Si la hay, no se abre otra.
+
+    - Tras actualizar desde la app (MIRARU_TRAS_ACTUALIZAR=1), la pestaña que lo
+      pidió se reconecta sola: se la espera hasta `espera` segundos.
+    - v2.12, arranque normal: si quedó una pestaña abierta (p. ej. al apagar el
+      PC sin cerrar el navegador), muestra «Miraru está cerrado» y consulta
+      /api/actualizacion/espera cada 1,5 s; se la espera `espera_normal` s."""
+    tras_actualizar = os.environ.pop("MIRARU_TRAS_ACTUALIZAR", None) == "1"
+    limite = espera if tras_actualizar else espera_normal
     inicio = time.time()
-    while time.time() - inicio < espera:
+    while time.time() - inicio < limite:
         modulo = sys.modules.get("main")
         marca = getattr(modulo, "_pestana_esperando", None) if modulo else None
         if marca and marca.get("ts", 0) >= inicio - 5:
@@ -483,7 +488,7 @@ def main():
         sys.exit(1)
 
     if _pestana_ya_abierta():
-        log("Servidor listo — la pestaña que pidió la actualización ya se ha reconectado")
+        log("Servidor listo — ya había una pestaña de Miraru abierta y se ha reconectado")
     else:
         log("Servidor listo — abriendo navegador")
         _abrir_navegador()

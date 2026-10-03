@@ -135,3 +135,37 @@ def test_los_limites_exactos_se_aceptan(client):
     assert client.patch("/api/animes/Cobaya", json={"puntuacion": 0}).status_code == 200
     assert client.patch("/api/animes/Cobaya", json={"puntuacion": 10}).status_code == 200
     assert client.patch("/api/animes/Cobaya", json={"episodios_vistos": 0}).status_code == 200
+
+
+# ── v2.12: fechas de visionado con límites ───────────────────────────────────
+
+@pytest.mark.parametrize("campo,valor", [
+    ("fecha_inicio", "1893-05-01"),    # antes del primer anime
+    ("fecha_inicio", "2999-01-01"),    # en el futuro
+    ("fecha_fin", "31/12/2020"),       # formato equivocado
+    ("fecha_inicio", "2023-02-30"),    # día que no existe
+])
+def test_rechaza_fechas_imposibles(client, campo, valor):
+    r = client.patch("/api/animes/Cobaya", json={campo: valor})
+    assert r.status_code == 422, r.text
+    assert not db.obtener_anime("Cobaya")[campo]
+
+
+def test_el_fin_no_puede_ser_anterior_al_inicio(client):
+    assert client.patch("/api/animes/Cobaya", json={"fecha_inicio": "2024-05-10"}).status_code == 200
+    r = client.patch("/api/animes/Cobaya", json={"fecha_fin": "2024-05-01"})
+    assert r.status_code == 422
+    assert client.patch("/api/animes/Cobaya", json={"fecha_fin": "2024-06-01"}).status_code == 200
+
+
+def test_fechas_normales_y_borrar_fecha(client):
+    import datetime
+    hoy = datetime.date.today().isoformat()
+    assert client.patch("/api/animes/Cobaya", json={"fecha_inicio": "2016-01-14", "fecha_fin": hoy}).status_code == 200
+    assert db.obtener_anime("Cobaya")["fecha_fin"] == hoy
+
+
+def test_fecha_de_estreno_de_anilist():
+    assert main._fecha_anilist({"year": 2016, "month": 1, "day": 14}) == "2016-01-14"
+    assert main._fecha_anilist({"year": 2016, "month": None, "day": None}) == "2016-01-01"
+    assert main._fecha_anilist({"year": None}) == ""

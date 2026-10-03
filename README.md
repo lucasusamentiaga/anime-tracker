@@ -48,7 +48,7 @@ ni nube.
 - "Mi año en anime" como imagen para compartir y página HTML con tu biblioteca
 
 **Más**
-- **Sincronización con AniList** en los dos sentidos
+- **Sincronización con AniList y AnimeAV1** en los dos sentidos, con barra de progreso
 - **Carpeta vigilada**: marca como visto el episodio que acabas de descargar
 - Sincronización con Google Sheets (opcional)
 - Acceso desde el **móvil** por la WiFi de casa, con PIN (instalable como app)

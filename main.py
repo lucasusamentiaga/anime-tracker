@@ -73,9 +73,11 @@ except ImportError:  # Pydantic 1 (Python puro): el que usa install.ps1, sin DLL
         return deco
 
 import anilist_sync
+import animeav1_sync
 import database as db
 import metadatos
 import sheets_sync
+import trabajos
 from i18n import TRANSLATIONS, get_lang, set_lang
 from scrapers import SCRAPERS, AnimeData
 from scrapers.anilist import ANILIST_MIN_INTERVAL, candidatos_busqueda
@@ -980,6 +982,22 @@ class BuscarRequest(BaseModel):
 ESTADOS_VALIDOS = ("pendiente", "viendo", "completado", "abandonado", "pausa")
 
 
+FECHA_MINIMA = datetime.date(1917, 1, 1)   # el anime más antiguo conservado
+
+
+def validar_fecha_vista(v: str) -> str:
+    try:
+        f = datetime.date.fromisoformat(str(v).strip()[:10])
+    except ValueError:
+        raise ValueError("Fecha no válida: usa el formato AAAA-MM-DD.") from None
+    # +1 día: con husos horarios el «hoy» del navegador puede ir por delante.
+    if f > datetime.date.today() + datetime.timedelta(days=1):
+        raise ValueError("La fecha no puede estar en el futuro.")
+    if f < FECHA_MINIMA:
+        raise ValueError("La fecha es demasiado antigua (antes de 1917 no había anime).")
+    return f.isoformat()
+
+
 class ActualizarRequest(BaseModel):
     """Los límites viven aquí, no en el frontend.
 
@@ -1000,6 +1018,16 @@ class ActualizarRequest(BaseModel):
     notif_activa:        Optional[int]   = Field(default=None, ge=0, le=1)
     notas:               Optional[str]   = Field(default=None, max_length=5000)
     volumenes_leidos:    Optional[int]   = Field(default=None, ge=0)
+
+    @field_validator("fecha_inicio", "fecha_fin")
+    @classmethod
+    def _fecha_posible(cls, v):
+        """v2.12: «Empecé a verlo en 1893» se guardaba sin más. Una fecha de
+        visionado tiene que existir y no puede ser anterior al primer anime
+        (1917) ni posterior a hoy. "" borra la fecha."""
+        if v is None or v == "":
+            return v
+        return validar_fecha_vista(v)
 
     @field_validator("estado_usuario")
     @classmethod
@@ -1595,6 +1623,9 @@ async def _resolver_desde_url(url: str) -> tuple[Optional[AnimeData], str]:
     if tipo == "slug":
         # Para slugs, pasamos a la búsqueda del scraper específico — son tolerantes a slugs
         scraper = SCRAPERS.get(fuente)
+        if scraper and hasattr(scraper, "buscar_por_slug"):
+            r = await loop.run_in_executor(executor, scraper.buscar_por_slug, valor)
+            return r, fuente
         if scraper:
             r = await loop.run_in_executor(executor, scraper.buscar, valor.replace("-", " "))
             return r, fuente
@@ -3263,11 +3294,13 @@ def _trailer_url(tr: Optional[dict]) -> str:
     return ""
 
 
-def _fetch_extra(nombre: str) -> dict:
-    """Trailer + enlaces de streaming + animes similares para un título."""
-    query = """query($search: String) {
-      Media(search: $search, type: ANIME) {
+def _fetch_extra(nombre: str, anilist_id: int = 0) -> dict:
+    """Trailer + enlaces de streaming + animes similares para un título.
+    v2.12: también la fecha de estreno (límite inferior de «Fecha inicio»)."""
+    query = """query($search: String, $id: Int) {
+      Media(search: $search, id: $id, type: ANIME) {
         siteUrl
+        startDate { year month day }
         trailer { id site thumbnail }
         externalLinks { site url }
         recommendations(sort: RATING_DESC, perPage: 8) {
@@ -3279,9 +3312,10 @@ def _fetch_extra(nombre: str) -> dict:
         }
       }
     }"""
-    m = _anilist(query, {"search": nombre}, timeout=12).get("Media")
+    variables = {"id": int(anilist_id)} if anilist_id else {"search": nombre}
+    m = _anilist(query, variables, timeout=12).get("Media")
     if not m:
-        return {"trailer": "", "streaming": [], "similar": [], "siteUrl": ""}
+        return {"trailer": "", "streaming": [], "similar": [], "siteUrl": "", "estreno": ""}
 
     trailer = _trailer_url(m.get("trailer"))
 
@@ -3312,7 +3346,19 @@ def _fetch_extra(nombre: str) -> dict:
         })
 
     return {"trailer": trailer, "streaming": streaming[:6],
-            "similar": similar[:8], "siteUrl": m.get("siteUrl") or ""}
+            "similar": similar[:8], "siteUrl": m.get("siteUrl") or "",
+            "estreno": _fecha_anilist(m.get("startDate"))}
+
+
+def _fecha_anilist(d: Optional[dict]) -> str:
+    """{year, month, day} de AniList → "AAAA-MM-DD" (el día/mes que falte, 1)."""
+    if not d or not d.get("year"):
+        return ""
+    try:
+        return datetime.date(int(d["year"]), int(d.get("month") or 1),
+                             int(d.get("day") or 1)).isoformat()
+    except (TypeError, ValueError):
+        return ""
 
 
 @app.get("/api/animes/{nombre:path}/extra")
@@ -3321,12 +3367,15 @@ async def anime_extra(nombre: str):
     Cacheado 5 min porque cada apertura de ficha lo pediría si no."""
     anime = db.obtener_anime(nombre)
     titulo = anime.get("nombre") if anime else nombre
-    ck = f"extra:{titulo.lower().strip()}"
+    aid = int((anime or {}).get("anilist_id") or 0)
+    if anime and (anime.get("tipo") or "anime") == "manga":
+        aid = 0   # el id es de un manga; la consulta pide ANIME
+    ck = f"extra:{aid or titulo.lower().strip()}"
     cached = _cache_get(ck)
     if cached:
         return cached
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(executor, _fetch_extra, titulo)
+    result = await loop.run_in_executor(executor, _fetch_extra, titulo, aid)
     _cache_set(ck, result)
     return result
 
@@ -4132,11 +4181,28 @@ async def anilist_disconnect():
     return {"ok": True}
 
 
+def _anilist_pull_trabajo(progreso):
+    try:
+        return anilist_sync.pull_all(progreso)
+    finally:
+        db._invalidar_cache()
+
+
+def _anilist_resolver_trabajo(progreso):
+    try:
+        return anilist_sync.resolve_anilist_ids(progreso=progreso)
+    finally:
+        db._invalidar_cache()
+
+
 @app.post("/api/anilist/pull")
-async def anilist_pull():
-    """Descarga la lista de anime + manga de AniList y sincroniza con la BD local."""
+async def anilist_pull(fondo: bool = False):
+    """Descarga la lista de anime + manga de AniList y sincroniza con la BD local.
+    Con ?fondo=1 devuelve {"trabajo": id} al momento (ver /api/trabajos)."""
     if not anilist_sync.is_connected():
         raise HTTPException(400, "No conectado a AniList")
+    if fondo:
+        return {"trabajo": trabajos.lanzar("anilist-pull", _anilist_pull_trabajo)}
     from core import executor
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(executor, anilist_sync.pull_all)
@@ -4145,10 +4211,12 @@ async def anilist_pull():
 
 
 @app.post("/api/anilist/push")
-async def anilist_push():
+async def anilist_push(fondo: bool = False):
     """Sube todos los animes con anilist_id a AniList."""
     if not anilist_sync.is_connected():
         raise HTTPException(400, "No conectado a AniList")
+    if fondo:
+        return {"trabajo": trabajos.lanzar("anilist-push", anilist_sync.push_all)}
     from core import executor
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(executor, anilist_sync.push_all)
@@ -4156,13 +4224,86 @@ async def anilist_push():
 
 
 @app.post("/api/anilist/resolve-ids")
-async def anilist_resolve_ids():
+async def anilist_resolve_ids(fondo: bool = False):
     """Busca el anilist_id de animes que aún no lo tienen."""
+    if fondo:
+        return {"trabajo": trabajos.lanzar("anilist-resolve", _anilist_resolver_trabajo)}
     from core import executor
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(executor, anilist_sync.resolve_anilist_ids)
     db._invalidar_cache()
     return result
+
+
+# ── Trabajos largos con progreso (v2.12) ─────────────────────────────────────
+
+@app.get("/api/trabajos/{tid}")
+async def trabajo_estado(tid: str):
+    t = trabajos.estado(tid)
+    if t is None:
+        raise HTTPException(404, "Ese trabajo ya no existe.")
+    return t
+
+
+@app.post("/api/trabajos/{tid}/cancelar")
+async def trabajo_cancelar(tid: str):
+    return {"ok": trabajos.cancelar(tid)}
+
+
+# ── AnimeAV1 (v2.12) ─────────────────────────────────────────────────────────
+
+class AnimeAV1ConectarRequest(BaseModel):
+    cookie: str = Field(..., min_length=3, max_length=8000)
+
+
+@app.get("/api/animeav1/status")
+async def animeav1_status():
+    return animeav1_sync.info()
+
+
+@app.post("/api/animeav1/connect")
+async def animeav1_connect(req: AnimeAV1ConectarRequest):
+    loop = asyncio.get_running_loop()
+    try:
+        return await loop.run_in_executor(executor, animeav1_sync.conectar, req.cookie)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"No se pudo contactar con AnimeAV1: {e}")
+
+
+@app.post("/api/animeav1/disconnect")
+async def animeav1_disconnect():
+    animeav1_sync.desconectar()
+    return {"ok": True}
+
+
+def _animeav1_trabajo(funcion):
+    def correr(progreso):
+        try:
+            return funcion(progreso)
+        except animeav1_sync.av1.ErrorAnimeAV1 as e:
+            if e.status in (401, 403):
+                raise RuntimeError("La sesión de AnimeAV1 ha caducado: vuelve a "
+                                   "conectar tu cuenta con una cookie nueva.") from e
+            raise RuntimeError(f"AnimeAV1 respondió con un error ({e}).") from e
+        finally:
+            db._invalidar_cache()
+    return correr
+
+
+@app.post("/api/animeav1/pull")
+async def animeav1_pull():
+    if not animeav1_sync.is_connected():
+        raise HTTPException(400, "No conectado a AnimeAV1")
+    return {"trabajo": trabajos.lanzar("animeav1-pull", _animeav1_trabajo(animeav1_sync.pull))}
+
+
+@app.post("/api/animeav1/push")
+async def animeav1_push():
+    if not animeav1_sync.is_connected():
+        raise HTTPException(400, "No conectado a AnimeAV1")
+    return {"trabajo": trabajos.lanzar("animeav1-push", _animeav1_trabajo(animeav1_sync.push))}
 
 
 @app.get("/api/anilist/callback")
@@ -4225,6 +4366,11 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
     # de un golpe (ej. de 0 a 50 tras importar), no falsificamos el heatmap
     # con 50 timestamps "now".
     prev = db.obtener_anime(nombre)
+    if prev:
+        ini = campos.get("fecha_inicio", prev.get("fecha_inicio") or "")
+        fin = campos.get("fecha_fin", prev.get("fecha_fin") or "")
+        if ini and fin and fin < ini and ("fecha_inicio" in campos or "fecha_fin" in campos):
+            raise HTTPException(422, "La fecha de fin no puede ser anterior a la de inicio.")
     ok, msg = db.actualizar_anime(nombre, campos)
     if not ok:
         raise HTTPException(404, msg)

@@ -39,7 +39,9 @@
 // v36 = textos y lista disponibles sin conexión (API_OFFLINE, red primero).
 // v37 = mensaje de PIN unificado en /mobile.
 // v38 = versión 2.10.0.
-const CACHE_NAME = 'miraru-v44';
+// v45 = sin servidor: franquicias guardadas y respuestas 503 (no 200) para que
+//       la página distinga «Miraru cerrado» de «lista vacía».
+const CACHE_NAME = 'miraru-v45';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -66,7 +68,17 @@ const STATIC_ASSETS = [
 ];
 
 // GET de la API que se guardan para poder abrir la app sin conexión.
-const API_OFFLINE = ['/api/lang', '/api/i18n/ui', '/api/animes/slim', '/api/animes'];
+const API_OFFLINE = ['/api/lang', '/api/i18n/ui', '/api/animes/slim', '/api/animes', '/api/franquicias'];
+
+// Respuesta cuando Miraru está cerrado. Antes era un 200 con {error:'offline'}:
+// la página lo tomaba por datos buenos y, p. ej., se quedaba sin franquicias
+// (todo «suelto») o creía que la actualización nunca terminaba.
+function respuestaSinServidor() {
+  return new Response(JSON.stringify({error: 'offline'}), {
+    status: 503,
+    headers: {'Content-Type': 'application/json', 'X-Miraru-Offline': '1'}
+  });
+}
 
 self.addEventListener('install', event => {
   // addAll falla entero si un asset falla — usamos add() individual con catch
@@ -103,8 +115,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
         return resp;
-      }).catch(() => caches.match(event.request).then(c => c ||
-        new Response(JSON.stringify({error: 'offline'}), {headers: {'Content-Type': 'application/json'}})))
+      }).catch(() => caches.match(event.request).then(c => c || respuestaSinServidor()))
     );
     return;
   }
@@ -112,11 +123,7 @@ self.addEventListener('fetch', event => {
   // Resto de la API: siempre red, sin caché. Si falla, JSON offline.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        new Response(JSON.stringify({error: 'offline'}), {
-          headers: {'Content-Type': 'application/json'}
-        })
-      )
+      fetch(event.request).catch(() => respuestaSinServidor())
     );
     return;
   }

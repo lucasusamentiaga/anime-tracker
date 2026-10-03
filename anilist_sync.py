@@ -24,6 +24,7 @@ import requests
 
 import database as db
 from scrapers.anilist import ANILIST_MIN_INTERVAL
+from trabajos import NULO, Progreso
 
 log = logging.getLogger("miraru.anilist_sync")
 
@@ -186,7 +187,7 @@ query ($userId: Int!, $type: MediaType!) {
 """
 
 
-def _pull_type(media_type: str = "ANIME") -> dict:
+def _pull_type(media_type: str = "ANIME", progreso: Progreso = NULO) -> dict:
     """Descarga la lista de un tipo (ANIME o MANGA) del usuario de AniList
     y sincroniza con la BD local.
 
@@ -216,6 +217,7 @@ def _pull_type(media_type: str = "ANIME") -> dict:
     lists = collection.get("lists", [])
 
     added = updated = errors = 0
+    progreso.sumar_total(sum(len(lst.get("entries") or []) for lst in lists))
 
     # Cargar todos los animes/manga locales indexados por anilist_id
     local_by_aid: dict[int, dict] = {}
@@ -233,8 +235,9 @@ def _pull_type(media_type: str = "ANIME") -> dict:
 
     for lst in lists:
         for entry in lst.get("entries", []):
+            media = entry.get("media") or {}
+            progreso.avanzar(1, (media.get("title") or {}).get("romaji") or "")
             try:
-                media = entry.get("media", {})
                 aid = media.get("id", 0)
                 title = (media.get("title", {}).get("english")
                          or media.get("title", {}).get("romaji") or "")
@@ -320,10 +323,10 @@ def pull_manga_list() -> dict:
     return _pull_type("MANGA")
 
 
-def pull_all() -> dict:
+def pull_all(progreso: Progreso = NULO) -> dict:
     """Descarga anime + manga de AniList."""
-    anime = _pull_type("ANIME")
-    manga = _pull_type("MANGA")
+    anime = _pull_type("ANIME", progreso)
+    manga = _pull_type("MANGA", progreso)
     return {
         "added": anime["added"] + manga["added"],
         "updated": anime["updated"] + manga["updated"],
@@ -333,18 +336,18 @@ def pull_all() -> dict:
 
 # ── Push masivo (sync completo local → AniList) ─────────────────────────────
 
-def push_all() -> dict:
+def push_all(progreso: Progreso = NULO) -> dict:
     """Sube TODOS los animes con anilist_id a AniList."""
     token = get_token()
     if not token:
         return {"pushed": 0, "errors": 0, "error": "no conectado"}
 
-    animes = db.listar_animes()
+    animes = [a for a in db.listar_animes() if a.get("anilist_id")]
     pushed = errors = 0
+    progreso.total(len(animes))
 
     for a in animes:
-        if not a.get("anilist_id"):
-            continue
+        progreso.avanzar(1, a.get("nombre") or "")
         result = push_anime(a)
         if result:
             pushed += 1
@@ -360,7 +363,8 @@ def push_all() -> dict:
 
 
 
-def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep) -> dict:
+def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep,
+                        progreso: Progreso = NULO) -> dict:
     """Busca el anilist_id de animes/mangas que aún no lo tienen.
 
     Usa metadatos.resolver_en_anilist (variantes del título + fallback MAL) y
@@ -374,8 +378,10 @@ def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep) -> dict:
     if limite is not None:
         pendientes = pendientes[:limite]
     resolved = errors = 0
+    progreso.total(len(pendientes))
 
     for a in pendientes:
+        progreso.avanzar(1, a.get("nombre") or "")
         try:
             r = resolver_en_anilist(a["nombre"], a.get("tipo") or "anime")
             if r and r.anilist_id:

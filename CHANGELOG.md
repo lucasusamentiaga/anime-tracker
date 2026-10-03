@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.12.0 — Sincronizar con AnimeAV1 y barras de progreso
+
+- **Sincronizar con AnimeAV1** desde el mismo botón 🔗 que AniList: importa tus listas
+  de AnimeAV1 (viendo, completados, por ver, en pausa, abandonados) y sube a ellas el
+  estado y el último episodio visto de cada anime. Al importar nunca baja tu progreso.
+  Se conecta una sola vez pegando la cookie de tu sesión (AnimeAV1 no permite iniciar
+  sesión desde otras apps); se guarda solo en tu ordenador.
+- **Barra de progreso** en las acciones largas: marcar varios o todos como completados
+  (o cualquier otro estado, lista o favorito), eliminar varios, deshacer, importar o
+  subir a AniList y AnimeAV1, resolver IDs y refrescar metadatos. Se puede cancelar.
+- **Fechas con sentido**: la fecha de inicio no puede ser anterior al estreno del anime
+  (o a 1917 si no se sabe) ni posterior a hoy, y la de fin no puede ser anterior a la de
+  inicio. Lo comprueban la página y el servidor.
+- **Pestaña abierta con Miraru cerrado** (p. ej. tras apagar el PC): ya no se rompen las
+  franquicias ni se juntan todos los animes; avisa de que Miraru está cerrado y, al
+  abrirlo, la página se pone al día sola sin abrir otra pestaña.
+- Añadir desde **AnimeAV1** (buscar o pegar su enlace) vuelve a funcionar: la web cambió
+  de dominio y de formato.
+- Tras importar de AniList la lista se recarga al momento.
+- Tests: ya no pueden tocar la base de datos real aunque se ejecuten en otro orden.
+
 ## v2.11.4 — Preparado para Microsoft Store
 
 - Miraru ya se puede publicar en **Microsoft Store**: la Store lo firma, así que abrirá
