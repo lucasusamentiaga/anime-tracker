@@ -100,6 +100,14 @@ CREDENTIALS   = APP_DIR / "credentials.json"
 from core import VERSION  # noqa: E402
 
 
+def _sin_hilos_de_fondo() -> bool:
+    """Los tests ponen MIRARU_SIN_HILOS_FONDO=1: cada test recarga main y, sin
+    esto, cada recarga lanzaba otra tanda de hilos de fondo (copias, AniList,
+    notificaciones) que segundos después escribían en la BD de OTRO test y
+    hacían fallar tests al azar (además de llamar a AniList de verdad)."""
+    return os.environ.get("MIRARU_SIN_HILOS_FONDO") == "1"
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Arranque y apagado del servidor.
@@ -124,7 +132,8 @@ async def _lifespan(app: FastAPI):
     # Auto-detección de episodios: arranca si hay carpeta configurada
     try:
         import watch_folder
-        watch_folder.auto_start()
+        if not _sin_hilos_de_fondo():
+            watch_folder.auto_start()
     except Exception:
         pass
 
@@ -486,7 +495,7 @@ def _crear_backup_disco(retencion: int = 10) -> Optional[str]:
 _auto_backup_started = False
 def _start_auto_backup_once():
     global _auto_backup_started
-    if _auto_backup_started:
+    if _auto_backup_started or _sin_hilos_de_fondo():
         return
     _auto_backup_started = True
     threading.Thread(target=_auto_backup_loop, daemon=True, name="auto-backup").start()
@@ -502,7 +511,7 @@ import migrations
 _cap200_started = False
 def _start_cap200_fix_once():
     global _cap200_started
-    if _cap200_started:
+    if _cap200_started or _sin_hilos_de_fondo():
         return
     _cap200_started = True
     threading.Thread(target=migrations.migrar_cap200, daemon=True, name="cap200-fix").start()
@@ -521,7 +530,7 @@ def _emision_loop():
 _emision_started = False
 def _start_emision_refresh_once():
     global _emision_started
-    if _emision_started:
+    if _emision_started or _sin_hilos_de_fondo():
         return
     _emision_started = True
     # Espera inicial breve para no competir con el arranque ni con cap200-fix.
@@ -630,7 +639,7 @@ _RESOLVER_IDS_POR_ARRANQUE = 40
 
 def _start_enrich_unknown_eps():
     global _enrich_started
-    if _enrich_started:
+    if _enrich_started or _sin_hilos_de_fondo():
         return
     _enrich_started = True
 
@@ -772,7 +781,7 @@ def _notif_enviar_nuevo_disponible(anime: dict, vistos: int, disponible: int, em
 
 def _start_notif_daemon_once():
     global _notif_daemon_started
-    if _notif_daemon_started:
+    if _notif_daemon_started or _sin_hilos_de_fondo():
         return
     _notif_daemon_started = True
     def _run():

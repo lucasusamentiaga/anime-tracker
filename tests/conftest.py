@@ -28,6 +28,8 @@ import tempfile  # noqa: E402
 _BD_SEGURA = Path(tempfile.mkdtemp(prefix="miraru_tests_"))
 os.environ.setdefault("ANIME_APP_DIR", str(_BD_SEGURA))
 os.environ.setdefault("ANIME_DB_PATH", str(_BD_SEGURA / "anime_tracker.db"))
+# Sin hilos de fondo en los tests (ver main._sin_hilos_de_fondo).
+os.environ["MIRARU_SIN_HILOS_FONDO"] = "1"
 
 
 def _apunta_al_proyecto(ruta: str | None) -> bool:
