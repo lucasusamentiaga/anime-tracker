@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/animes", tags=["ficha"])
 # los 3 reintentos por defecto y timeout 12s, una API caída (AnimeThemes a
 # veces) dejaba la petición colgada ~53s.
 _session = net.make_session({"User-Agent": "Miraru/2.8"}, total=1, backoff=0.3)
-_TIMEOUT = 8
+_TIMEOUT = (4, 8)   # (conectar, leer): si Jikan ni contesta, se rinde antes
 _cache: dict[str, list] = {}
 _cache_personajes: dict[str, list] = {}
 _lock = threading.Lock()

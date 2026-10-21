@@ -1082,6 +1082,12 @@ class ActualizarRequest(BaseModel):
     volumenes_leidos:    Optional[int]   = Field(default=None, ge=0)
     grupo:               Optional[str]   = Field(default=None, max_length=120)
 
+    @field_validator("grupo")
+    @classmethod
+    def _grupo_sin_espacios(cls, v):
+        """"   " se guardaba tal cual; es lo mismo que vacío (automático)."""
+        return v.strip() if isinstance(v, str) else v
+
     @field_validator("fecha_inicio", "fecha_fin")
     @classmethod
     def _fecha_posible(cls, v):
@@ -1678,7 +1684,7 @@ async def buscar_franquicia(req: BuscarRequest):
                     loop.run_in_executor(executor, kitsu_mod.franquicia, q), timeout=25)
             except Exception:
                 entradas = []
-        if not entradas:
+        if not entradas or not saga_casa_con(q, entradas):
             return {"ok": False, "entradas": []}
         raiz = next((e for e in entradas if e["raiz"]), entradas[0])
         series = [e for e in entradas if e["formato"] in ("TV", "TV_SHORT", "ONA")]
@@ -1696,6 +1702,25 @@ async def buscar_franquicia(req: BuscarRequest):
         return any(db.clave_nombre(t) in claves for t in [e["nombre"], *(e.get("titulos") or [])])
     entradas = [dict(e, en_lista=_ya(e)) for e in resp["entradas"]]
     return dict(resp, entradas=entradas, resumen=resumen_saga(entradas))
+
+
+def saga_casa_con(q: str, entradas: list[dict]) -> bool:
+    """¿La saga tiene algo que ver con lo buscado? Kitsu devuelve lo más popular
+    aunque la búsqueda sea basura ("%%%<>" → Attack on Titan). Basta con que una
+    palabra de la búsqueda (3+ letras) se parezca a una de algún título; se
+    toleran erratas ("atack on titans")."""
+    import difflib
+    palabras = [w for w in re.findall(r"\w+", q.casefold()) if len(w) >= 3]
+    if not palabras:
+        return bool(re.search(r"\w", q))       # "K-On", "86": no hay con qué comparar
+    titulos = set()
+    for e in entradas:
+        for t in [e.get("nombre", ""), *(e.get("titulos") or [])]:
+            ws = re.findall(r"\w+", str(t).casefold())
+            titulos.update(w for w in ws if len(w) >= 2)
+            titulos.add("".join(w[0] for w in ws))      # siglas: "aot", "snk"
+    return any(p in titulos or difflib.get_close_matches(p, titulos, n=1, cutoff=0.75)
+               for p in palabras)
 
 
 _FORMATOS_SERIE = ("TV", "TV_SHORT", "ONA")
@@ -3617,12 +3642,12 @@ def _fetch_score_mal(nombre: str) -> dict:
     """MAL vía Jikan v4: score ya viene en escala 1-10."""
     try:
         from scrapers.net import make_session
-        s = make_session()
+        s = make_session(total=1, backoff=0.3)
         resp = s.get(
             "https://api.jikan.moe/v4/anime",
             params={"q": nombre, "limit": 3, "sfw": True},
             headers={"User-Agent": f"AnimeTracker/{VERSION}", "Accept-Encoding": "identity"},
-            timeout=12,
+            timeout=(4, 8),
         )
         resp.raise_for_status()
         items = resp.json().get("data", [])
@@ -3643,7 +3668,7 @@ def _fetch_score_kitsu(nombre: str) -> dict:
     """Kitsu: averageRating viene en escala 0-100."""
     try:
         from scrapers.net import make_session
-        s = make_session()
+        s = make_session(total=1, backoff=0.3)
         resp = s.get(
             "https://kitsu.io/api/edge/anime",
             params={
@@ -3683,6 +3708,32 @@ def _fetch_score_kitsu(nombre: str) -> dict:
         return {"score": None, "score_raw": None, "url": ""}
 
 
+_SCORE_VACIO = {"score": None, "score_raw": None, "url": ""}
+_SCORES_LIMITE = 12      # segundos como mucho para las tres fuentes juntas
+
+
+def _combinar_scores(anilist: dict, mal: dict, kitsu: dict) -> dict:
+    scores = [s["score"] for s in [anilist, mal, kitsu] if s["score"] is not None]
+    media = round(sum(scores) / len(scores), 1) if scores else None
+    return {"anilist": anilist, "mal": mal, "kitsu": kitsu, "media": media}
+
+
+async def _scores_en_paralelo(nombre: str) -> dict:
+    """Las tres fuentes a la vez y con un tope total. Antes iban una detrás de
+    otra con 3 reintentos: con Jikan inaccesible la ficha esperaba más de 40 s."""
+    loop = asyncio.get_running_loop()
+
+    async def _una(fn):
+        try:
+            return await asyncio.wait_for(loop.run_in_executor(executor, fn, nombre),
+                                          timeout=_SCORES_LIMITE)
+        except Exception:
+            return dict(_SCORE_VACIO)
+    a, m, k = await asyncio.gather(_una(_fetch_score_anilist), _una(_fetch_score_mal),
+                                   _una(_fetch_score_kitsu))
+    return _combinar_scores(a, m, k)
+
+
 def _fetch_scores(nombre: str) -> dict:
     """Consulta las tres fuentes y devuelve scores normalizados a 0-10."""
     anilist = _fetch_score_anilist(nombre)
@@ -3714,11 +3765,12 @@ async def anime_scores(nombre: str):
         if anime:
             cached["usuario"] = anime.get("puntuacion") or None
         return cached
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(executor, _fetch_scores, titulo)
+    result = await _scores_en_paralelo(titulo)
     # Nota del usuario
     result["usuario"] = (anime.get("puntuacion") or None) if anime else None
-    _cache_set(ck, result, ttl=1800)  # 30 min
+    # Si ninguna fuente respondió no se cachea: a los 5 min se vuelve a intentar.
+    hay_alguna = any(result[f]["score"] is not None or result[f]["url"] for f in ("anilist", "mal", "kitsu"))
+    _cache_set(ck, result, ttl=1800 if hay_alguna else 300)
     return result
 
 

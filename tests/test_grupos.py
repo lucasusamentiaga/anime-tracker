@@ -258,7 +258,7 @@ def test_api_franquicia_usa_kitsu_si_anilist_no_responde(cliente, db, monkeypatc
          "capitulos": 12, "estado_anime": "", "imagen": "", "genero": [], "anio": 2017, "mes": 4, "dia": 1,
          "raiz": False, "url": "https://kitsu.io/anime/s2", "titulos": []}])
     _alta(db, "Shingeki no Kyojin")
-    d = c.post("/api/buscar/franquicia", json={"nombre": "aot kitsu"}).json()
+    d = c.post("/api/buscar/franquicia", json={"nombre": "aot"}).json()
     assert d["fuente"] == "kitsu" and [e["en_lista"] for e in d["entradas"]] == [True, False]
 
 
@@ -318,7 +318,7 @@ def test_api_saga_trae_resumen(cliente, db, monkeypatch):
          "genero": [], "anio": 2013, "mes": 4, "dia": 7, "raiz": True, "url": "u1", "titulos": []},
         {"anilist_id": 2, "nombre": "A 2", "formato": "TV", "capitulos": 12, "estado_anime": "", "imagen": "",
          "genero": [], "anio": 2017, "mes": 4, "dia": 1, "raiz": False, "url": "u2", "titulos": []}])
-    d = c.post("/api/buscar/franquicia", json={"nombre": "resumen zz"}).json()
+    d = c.post("/api/buscar/franquicia", json={"nombre": "A 2"}).json()
     assert d["resumen"]["temporadas"] == 2 and d["resumen"]["episodios"] == 37
     assert [e["temporada"] for e in d["entradas"]] == [1, 2]
 
@@ -327,3 +327,56 @@ def test_la_pagina_tiene_completar_saga_y_pastillas():
     html = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
     for trozo in ('id="modal-saga"', "completarSaga(fq)", "fq-temps", "_pintarSaga(", "saga-fichas"):
         assert trozo in html, trozo
+
+
+# ── Debug 21 oct ─────────────────────────────────────────────────────────────
+
+def test_saga_solo_si_casa_con_la_busqueda():
+    import main
+    aot = [{"nombre": "Attack on Titan", "titulos": ["Shingeki no Kyojin"]},
+           {"nombre": "Attack on Titan Season 2", "titulos": []}]
+    assert main.saga_casa_con("atack on titans", aot)
+    assert main.saga_casa_con("shingeki", aot)
+    assert not main.saga_casa_con("%%%\"'<>", aot)
+    assert not main.saga_casa_con("qwzxqwzx", aot)
+    assert main.saga_casa_con("86", [{"nombre": "86 EIGHTY-SIX"}])
+
+
+def test_api_saga_descarta_busquedas_sin_sentido(cliente, monkeypatch):
+    c, _ = cliente
+    from scrapers import kitsu
+    monkeypatch.setattr(al, "franquicia", lambda q: [])
+    monkeypatch.setattr(kitsu, "franquicia", lambda q: [
+        {"kitsu_id": "1", "anilist_id": 0, "nombre": "Attack on Titan", "formato": "TV", "capitulos": 25,
+         "estado_anime": "", "imagen": "", "genero": [], "anio": 2013, "mes": 4, "dia": 7, "raiz": True,
+         "url": "u", "titulos": []},
+        {"kitsu_id": "2", "anilist_id": 0, "nombre": "Attack on Titan 2", "formato": "TV", "capitulos": 12,
+         "estado_anime": "", "imagen": "", "genero": [], "anio": 2017, "mes": 4, "dia": 1, "raiz": False,
+         "url": "u2", "titulos": []}])
+    assert c.post("/api/buscar/franquicia", json={"nombre": "%%%<>"}).json()["ok"] is False
+
+
+def test_grupo_con_solo_espacios_es_automatico(cliente, db):
+    c, _ = cliente
+    _alta(db, "Death Note")
+    assert c.patch("/api/animes/Death Note", json={"grupo": "   "}).status_code == 200
+    assert db.obtener_anime("Death Note")["grupo"] == ""
+
+
+def test_la_cabecera_no_ensancha_la_pagina_en_movil():
+    html = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
+    assert ".header-nav{display:flex;gap:2px;align-items:center;flex-wrap:wrap" in html
+
+
+def test_puntuaciones_no_esperan_a_una_fuente_colgada(cliente, monkeypatch):
+    """Con Jikan inaccesible la ficha tardaba más de 40 s en sacar las notas."""
+    import time as _t
+    c, main = cliente
+    monkeypatch.setattr(main, "_SCORES_LIMITE", 1)
+    monkeypatch.setattr(main, "_fetch_score_anilist", lambda n: {"score": 8.5, "score_raw": 85, "url": "a"})
+    monkeypatch.setattr(main, "_fetch_score_mal", lambda n: _t.sleep(3) or {"score": 9, "score_raw": 9, "url": "m"})
+    monkeypatch.setattr(main, "_fetch_score_kitsu", lambda n: {"score": 8.0, "score_raw": 80, "url": "k"})
+    t = _t.time()
+    d = c.get("/api/animes/Cualquiera colgado/scores").json()
+    assert _t.time() - t < 2.5
+    assert d["mal"]["score"] is None and d["media"] == 8.2
