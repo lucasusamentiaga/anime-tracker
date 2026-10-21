@@ -236,3 +236,165 @@ class AniListScraper(BaseScraper):
             return _parse_media(media, "", self.nombre_fuente, media_type) if media else None
         except Exception:
             return None
+
+
+# ── Franquicias (v2.13) ──────────────────────────────────────────────────────
+# Relaciones que cuentan como "la misma saga". SPIN_OFF, ALTERNATIVE (remakes),
+# SUMMARY (resúmenes) y CHARACTER se quedan fuera: suelen ser otra cosa.
+RELACIONES_SAGA = {"SEQUEL", "PREQUEL", "PARENT", "SIDE_STORY"}
+FORMATOS_SAGA = {"TV", "TV_SHORT", "ONA", "MOVIE", "OVA", "SPECIAL"}
+_MAX_FRANQUICIA = 60
+
+_CAMPOS_FRANQUICIA = """
+      id
+      title { romaji english native }
+      episodes
+      format
+      type
+      coverImage { large }
+      genres
+      status
+      startDate { year month day }
+      nextAiringEpisode { episode }
+      relations { edges { relationType node { id type } } }
+"""
+
+QUERY_FRANQUICIA_BUSCAR = """
+query ($search: String) {
+  Page(perPage: 30) {
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {CAMPOS}
+  }
+}
+""".replace("{CAMPOS}", "{" + _CAMPOS_FRANQUICIA + "}")
+
+QUERY_FRANQUICIA_IDS = """
+query ($ids: [Int]) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) {CAMPOS}
+  }
+}
+""".replace("{CAMPOS}", "{" + _CAMPOS_FRANQUICIA + "}")
+
+QUERY_RELACIONES = """
+query ($ids: [Int]) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      relations { edges { relationType node { id type } } }
+    }
+  }
+}
+"""
+
+
+def relacionados_saga(media: dict) -> list[int]:
+    """IDs de anime relacionados con `media` como parte de la misma saga."""
+    out = []
+    for e in ((media.get("relations") or {}).get("edges") or []):
+        node = e.get("node") or {}
+        if e.get("relationType") in RELACIONES_SAGA and node.get("type") == "ANIME" and node.get("id"):
+            out.append(int(node["id"]))
+    return out
+
+
+def _post(query: str, variables: dict, timeout: int = 15) -> dict:
+    resp = _session.post(
+        ANILIST_API,
+        json={"query": query, "variables": variables},
+        headers={"User-Agent": "AnimeTracker/2.13", "Accept": "application/json",
+                 "Accept-Encoding": "identity"},
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    return (resp.json() or {}).get("data") or {}
+
+
+def franquicia(nombre: str, post=_post, max_saltos: int = 2) -> list[dict]:
+    """Todas las entradas de la saga del anime que mejor casa con `nombre`.
+
+    Una búsqueda (30 resultados con sus relaciones) suele traer ya toda la saga;
+    lo que falte se pide por IDs (máx. `max_saltos` peticiones más). Devuelve
+    dicts {anilist_id, nombre, formato, capitulos, estado_anime, imagen, genero,
+    anio, mes, dia, raiz} ordenados por fecha de estreno; [] si no hay nada.
+    Nunca lanza."""
+    try:
+        medias = ((post(QUERY_FRANQUICIA_BUSCAR, {"search": nombre}).get("Page") or {})
+                  .get("media") or [])
+    except Exception:
+        return []
+    medias = [m for m in medias if m and m.get("id")]
+    if not medias:
+        return []
+    por_id = {int(m["id"]): m for m in medias}
+    raiz = int(medias[0]["id"])
+
+    visto = {raiz}
+    frontera = [raiz]
+    saltos = 0
+    while frontera and len(visto) < _MAX_FRANQUICIA:
+        faltan = []
+        siguiente = []
+        for i in frontera:
+            m = por_id.get(i)
+            if m is None:
+                faltan.append(i)
+                continue
+            for j in relacionados_saga(m):
+                if j not in visto and len(visto) < _MAX_FRANQUICIA:
+                    visto.add(j)
+                    siguiente.append(j)
+        if faltan:
+            if saltos >= max_saltos:
+                break
+            saltos += 1
+            try:
+                nuevos = ((post(QUERY_FRANQUICIA_IDS, {"ids": faltan[:50]}).get("Page") or {})
+                          .get("media") or [])
+            except Exception:
+                nuevos = []
+            for m in nuevos:
+                if m and m.get("id"):
+                    por_id[int(m["id"])] = m
+            # Los que acaban de llegar se exploran en la siguiente vuelta.
+            siguiente = [i for i in faltan if i in por_id] + siguiente
+        frontera = siguiente
+
+    out = []
+    for i in visto:
+        m = por_id.get(i)
+        if not m or (m.get("format") or "") not in FORMATOS_SAGA:
+            continue
+        d = _parse_media(m, "", "anilist")
+        if not d:
+            continue
+        sd = m.get("startDate") or {}
+        out.append({
+            "anilist_id": i,
+            "nombre": d.nombre,
+            "formato": m.get("format") or "",
+            "capitulos": d.capitulos,
+            "estado_anime": d.estado_anime,
+            "imagen": d.imagen,
+            "genero": d.genero,
+            "anio": sd.get("year") or 0,
+            "mes": sd.get("month") or 0,
+            "dia": sd.get("day") or 0,
+            "raiz": i == raiz,
+            "url": f"https://anilist.co/anime/{i}",
+            "titulos": [t for t in (m.get("title") or {}).values() if t],
+        })
+    out.sort(key=lambda e: (e["anio"] or 9999, e["mes"] or 99, e["dia"] or 99, e["anilist_id"]))
+    return out
+
+
+def relaciones_por_ids(ids: list[int], post=_post) -> dict[int, list[int]]:
+    """{id: [ids de la misma saga]} para hasta 50 animes. {} si falla."""
+    ids = [int(i) for i in ids if i][:50]
+    if not ids:
+        return {}
+    try:
+        medias = ((post(QUERY_RELACIONES, {"ids": ids}).get("Page") or {})
+                  .get("media") or [])
+    except Exception:
+        return {}
+    return {int(m["id"]): relacionados_saga(m) for m in medias if m and m.get("id")}

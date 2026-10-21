@@ -374,6 +374,33 @@ main{padding:16px 20px}
 .fq-name{font-size:13px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fq-meta{font-size:10px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
 .fq-chevron{font-size:14px;color:var(--muted);transition:transform .2s ease;flex-shrink:0}
+.fq-acciones{display:flex;gap:4px;flex-shrink:0}
+.fq-btn{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s}
+.fq-btn:hover{background:var(--card2);color:var(--fg);border-color:var(--border)}
+.fq-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fq-group.fq-drop .fq-header,body.arrastrando .fq-header{outline:2px dashed rgba(168,85,247,.55);outline-offset:2px}
+.fq-group.fq-drop .fq-header{background:var(--grad-accent-soft);outline-style:solid}
+.ac.ac-drop{outline:2px solid var(--accent2);outline-offset:2px}
+.ac.arrastrado{opacity:.45}
+.ac .salir{
+  position:absolute;top:6px;right:34px;opacity:0;transition:opacity .15s;
+  background:rgba(30,27,75,.9);color:#e9d5ff;border:none;border-radius:50%;
+  width:24px;height:24px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+.ac:hover .salir,.ac .salir:focus-visible{opacity:1}
+.ac .salir:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+body.sel-mode .ac .salir{display:none}
+@media (hover:none){.ac .salir{opacity:1}}
+#mg-portadas{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+#mg-portadas img{width:38px;height:54px;object-fit:cover;border-radius:6px;background:var(--card2)}
+#mg-portadas .mas{width:38px;height:54px;border-radius:6px;background:var(--card2);color:var(--muted);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#mg-sug{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 16px}
+#mg-sug:empty{display:none}
+#mg-sug .chip{background:var(--card2);border:1px solid var(--border);color:var(--fg);border-radius:99px;padding:4px 10px;font-size:11px;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mg-sug .chip:hover,#mg-sug .chip:focus-visible{border-color:var(--accent2);outline:none}
+#mg-sug .chip-lbl{width:100%;font-size:11px;color:var(--muted)}
+.fq-tag{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--light);background:var(--grad-accent-soft);border:1px solid rgba(168,85,247,.3);border-radius:99px;padding:1px 7px}
 .fq-chevron.open{transform:rotate(90deg)}
 .fq-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;
@@ -520,9 +547,30 @@ main{padding:16px 20px}
 .sp-item .sp-meta{font-size:10px;color:var(--muted)}
 .sp-item .sp-add{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;align-self:center;transition:background .18s ease}
 .sp-item .sp-add:hover{background:var(--accent2)}
+.sp-item .sp-add:disabled{background:var(--card2);color:var(--muted);cursor:default}
 .sp-item .sp-add:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 [data-theme=light] .sp-item:hover{background:rgba(79,70,229,.06)}
 [data-theme=light] #search-preview{background:#fff;border-color:#d4d0ec}
+#search-preview{min-width:min(540px,calc(100vw - 32px))}
+.sp-saga{padding:10px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--fg);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp-saga .sp-saga-txt{flex:1;min-width:180px}
+.sp-saga .sp-saga-txt small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.sp-saga-btn{background:var(--card2);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0}
+.sp-saga-btn:hover{border-color:var(--accent2)}
+.sp-saga-btn.prim{background:var(--accent);border-color:var(--accent);color:#fff}
+.sp-saga-btn.prim:hover{background:var(--accent2)}
+.sp-saga-btn:disabled{opacity:.5;cursor:default}
+.sp-saga-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sp-saga-lista{border-top:1px solid var(--border)}
+.sp-saga-row{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:12px;cursor:pointer}
+.sp-saga-row:hover{background:rgba(79,70,229,.08)}
+#search-preview .sp-saga-row input[type=checkbox]{accent-color:var(--accent);width:15px;min-width:15px;height:15px;flex:0 0 15px;margin:0;padding:0}
+.sp-saga-row img{width:30px;height:42px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--card2)}
+.sp-saga-row .t{flex:1;min-width:0}
+.sp-saga-row .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-saga-row .t small{color:var(--muted);font-size:10px}
+.sp-saga-row.ya{opacity:.55;cursor:default}
+.sp-saga-pie{display:flex;justify-content:flex-end;gap:8px;padding:8px 12px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--card)}
 
 #empty-msg{text-align:center;color:var(--muted);margin-top:60px;font-size:14px;display:none}
 .count-label{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
@@ -668,6 +716,16 @@ fetch('/api/version').then(r => r.json()).then(d => {
         </select>
       </div>
     </div>
+    <div class="field">
+      <label for="edit-grupo">Grupo</label>
+      <input type="text" id="edit-grupo" list="dl-grupos" maxlength="120" placeholder="Automático" autocomplete="off">
+      <datalist id="dl-grupos"></datalist>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);margin-top:6px;user-select:none">
+        <input type="checkbox" id="edit-suelto" style="accent-color:var(--accent);width:14px;height:14px"
+               onchange="const i=document.getElementById('edit-grupo'); if(i){i.disabled=this.checked; if(this.checked) i.value='';}">
+        Mostrarlo siempre suelto (fuera de cualquier grupo)
+      </label>
+    </div>
     <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;user-select:none">
         <input type="checkbox" id="edit-favorito" style="accent-color:var(--accent);width:15px;height:15px">
@@ -738,6 +796,23 @@ fetch('/api/version').then(r => r.json()).then(d => {
 </div>
 
 <!-- Modal: ¿Qué veo esta noche? -->
+<!-- Modal: nombre de un grupo (v2.13) -->
+<div class="modal-bg" id="modal-grupo" onclick="if(event.target===this)_cerrarModalGrupo(null)">
+  <div class="modal" style="max-width:460px" role="dialog" aria-modal="true" aria-labelledby="mg-titulo">
+    <h3 id="mg-titulo">🗂 Agrupar</h3>
+    <div id="mg-portadas"></div>
+    <div class="field">
+      <label for="mg-nombre">Nombre del grupo</label>
+      <input type="text" id="mg-nombre" maxlength="120" autocomplete="off">
+    </div>
+    <div id="mg-sug"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn btn-g" onclick="_cerrarModalGrupo(null)">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="mg-ok" onclick="_cerrarModalGrupo(document.getElementById('mg-nombre').value)">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-queveo" onclick="if(event.target===this)cerrarModal('modal-queveo')">
   <div class="modal" style="max-width:420px">
     <h3>🎲 ¿Qué veo esta noche?</h3>
@@ -998,7 +1073,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
        visualmente y el atajo Ctrl+K sigue abriendo la paleta igual. -->
   <div id="search-preview" style="display:none;position:absolute;top:100%;left:0;right:0;
        background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:35;
-       max-height:320px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);margin-top:4px">
+       max-height:min(70vh,560px);overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);margin-top:4px">
   </div>
   </div>
   <button class="btn btn-ghost btn-sm" id="btn-compact" onclick="toggleCompactAll()" title="Compactar / expandir franquicias" style="white-space:nowrap">📦 <span id="txt-compact">Expandir</span></button>
@@ -1713,6 +1788,7 @@ function render() {
 
     const card = document.createElement('div');
     card.className = 'ac';
+    card.draggable = true;
     card.dataset.nombre = a.nombre;
     card.dataset.enc = enc;
 
@@ -1781,7 +1857,7 @@ function render() {
     if (fq.count <= 1) continue; // Las de un solo anime van sueltas
     const miembros = fq.animes.filter(a => nombresValidos.has(a.nombre));
     if (miembros.length > 1) {
-      franquiciasFiltradas.push({...fq, animes: miembros});
+      franquiciasFiltradas.push({...fq, animes: miembros, _todos: fq.animes});
       miembros.forEach(a => animesEnFranquicia.add(a.nombre));
     }
   }
@@ -1847,6 +1923,27 @@ function render() {
     hInfo.appendChild(hMeta);
     header.appendChild(hInfo);
 
+    if (fq.manual) {
+      const tag = document.createElement('span');
+      tag.className = 'fq-tag';
+      tag.textContent = _tr('Tu grupo');
+      hMeta.appendChild(tag);
+    }
+
+    // v2.13: el usuario puede renombrar o deshacer la caja.
+    const acc = document.createElement('div');
+    acc.className = 'fq-acciones';
+    const bRen = document.createElement('button');
+    bRen.type = 'button'; bRen.className = 'fq-btn'; bRen.textContent = '✏️';
+    bRen.title = _tr('Renombrar grupo'); bRen.setAttribute('aria-label', bRen.title);
+    bRen.addEventListener('click', e => { e.stopPropagation(); renombrarGrupo(fq); });
+    const bSep = document.createElement('button');
+    bSep.type = 'button'; bSep.className = 'fq-btn'; bSep.textContent = '⊘';
+    bSep.title = _tr('Deshacer grupo'); bSep.setAttribute('aria-label', bSep.title);
+    bSep.addEventListener('click', e => { e.stopPropagation(); deshacerGrupo(fq); });
+    acc.appendChild(bRen); acc.appendChild(bSep);
+    header.appendChild(acc);
+
     const chevron = document.createElement('span');
     chevron.className = 'fq-chevron';
     chevron.textContent = '▶';
@@ -1856,7 +1953,16 @@ function render() {
 
     const grid = document.createElement('div');
     grid.className = 'fq-grid' + (isOpen ? '' : ' collapsed');
-    fq.animes.forEach(a => grid.appendChild(_crearCard(a)));
+    fq.animes.forEach(a => {
+      const card = _crearCard(a);
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'salir'; b.textContent = '⤴';
+      b.title = _tr('Sacar del grupo'); b.setAttribute('aria-label', b.title);
+      card.querySelector('.thumb')?.appendChild(b);
+      grid.appendChild(card);
+    });
+    // Arrastrar un anime encima de la caja lo mete en ella.
+    group.dataset.grupo = fq.nombre;
 
     header.addEventListener('click', () => {
       const open = !grid.classList.contains('collapsed');
@@ -2243,6 +2349,7 @@ function abrirModal(enc) {
   if (lEl) lEl.value = a.lista_personalizada || 'principal';
   const fEl = document.getElementById('edit-favorito');
   if (fEl) fEl.checked = !!a.favorito;
+  _rellenarGruposEditor(a);
   const nEl = document.getElementById('edit-notif');
   if (nEl) nEl.checked = !!a.notif_activa;
 
@@ -2690,6 +2797,7 @@ async function guardarEdicion() {
     favorito:         document.getElementById('edit-favorito')?.checked ? 1 : 0,
     notif_activa:     document.getElementById('edit-notif')?.checked ? 1 : 0,
     volumenes_leidos: parseInt(document.getElementById('edit-vol-leidos')?.value) || null,
+    grupo:            _grupoDelEditor(),
   };
   // Si activa notificación, pedir permiso del navegador
   if (body.notif_activa) pedirPermiso();
@@ -2751,6 +2859,213 @@ function toggleFavsFilter() {
   if (btn) btn.style.background = window._soloFavs ? 'rgba(251,191,36,.2)' : '';
   render();
   if (window._soloFavs) toast('⭐ ' + T('only_favs'));
+}
+
+// ── Grupos del usuario (v2.13) ───────────────────────────────────────────────
+// grupo "" = automático · "-" = siempre suelto · "<nombre>" = en esa caja.
+async function asignarGrupo(nombres, grupo) {
+  const r = await fetch('/api/grupos', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({nombres, grupo})
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+// Para deshacer: vuelve a poner a cada anime el grupo que tenía.
+async function _restaurarGrupos(antes) {
+  const porGrupo = {};
+  Object.entries(antes).forEach(([n, g]) => { (porGrupo[g || ''] = porGrupo[g || ''] || []).push(n); });
+  for (const [g, ns] of Object.entries(porGrupo)) await asignarGrupo(ns, g);
+}
+
+function _gruposAntes(nombres) {
+  const antes = {};
+  nombres.forEach(n => { const a = ANIMES.find(x => x.nombre === n); antes[n] = (a && a.grupo) || ''; });
+  return antes;
+}
+
+// Ventana para elegir el nombre de un grupo: portadas de lo que se agrupa,
+// nombre sugerido y, debajo, los grupos que ya existen para elegir con un clic.
+let _mgResolver = null;
+function _pedirNombreGrupo({titulo, nombres, sugerido}) {
+  return new Promise(resolve => {
+    _mgResolver = resolve;
+    document.getElementById('mg-titulo').textContent = titulo;
+    const port = document.getElementById('mg-portadas');
+    port.innerHTML = '';
+    nombres.slice(0, 9).forEach(n => {
+      const a = ANIMES.find(x => x.nombre === n);
+      const im = document.createElement('img');
+      im.alt = n; im.title = n; im.loading = 'lazy';
+      if (a && a.imagen) miraruPortada(im, _thumbUrl(a.imagen));
+      im.onerror = () => { im.onerror = null; im.removeAttribute('src'); };
+      port.appendChild(im);
+    });
+    if (nombres.length > 9) {
+      const m = document.createElement('div'); m.className = 'mas'; m.textContent = '+' + (nombres.length - 9);
+      port.appendChild(m);
+    }
+    const inp = document.getElementById('mg-nombre');
+    inp.value = sugerido || '';
+    const existentes = [...new Set(FRANQUICIAS.filter(f => f.count > 1 || f.manual).map(f => f.nombre))]
+      .filter(n => n !== sugerido).sort((x, y) => x.localeCompare(y));
+    const pintar = () => {
+      const sug = document.getElementById('mg-sug');
+      sug.innerHTML = '';
+      // Sin tocar el nombre propuesto se enseñan todos; al escribir, se filtran.
+      const q = inp.value.trim() === (sugerido || '') ? '' : inp.value.trim().toLowerCase();
+      const lista = existentes.filter(n => !q || n.toLowerCase().includes(q) && n.toLowerCase() !== q).slice(0, 12);
+      if (!lista.length) return;
+      const lbl = document.createElement('div'); lbl.className = 'chip-lbl';
+      lbl.textContent = _tr('O mételos en un grupo que ya tienes:');
+      sug.appendChild(lbl);
+      lista.forEach(n => {
+        const c = document.createElement('button');
+        c.type = 'button'; c.className = 'chip'; c.textContent = n; c.title = n;
+        c.onclick = () => _cerrarModalGrupo(n);
+        sug.appendChild(c);
+      });
+    };
+    inp.oninput = pintar;
+    inp.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); _cerrarModalGrupo(inp.value); } };
+    pintar();
+    abrirModalEl('modal-grupo');
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  });
+}
+
+function _cerrarModalGrupo(valor) {
+  cerrarModal('modal-grupo');
+  const r = _mgResolver; _mgResolver = null;
+  if (!r) return;
+  const v = valor == null ? null : String(valor).trim();
+  if (v === '-') { toast(_tr('Ese nombre no vale'), 'warn'); r(null); return; }
+  r(v || null);
+}
+
+// Aplica un cambio de grupo, recarga y ofrece deshacerlo.
+async function _cambiarGrupo(nombres, grupo, mensaje, abrir) {
+  const antes = _gruposAntes(nombres);
+  try {
+    await asignarGrupo(nombres, grupo);
+    if (abrir) _franquiciasAbiertas[abrir] = true;
+    await cargar();
+    toastUndo(mensaje, async () => {
+      try { await _restaurarGrupos(antes); await cargar(); } catch(_) { toast(T('error'), 'err'); }
+    });
+  } catch(_) { toast(T('error'), 'err'); }
+}
+
+async function renombrarGrupo(fq) {
+  const miembros = (fq._todos || fq.animes).map(a => a.nombre);
+  const nuevo = await _pedirNombreGrupo({titulo: '✏️ ' + _tr('Renombrar grupo'), nombres: miembros, sugerido: fq.nombre});
+  if (!nuevo || (nuevo === fq.nombre && fq.manual)) return;
+  await _cambiarGrupo(miembros, nuevo, '✏️ ' + _tr('Grupo renombrado'), _franquiciasAbiertas[fq.nombre] ? nuevo : null);
+}
+
+// Sin preguntar: se separa al momento y el aviso deja deshacerlo.
+async function deshacerGrupo(fq) {
+  const miembros = (fq._todos || fq.animes).map(a => a.nombre);
+  await _cambiarGrupo(miembros, '-', '⊘ ' + _tr('Grupo deshecho') + ': ' + fq.nombre);
+}
+
+async function sacarDelGrupo(nombre) {
+  await _cambiarGrupo([nombre], '-', '⤴ ' + _tr('Sacado del grupo') + ': ' + nombre);
+}
+
+// Barra de selección → "Agrupar": mete los seleccionados en una caja.
+async function bulkAgrupar() {
+  const names = getSelectedNames();
+  if (names.length < 1) { toast('Selecciona al menos un anime', 'warn'); return; }
+  // Si ya están en una caja, se propone ese nombre; si no, el del primero.
+  const fq = FRANQUICIAS.find(f => f.count > 1 && f.animes.some(a => names.includes(a.nombre)));
+  const nombre = await _pedirNombreGrupo({titulo: '🗂 ' + _tr('Agrupar'), nombres: names, sugerido: fq ? fq.nombre : names[0]});
+  if (!nombre) return;
+  exitSelMode();
+  await _cambiarGrupo(names, nombre, '🗂 ' + _tr('Agrupados') + ': ' + names.length, nombre);
+}
+
+// Arrastrar y soltar: una tarjeta sobre una caja la mete dentro; sobre otra
+// tarjeta suelta, crea un grupo con las dos.
+{
+  const _lista = document.getElementById('lista');
+  let arrastrado = null;
+  const limpiar = () => {
+    document.body.classList.remove('arrastrando');
+    document.querySelectorAll('.fq-drop,.ac-drop,.arrastrado').forEach(n => n.classList.remove('fq-drop', 'ac-drop', 'arrastrado'));
+  };
+  const destino = e => {
+    const g = e.target.closest('.fq-group');
+    if (g && g.dataset.grupo) return {tipo: 'grupo', el: g};
+    const c = e.target.closest('.ac');
+    if (c && c.dataset.nombre && c.dataset.nombre !== arrastrado) return {tipo: 'card', el: c};
+    return null;
+  };
+  _lista.addEventListener('dragstart', e => {
+    const c = e.target.closest && e.target.closest('.ac');
+    if (!c || document.body.classList.contains('sel-mode')) return;
+    arrastrado = c.dataset.nombre;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', arrastrado); } catch(_) {}
+    c.classList.add('arrastrado');
+    document.body.classList.add('arrastrando');
+  });
+  _lista.addEventListener('dragend', () => { arrastrado = null; limpiar(); });
+  _lista.addEventListener('dragover', e => {
+    if (!arrastrado) return;
+    const d = destino(e);
+    document.querySelectorAll('.fq-drop,.ac-drop').forEach(n => { if (!d || n !== d.el) n.classList.remove('fq-drop', 'ac-drop'); });
+    if (!d) return;
+    // Soltar dentro de su propia caja no hace nada.
+    if (d.tipo === 'grupo' && [...d.el.querySelectorAll('.ac')].some(c => c.dataset.nombre === arrastrado)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    d.el.classList.add(d.tipo === 'grupo' ? 'fq-drop' : 'ac-drop');
+  });
+  _lista.addEventListener('drop', async e => {
+    if (!arrastrado) return;
+    e.preventDefault();
+    const nombre = arrastrado, d = destino(e);
+    arrastrado = null; limpiar();
+    if (!d) return;
+    if (d.tipo === 'grupo') {
+      const g = d.el.dataset.grupo;
+      await _cambiarGrupo([nombre], g, '🗂 ' + nombre + ' → ' + g, g);
+    } else {
+      const otro = d.el.dataset.nombre;
+      const g = await _pedirNombreGrupo({titulo: '🗂 ' + _tr('Nuevo grupo'), nombres: [otro, nombre], sugerido: otro});
+      if (g) await _cambiarGrupo([otro, nombre], g, '🗂 ' + _tr('Agrupados') + ': 2', g);
+    }
+  });
+}
+
+// Editor: lista de grupos existentes para el campo «Grupo».
+function _rellenarGruposEditor(a) {
+  const dl = document.getElementById('dl-grupos');
+  if (dl) {
+    dl.innerHTML = '';
+    [...new Set(FRANQUICIAS.filter(f => f.count > 1 || f.manual).map(f => f.nombre))]
+      .sort((x, y) => x.localeCompare(y)).forEach(n => {
+        const o = document.createElement('option'); o.value = n; dl.appendChild(o);
+      });
+  }
+  const g = (a && a.grupo) || '';
+  const inp = document.getElementById('edit-grupo');
+  const suelto = document.getElementById('edit-suelto');
+  if (inp) {
+    inp.value = g === '-' ? '' : g;
+    inp.disabled = g === '-';
+    // Si está en una caja automática, se enseña su nombre como pista.
+    const fq = FRANQUICIAS.find(f => f.count > 1 && f.animes.some(x => x.nombre === (a && a.nombre)));
+    inp.placeholder = fq && !g ? _tr('Automático') + ': ' + fq.nombre : _tr('Automático');
+  }
+  if (suelto) suelto.checked = g === '-';
+}
+
+function _grupoDelEditor() {
+  if (document.getElementById('edit-suelto')?.checked) return '-';
+  return (document.getElementById('edit-grupo')?.value || '').trim();
 }
 
 // ── Compactar / expandir franquicias ─────────────────────────────────────────
@@ -3233,6 +3548,7 @@ document.addEventListener('keydown', e => {
     cerrarModal('modal-edit');
     cerrarModal('modal-preview');
     cerrarModal('modal-queveo');
+    if (document.getElementById('modal-grupo')?.classList.contains('open')) _cerrarModalGrupo(null);
   }
 });
 
@@ -4024,6 +4340,7 @@ async function buscarPreview(q) {
     items.slice(0, 6).forEach(a => {
       const item = document.createElement('div');
       item.className = 'sp-item';
+      item.dataset.nombre = a.nombre || '';
 
       const img = document.createElement('img');
       // Sin portada se oculta (es una lista compacta, el hueco molesta más que
@@ -4076,7 +4393,165 @@ async function buscarPreview(q) {
       sp.appendChild(item);
     });
     sp.style.display = 'block';
+    // v2.13: la búsqueda solo daba la primera temporada. Ahora se busca toda
+    // la saga en AniList y se ofrece añadirla de golpe.
+    if ((document.getElementById('inp-tipo')?.value || 'anime') !== 'manga') _sagaPreview(q, sp);
   } catch(_) { cerrarPreview(); }
+}
+
+const _claveTxt = t => (t || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+// Si una fuente devolvió otra cosa (p. ej. buscar "rascal does not dream" daba
+// "Dreamland"), el resultado principal pasa a ser el primero de la saga.
+function _corregirPrincipal(sp, ents, fuente) {
+  const item = sp.querySelector('.sp-item');
+  const raiz = ents.find(e => e.raiz);
+  if (!item || !raiz) return;
+  const k = _claveTxt(item.dataset.nombre);
+  const igual = ents.find(e => [e.nombre, ...(e.titulos || [])].some(t => _claveTxt(t) === k));
+  if (igual) {
+    const add = item.querySelector('.sp-add');
+    if (igual.en_lista && add) { add.disabled = true; add.textContent = _tr('Ya en tu lista'); }
+    return;
+  }
+  item.dataset.nombre = raiz.nombre;
+  const img = item.querySelector('img');
+  if (img) { if (raiz.imagen) { img.src = _thumbUrl(raiz.imagen); img.style.display = ''; } else img.style.display = 'none'; }
+  const tit = item.querySelector('.sp-title'); if (tit) tit.textContent = raiz.nombre;
+  const met = item.querySelector('.sp-meta');
+  if (met) met.textContent = [raiz.capitulos === 'película' ? T('movie') : raiz.capitulos + ' eps', raiz.estado_anime, (raiz.genero || []).slice(0, 3).join(', ')].filter(Boolean).join(' · ');
+  const add = item.querySelector('.sp-add');
+  if (!add) return;
+  if (raiz.en_lista) { add.disabled = true; add.textContent = _tr('Ya en tu lista'); return; }
+  add.onclick = async (e) => {
+    e.stopPropagation();
+    add.disabled = true; add.textContent = '...';
+    try {
+      const r = await fetch('/api/animes', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nombre: raiz.url, fuente: fuente || 'anilist'})});
+      const d2 = await r.json().catch(() => ({}));
+      if (r.ok) {
+        toast(T('added_ok', {name: (d2.data && d2.data.nombre) || raiz.nombre, src: fuente || 'anilist'}));
+        cerrarPreview(); if (searchInput) searchInput.value = ''; await cargar();
+      } else {
+        toast((d2 && d2.detail) || T('error'), r.status === 409 ? 'warn' : 'err');
+        add.disabled = false; add.textContent = '+ ' + (T('add') || 'Añadir');
+      }
+    } catch(_) { toast(T('error'), 'err'); add.disabled = false; add.textContent = '+ ' + (T('add') || 'Añadir'); }
+  };
+}
+
+const _FORMATO_SAGA = {TV: 'Serie', TV_SHORT: 'Serie corta', ONA: 'ONA', MOVIE: 'Película', OVA: 'OVA', SPECIAL: 'Especial'};
+
+async function _sagaPreview(q, sp) {
+  let d;
+  try {
+    const r = await fetch('/api/buscar/franquicia', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({nombre: q})
+    });
+    if (!r.ok) return;
+    d = await r.json();
+  } catch(_) { return; }
+  // Si el usuario ya ha escrito otra cosa o cerrado el desplegable, nada.
+  if (!d || !d.ok || (d.entradas || []).length < 2) return;
+  if (sp.style.display === 'none' || (searchInput && searchInput.value.trim() !== q)) return;
+  sp.querySelectorAll('.sp-saga, .sp-saga-lista, .sp-saga-pie').forEach(n => n.remove());
+
+  const ents = d.entradas;
+  _corregirPrincipal(sp, ents, d.fuente);
+  const n = f => ents.filter(e => f.includes(e.formato)).length;
+  const series = n(['TV', 'TV_SHORT', 'ONA']), pelis = n(['MOVIE']), extras = n(['OVA', 'SPECIAL']);
+  const faltan = ents.filter(e => !e.en_lista).length;
+  const partes = [];
+  if (series) partes.push(series + ' ' + _tr(series === 1 ? 'temporada' : 'temporadas'));
+  if (pelis) partes.push(pelis + ' ' + _tr(pelis === 1 ? 'película' : 'películas'));
+  if (extras) partes.push(extras + ' ' + _tr('OVA / especiales'));
+
+  const bar = document.createElement('div');
+  bar.className = 'sp-saga';
+  const txt = document.createElement('div');
+  txt.className = 'sp-saga-txt';
+  const b = document.createElement('b');
+  b.textContent = '📚 ' + d.nombre + ': ' + partes.join(' · ');
+  const sm = document.createElement('small');
+  sm.textContent = faltan ? _tr('Te faltan') + ' ' + faltan + ' ' + _tr('en tu lista') : _tr('Ya tienes toda la saga');
+  txt.appendChild(b); txt.appendChild(sm);
+  const ver = document.createElement('button');
+  ver.type = 'button'; ver.className = 'sp-saga-btn';
+  ver.textContent = _tr('Ver todas');
+  bar.appendChild(txt); bar.appendChild(ver);
+  sp.appendChild(bar);
+
+  ver.onclick = (e) => {
+    e.stopPropagation();
+    const abierta = sp.querySelector('.sp-saga-lista');
+    if (abierta) { abierta.remove(); sp.querySelector('.sp-saga-pie')?.remove(); ver.textContent = _tr('Ver todas'); return; }
+    ver.textContent = _tr('Ocultar');
+    const lista = document.createElement('div');
+    lista.className = 'sp-saga-lista';
+    ents.forEach(en => {
+      const row = document.createElement('label');
+      row.className = 'sp-saga-row' + (en.en_lista ? ' ya' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = en.url;
+      cb.disabled = !!en.en_lista;
+      // Por defecto: temporadas y películas sí; OVAs y especiales, a elegir.
+      cb.checked = !en.en_lista && ['TV', 'TV_SHORT', 'ONA', 'MOVIE'].includes(en.formato);
+      cb.onchange = _contar;
+      const im = document.createElement('img');
+      im.alt = ''; im.loading = 'lazy';
+      if (en.imagen) im.src = _thumbUrl(en.imagen); else im.style.visibility = 'hidden';
+      const t = document.createElement('div'); t.className = 't';
+      const tt = document.createElement('div'); tt.textContent = en.nombre;
+      const meta = [_tr(_FORMATO_SAGA[en.formato] || en.formato)];
+      if (en.capitulos && en.capitulos !== 'película') meta.push(en.capitulos + ' eps');
+      if (en.anio) meta.push(en.anio);
+      if (en.en_lista) meta.push(_tr('Ya en tu lista'));
+      const mm = document.createElement('small'); mm.textContent = meta.join(' · ');
+      t.appendChild(tt); t.appendChild(mm);
+      row.appendChild(cb); row.appendChild(im); row.appendChild(t);
+      row.addEventListener('click', ev => ev.stopPropagation());
+      lista.appendChild(row);
+    });
+    const pie = document.createElement('div');
+    pie.className = 'sp-saga-pie';
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'sp-saga-btn prim';
+    pie.appendChild(add);
+    sp.appendChild(lista); sp.appendChild(pie);
+    function _contar() {
+      const k = lista.querySelectorAll('input:checked:not(:disabled)').length;
+      add.textContent = '+ ' + _tr('Añadir') + ' ' + k;
+      add.disabled = !k;
+    }
+    _contar();
+    add.onclick = async (ev) => {
+      ev.stopPropagation();
+      const urls = [...lista.querySelectorAll('input:checked:not(:disabled)')].map(c => c.value);
+      if (!urls.length) return;
+      // Todas van al mismo grupo (aunque sus títulos no se parezcan).
+      const grupo = d.nombre;
+      const {ok, fail, cancelado} = await conProgreso(_tr('Añadiendo la saga…'), urls, async (url) => {
+        const r = await fetch('/api/animes', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({nombre: url, fuente: d.fuente || 'anilist', grupo})
+        });
+        return r.ok || r.status === 409;
+      }, {paralelo: 2, etiqueta: url => (ents.find(e => e.url === url) || {}).nombre || url});
+      // Lo que ya estaba en la lista con su propio nombre se mete también en la caja.
+      const _k = _claveTxt;
+      const yaEstaban = ANIMES.filter(a => !a.grupo && ents.some(e => e.en_lista &&
+        ((e.anilist_id && +a.anilist_id === e.anilist_id) || [e.nombre, ...(e.titulos || [])].some(t => _k(t) === _k(a.nombre))))).map(a => a.nombre);
+      if (yaEstaban.length) { try { await asignarGrupo(yaEstaban, grupo); } catch(_) {} }
+      _franquiciasAbiertas[grupo] = true;
+      cerrarPreview();
+      if (searchInput) searchInput.value = '';
+      await cargar();
+      toast('✓ ' + ok + ' ' + _tr('añadidos') + (fail ? ', ' + fail + ' ' + _tr('fallidos') : '') + (cancelado ? ' (' + _tr('cancelado') + ')' : ''), fail ? 'warn' : 'ok');
+    };
+  };
 }
 
 // Close preview on outside click
@@ -4269,6 +4744,14 @@ function selectAllVisible() {
       if (card) plusEpisodio(card.dataset.enc);
       return;
     }
+    // v2.13: sacar del grupo
+    const salir = e.target.closest('.salir');
+    if (salir) {
+      e.stopPropagation();
+      const card = salir.closest('.ac');
+      if (card) sacarDelGrupo(card.dataset.nombre);
+      return;
+    }
     // Delete button
     const del = e.target.closest('.del');
     if (del) {
@@ -4353,6 +4836,7 @@ function selectAllVisible() {
     <option value="completados">✅ Completados</option>
   </select>
   <button class="bulk-btn" onclick="bulkSetFavorito(1)" title="Marcar como favoritos">⭐ Favorito</button>
+  <button class="bulk-btn" onclick="bulkAgrupar()" title="Meter los seleccionados en un mismo grupo">🗂 Agrupar</button>
   <button class="bulk-btn danger" onclick="bulkEliminar()" title="Eliminar seleccionados">🗑 Eliminar</button>
   <button class="bulk-close" onclick="exitSelMode()" title="Cancelar selección">&times;</button>
 </div>

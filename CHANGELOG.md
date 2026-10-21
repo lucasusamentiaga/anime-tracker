@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.13.0 — Sagas completas y grupos a tu gusto
+
+- **Al buscar un anime para añadirlo sale toda su saga**: debajo del resultado aparece
+  cuántas temporadas, películas y OVAs tiene y cuántas te faltan. Con «Ver todas» las
+  marcas y las añades de golpe (las que ya tienes salen como «Ya en tu lista»). Se saca
+  de las relaciones de AniList y, si AniList no responde, de Kitsu.
+- **Las cajas de franquicia se agrupan mejor solas**: sagas con títulos distintos
+  («Rascal Does Not Dream of Bunny Girl Senpai», «… of Santa Claus»), secuelas con una
+  letra («Masamune-kun's Revenge R») y «Final Season» ya van juntas, y las secuelas
+  que AniList conoce también.
+- **Grupos a tu gusto**, sin escribir comandos:
+  - **Arrastra** una tarjeta sobre una caja para meterla dentro, o sobre otra tarjeta
+    para crear un grupo con las dos.
+  - En cada caja, ✏️ la renombra y ⊘ la separa; en cada tarjeta de una caja, ⤴ la saca.
+  - «Seleccionar» → «🗂 Agrupar» mete varios animes en una caja.
+  - El nombre se elige en una ventana con las portadas de lo que agrupas y tus grupos
+    existentes a un clic. En el editor de cada anime también eliges su grupo o lo dejas
+    siempre suelto. Todo se puede deshacer desde el aviso.
+- Si una fuente devolvía otro anime al buscar (p. ej. «Dreamland» al buscar «rascal does
+  not dream»), el resultado principal pasa a ser el primero de la saga; y si ya lo tienes,
+  lo dice en vez de ofrecer añadirlo.
+- Añadir pegando un enlace de Kitsu (kitsu.io o kitsu.app) añade exactamente ese anime.
+
 ## v2.12.1 — Aviso de versión nueva en la versión de Microsoft Store
 
 - Si instalaste Miraru desde **Microsoft Store**, cuando la Store publique una versión

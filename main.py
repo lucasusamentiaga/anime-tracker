@@ -666,6 +666,13 @@ def _start_enrich_unknown_eps():
                 _sync_log.info("Resueltos %d anilist_id", r["resolved"])
         except Exception as e:
             _sync_log.warning("resolver IDs: %s", e)
+        # v2.13: relaciones de AniList para agrupar sagas de títulos distintos.
+        try:
+            n = _actualizar_relaciones(db.listar_animes_slim())
+            if n:
+                _sync_log.info("Relaciones de AniList de %d animes", n)
+        except Exception as e:
+            _sync_log.warning("relaciones: %s", e)
 
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 
@@ -1019,6 +1026,14 @@ class BuscarRequest(BaseModel):
     nombre: str
     fuente: str = "anilist"
     tipo: str = "anime"          # "anime" o "manga"
+    # v2.13: al añadir una saga entera, todas sus entradas van a este grupo.
+    grupo: Optional[str] = Field(default=None, max_length=120)
+
+
+class GrupoRequest(BaseModel):
+    """v2.13: grupos hechos por el usuario. grupo "" = automático, "-" = suelto."""
+    nombres: list[str]
+    grupo: str = Field(default="", max_length=120)
 
 # Estados que entienden las estadísticas, los filtros y la gamificación.
 # Cualquier otro valor se guardaba igual y luego no casaba con ninguna consulta:
@@ -1065,6 +1080,7 @@ class ActualizarRequest(BaseModel):
     notif_activa:        Optional[int]   = Field(default=None, ge=0, le=1)
     notas:               Optional[str]   = Field(default=None, max_length=5000)
     volumenes_leidos:    Optional[int]   = Field(default=None, ge=0)
+    grupo:               Optional[str]   = Field(default=None, max_length=120)
 
     @field_validator("fecha_inicio", "fecha_fin")
     @classmethod
@@ -1557,8 +1573,57 @@ async def listar_animes_slim():
 
 
 # Cache de franquicias — se invalida automáticamente con listar_animes_slim()
+# y cuando llegan relaciones nuevas de AniList.
 _franquicias_cache: list | None = None
-_franquicias_version: int = 0
+_franquicias_version: tuple = ()
+_relaciones_cache: dict | None = None
+_relaciones_version = 0
+
+
+def _relaciones_guardadas() -> dict:
+    """{anilist_id (str): [ids de la misma saga]} guardado en config."""
+    global _relaciones_cache
+    if _relaciones_cache is None:
+        try:
+            _relaciones_cache = json.loads(db.get_config("anilist_relaciones") or "{}")
+            if not isinstance(_relaciones_cache, dict):
+                _relaciones_cache = {}
+        except Exception:
+            _relaciones_cache = {}
+    return _relaciones_cache
+
+
+def _guardar_relaciones(nuevas: dict) -> None:
+    global _relaciones_cache, _relaciones_version
+    rel = dict(_relaciones_guardadas())
+    rel.update({str(k): [int(x) for x in v] for k, v in nuevas.items()})
+    db.set_config("anilist_relaciones", json.dumps(rel, separators=(",", ":")))
+    _relaciones_cache = rel
+    _relaciones_version += 1
+
+
+def _actualizar_relaciones(animes: list[dict], anilist_mod=None, sleep=None) -> int:
+    """Pide a AniList las relaciones (secuelas, precuelas…) de los animes que
+    aún no las tienen guardadas, en lotes de 50. Así se agrupan solas sagas
+    cuyos títulos no se parecen ("Bunny Girl Senpai" / "Santa Claus")."""
+    if anilist_mod is None:
+        from scrapers import anilist as anilist_mod
+    sleep = sleep or _time.sleep
+    hechas = _relaciones_guardadas()
+    ids = sorted({int(a.get("anilist_id") or 0) for a in animes
+                  if (a.get("tipo") or "anime") == "anime"} - {0}
+                 - {int(k) for k in hechas if str(k).isdigit()})
+    nuevas = 0
+    for i in range(0, len(ids), 50):
+        lote = ids[i:i + 50]
+        res = anilist_mod.relaciones_por_ids(lote)
+        if not res:
+            break                      # AniList no responde: otro día
+        # Los que no vengan se guardan vacíos para no pedirlos en cada arranque.
+        _guardar_relaciones({k: res.get(k, []) for k in lote})
+        nuevas += len(lote)
+        sleep(ANILIST_MIN_INTERVAL)
+    return nuevas
 
 
 @app.get("/api/franquicias")
@@ -1566,11 +1631,71 @@ async def listar_franquicias():
     global _franquicias_cache, _franquicias_version
     import franquicias as fq_mod
     animes = db.listar_animes_slim()
-    v = id(animes)  # id cambia cuando se invalida la cache de slim
+    v = (id(animes), _relaciones_version)  # cambia al invalidarse la caché de slim
     if _franquicias_cache is None or v != _franquicias_version:
-        _franquicias_cache = fq_mod.agrupar_franquicias(animes)
+        _franquicias_cache = fq_mod.agrupar_franquicias(animes, _relaciones_guardadas())
         _franquicias_version = v
     return {"franquicias": _franquicias_cache}
+
+
+@app.post("/api/grupos")
+async def asignar_grupo(req: GrupoRequest):
+    """v2.13: el usuario crea, renombra o deshace grupos (cajas de franquicia).
+    grupo="" vuelve al agrupado automático; "-" deja los animes siempre sueltos."""
+    grupo = (req.grupo or "").strip()
+    if not req.nombres or len(req.nombres) > 2000:
+        raise HTTPException(422, "Elige entre 1 y 2000 animes.")
+    cambiados = db.asignar_grupo(req.nombres, grupo)
+    return {"ok": True, "cambiados": cambiados, "grupo": grupo}
+
+
+@app.post("/api/buscar/franquicia")
+async def buscar_franquicia(req: BuscarRequest):
+    """v2.13: toda la saga (temporadas, películas, OVAs) del anime buscado,
+    sacada de las relaciones de AniList, con lo que ya está en la lista marcado."""
+    import franquicias as fq_mod
+    from scrapers import anilist as anilist_mod
+    q = (req.nombre or "").strip()
+    if len(q) < 2 or _detect_url(q):
+        return {"ok": False, "entradas": []}
+    ck = f"franquicia:{q.lower()}"
+    resp = _cache_get(ck)
+    if not resp:
+        loop = asyncio.get_running_loop()
+        fuente = "anilist"
+        try:
+            entradas = await asyncio.wait_for(
+                loop.run_in_executor(executor, anilist_mod.franquicia, q), timeout=25)
+        except Exception:
+            entradas = []
+        if not entradas:
+            # AniList caído o sin resultados (en oct. 2026 su API estuvo cortada
+            # días): las relaciones de Kitsu dan lo mismo.
+            from scrapers import kitsu as kitsu_mod
+            fuente = "kitsu"
+            try:
+                entradas = await asyncio.wait_for(
+                    loop.run_in_executor(executor, kitsu_mod.franquicia, q), timeout=25)
+            except Exception:
+                entradas = []
+        if not entradas:
+            return {"ok": False, "entradas": []}
+        raiz = next((e for e in entradas if e["raiz"]), entradas[0])
+        series = [e for e in entradas if e["formato"] in ("TV", "TV_SHORT", "ONA")]
+        nombre = fq_mod.nombre_comun([fq_mod._base_name(e["nombre"]) for e in (series or entradas)])
+        resp = {"ok": True, "nombre": nombre or raiz["nombre"], "fuente": fuente,
+                "entradas": entradas}
+        _cache_set(ck, resp)
+    # "En tu lista" se calcula siempre (la caché no debe quedarse vieja).
+    animes = db.listar_animes_slim()
+    ids = {int(a.get("anilist_id") or 0) for a in animes}
+    claves = {db.clave_nombre(a.get("nombre", "")) for a in animes}
+    def _ya(e):
+        if e.get("anilist_id") and e["anilist_id"] in ids:
+            return True
+        return any(db.clave_nombre(t) in claves for t in [e["nombre"], *(e.get("titulos") or [])])
+    entradas = [dict(e, en_lista=_ya(e)) for e in resp["entradas"]]
+    return dict(resp, entradas=entradas)
 
 
 # ── Detección de URLs de fuentes conocidas ────────────────────────────────────
@@ -1584,7 +1709,7 @@ _URL_PATTERNS = [
     # Jikan directo
     (re.compile(r"https?://(?:www\.)?api\.jikan\.moe/v4/anime/(\d+)"),"mal_id",       "jikan"),
     # Kitsu
-    (re.compile(r"https?://(?:www\.)?kitsu\.io/anime/([\w-]+)"),      "slug",         "kitsu"),
+    (re.compile(r"https?://(?:www\.)?kitsu\.(?:io|app)/anime/([\w-]+)"), "slug",      "kitsu"),
     # AnimePlanet
     (re.compile(r"https?://(?:www\.)?anime-planet\.com/anime/([\w-]+)"), "slug",      "animeplanet"),
     # AnimeFLV
@@ -1877,6 +2002,8 @@ async def guardar_anime(req: BuscarRequest):
 
     if not (data.get("nombre") or "").strip():
         raise HTTPException(400, "El anime no tiene nombre válido")
+    if req.grupo and req.grupo.strip():
+        data["grupo"] = req.grupo.strip()
     ok, msg = db.guardar_anime(data)
     if not ok:
         raise HTTPException(409 if msg == "duplicado" else 500, msg)

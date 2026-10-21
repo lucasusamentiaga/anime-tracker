@@ -228,6 +228,8 @@ def init_db():
             ("tipo",                "TEXT DEFAULT 'anime'"),
             ("volumenes_leidos",   "INTEGER DEFAULT 0"),
             ("volumenes_totales",  "INTEGER DEFAULT 0"),
+            # v2.13: grupo elegido por el usuario ("" automático, "-" suelto)
+            ("grupo",              "TEXT DEFAULT ''"),
         ]:
             if col not in existing:
                 conn.execute(f"ALTER TABLE animes ADD COLUMN {col} {definition}")
@@ -315,7 +317,7 @@ _SLIM_COLS = (
     "id, nombre, fuente, capitulos, imagen, genero, estado_anime, "
     "estado_usuario, puntuacion, episodios_vistos, temporada, "
     "lista_personalizada, favorito, notif_activa, fecha_inicio, fecha_fin, "
-    "anilist_id, tipo, volumenes_leidos, volumenes_totales"
+    "anilist_id, tipo, volumenes_leidos, volumenes_totales, grupo"
 )
 _slim_cache: Optional[list[dict]] = None
 
@@ -462,8 +464,8 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
                     estado_anime, estado_usuario, puntuacion,
                     episodios_vistos, temporada, lista_personalizada,
                     favorito, notif_activa, notas, fecha_inicio, fecha_fin,
-                    anilist_id, tipo, volumenes_leidos, volumenes_totales)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    anilist_id, tipo, volumenes_leidos, volumenes_totales, grupo)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (
                     data.get("nombre", ""),
                     data.get("fuente", ""),
@@ -486,6 +488,7 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
                     data.get("tipo", "anime") or "anime",
                     data.get("volumenes_leidos") or 0,
                     data.get("volumenes_totales") or 0,
+                    (data.get("grupo") or "").strip(),
                 ),
             )
         _invalidar_cache()
@@ -497,7 +500,7 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
 
 
 def actualizar_anime(nombre: str, campos: dict) -> tuple[bool, str]:
-    allowed = {"estado_usuario","puntuacion","fecha_inicio","fecha_fin","episodios_vistos","notas","temporada","lista_personalizada","favorito","notif_activa","anilist_id","tipo","volumenes_leidos","volumenes_totales"}
+    allowed = {"estado_usuario","puntuacion","fecha_inicio","fecha_fin","episodios_vistos","notas","temporada","lista_personalizada","favorito","notif_activa","anilist_id","tipo","volumenes_leidos","volumenes_totales","grupo"}
     campos  = {k: v for k, v in campos.items() if k in allowed}
     if not campos:
         return False, "sin campos válidos"
@@ -512,6 +515,25 @@ def actualizar_anime(nombre: str, campos: dict) -> tuple[bool, str]:
     if "estado_usuario" in campos:
         registrar_historial(nombre, campos["estado_usuario"])
     return True, "ok"
+
+
+def asignar_grupo(nombres: list[str], grupo: str) -> int:
+    """Mete varios animes en un grupo ("" = automático, "-" = siempre sueltos).
+    Devuelve cuántos se han cambiado."""
+    nombres = [n for n in dict.fromkeys(nombres) if n]
+    if not nombres:
+        return 0
+    cambiados = 0
+    with get_conn() as conn:
+        for i in range(0, len(nombres), 500):
+            lote = nombres[i:i + 500]
+            marcas = ",".join("?" * len(lote))
+            cur = conn.execute(
+                f"UPDATE animes SET grupo=? WHERE nombre IN ({marcas})",
+                [grupo, *lote])
+            cambiados += cur.rowcount
+    _invalidar_cache()
+    return cambiados
 
 
 def refrescar_metadata_anime(nombre: str, campos: dict) -> tuple[bool, str]:
