@@ -722,7 +722,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
       <datalist id="dl-grupos"></datalist>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted);margin-top:6px;user-select:none">
         <input type="checkbox" id="edit-suelto" style="accent-color:var(--accent);width:14px;height:14px"
-               onchange="const i=document.getElementById('edit-grupo'); if(i){i.disabled=this.checked; if(this.checked) i.value='';}">
+               onchange="_toggleSuelto(this)">
         Mostrarlo siempre suelto (fuera de cualquier grupo)
       </label>
     </div>
@@ -3061,6 +3061,13 @@ function _rellenarGruposEditor(a) {
     inp.placeholder = fq && !g ? _tr('Automático') + ': ' + fq.nombre : _tr('Automático');
   }
   if (suelto) suelto.checked = g === '-';
+}
+
+function _toggleSuelto(cb) {
+  const i = document.getElementById('edit-grupo');
+  if (!i) return;
+  i.disabled = cb.checked;
+  if (cb.checked) i.value = '';
 }
 
 function _grupoDelEditor() {
