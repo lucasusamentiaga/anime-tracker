@@ -375,6 +375,20 @@ main{padding:16px 20px}
 .fq-meta{font-size:10px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
 .fq-chevron{font-size:14px;color:var(--muted);transition:transform .2s ease;flex-shrink:0}
 .fq-acciones{display:flex;gap:4px;flex-shrink:0}
+.fq-sigue{color:var(--light);font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fq-temps{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.fq-temp{font-size:10px;font-weight:600;line-height:1;padding:4px 7px;border-radius:99px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}
+.fq-temp:hover{border-color:var(--accent2);color:var(--fg)}
+.fq-temp:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.fq-temp.e-completado{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.45);color:#6ee7b7}
+.fq-temp.e-viendo{background:var(--grad-accent-soft);border-color:rgba(168,85,247,.55);color:var(--light)}
+.fq-temp.e-pausa{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.45);color:#fcd34d}
+.fq-temp.e-abandonado{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.4);color:#fca5a5}
+.fq-prog{height:3px;border-radius:99px;background:var(--border);margin-top:7px;overflow:hidden;max-width:420px}
+.fq-prog i{display:block;height:100%;background:var(--accent);border-radius:99px}
+[data-theme=light] .fq-temp.e-completado{color:#047857}
+[data-theme=light] .fq-temp.e-pausa{color:#b45309}
+[data-theme=light] .fq-temp.e-abandonado{color:#b91c1c}
 .fq-btn{background:transparent;border:1px solid transparent;color:var(--muted);border-radius:7px;width:30px;height:30px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s}
 .fq-btn:hover{background:var(--card2);color:var(--fg);border-color:var(--border)}
 .fq-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -564,6 +578,19 @@ body.sel-mode .ac .salir{display:none}
 .sp-saga-lista{border-top:1px solid var(--border)}
 .sp-saga-row{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:12px;cursor:pointer}
 .sp-saga-row:hover{background:rgba(79,70,229,.08)}
+.saga-linea{font-size:11px;color:var(--fg);opacity:.85;margin-top:3px}
+.saga-fichas{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px}
+.saga-ficha{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:54px;padding:5px 8px;border-radius:9px;border:1px dashed var(--border);font-size:10.5px;color:var(--fg);line-height:1.25}
+.saga-ficha b{font-size:12px}
+.saga-ficha small{font-size:9.5px;color:var(--muted)}
+.saga-ficha.ya{border-style:solid;border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.08)}
+.saga-ficha.ya small{color:#34d399}
+#modal-saga .sp-saga{border-top:none;padding-left:0;padding-right:0}
+#modal-saga .saga-fichas{padding-left:0;padding-right:0}
+#modal-saga .sp-saga-lista{max-height:min(48vh,420px);overflow-y:auto;border:1px solid var(--border);border-radius:10px}
+#modal-saga .sp-saga-pie{border-top:none;padding:12px 0 0}
+.ms-estado{color:var(--muted);font-size:13px;padding:18px 0;text-align:center}
+.sp-saga-lista .sp-saga-row input[type=checkbox],
 #search-preview .sp-saga-row input[type=checkbox]{accent-color:var(--accent);width:15px;min-width:15px;height:15px;flex:0 0 15px;margin:0;padding:0}
 .sp-saga-row img{width:30px;height:42px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--card2)}
 .sp-saga-row .t{flex:1;min-width:0}
@@ -796,6 +823,17 @@ fetch('/api/version').then(r => r.json()).then(d => {
 </div>
 
 <!-- Modal: ¿Qué veo esta noche? -->
+<!-- Modal: completar una saga (v2.14) -->
+<div class="modal-bg" id="modal-saga" onclick="if(event.target===this)cerrarModal('modal-saga')">
+  <div class="modal" style="max-width:620px" role="dialog" aria-modal="true" aria-labelledby="ms-titulo">
+    <h3 id="ms-titulo">🧩 Completar saga</h3>
+    <div id="ms-cuerpo"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+      <button type="button" class="btn btn-g" onclick="cerrarModal('modal-saga')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: nombre de un grupo (v2.13) -->
 <div class="modal-bg" id="modal-grupo" onclick="if(event.target===this)_cerrarModalGrupo(null)">
   <div class="modal" style="max-width:460px" role="dialog" aria-modal="true" aria-labelledby="mg-titulo">
@@ -1917,10 +1955,53 @@ function render() {
 
     const hMeta = document.createElement('div');
     hMeta.className = 'fq-meta';
-    const totalEps = fq.animes.reduce((s,a) => s + (parseInt(a.capitulos)||0), 0);
-    const totalVistos = fq.animes.reduce((s,a) => s + (a.episodios_vistos||0), 0);
-    hMeta.textContent = fq.animes.length + ' temporadas · ' + totalVistos + '/' + totalEps + ' eps';
+    // v2.14: temporadas y películas por separado, progreso y por dónde seguir.
+    const esPeli = a => a.capitulos === 'película';
+    const series = fq.animes.filter(a => !esPeli(a)), pelis = fq.animes.filter(esPeli);
+    const totalEps = series.reduce((s,a) => s + (parseInt(a.capitulos)||0), 0);
+    const totalVistos = series.reduce((s,a) => s + Math.min(a.episodios_vistos||0, parseInt(a.capitulos)||Infinity), 0);
+    const partesMeta = [];
+    if (series.length) partesMeta.push(series.length + ' ' + _tr(series.length === 1 ? 'temporada' : 'temporadas'));
+    if (pelis.length) partesMeta.push(pelis.length + ' ' + _tr(pelis.length === 1 ? 'película' : 'películas'));
+    if (totalEps) partesMeta.push(totalVistos + '/' + totalEps + ' eps');
+    const spanMeta = document.createElement('span');
+    spanMeta.textContent = partesMeta.join(' · ');
+    hMeta.appendChild(spanMeta);
+    const siguiente = fq.animes.find(a => a.estado_usuario === 'viendo')
+      || fq.animes.find(a => !['completado', 'abandonado'].includes(a.estado_usuario));
+    if (siguiente && fq.animes.some(a => a.estado_usuario === 'completado' || (a.episodios_vistos || 0) > 0)) {
+      const sig = document.createElement('span');
+      sig.className = 'fq-sigue';
+      const ep = (siguiente.episodios_vistos || 0) + 1;
+      sig.textContent = '▶ ' + _tr('Sigue con') + ' ' + siguiente.nombre + (esPeli(siguiente) ? '' : ' · ep ' + ep);
+      hMeta.appendChild(sig);
+    }
     hInfo.appendChild(hMeta);
+
+    // Una pastilla por temporada con su estado y progreso; clic = abrir su ficha.
+    const temps = document.createElement('div');
+    temps.className = 'fq-temps';
+    let nT = 0;
+    fq.animes.forEach(a => {
+      const pil = document.createElement('button');
+      pil.type = 'button';
+      pil.className = 'fq-temp e-' + (a.estado_usuario || 'pendiente');
+      const caps = parseInt(a.capitulos) || 0;
+      const et = esPeli(a) ? '🎬' : 'T' + (++nT);
+      pil.textContent = et + (esPeli(a) ? '' : ' ' + (a.episodios_vistos || 0) + '/' + (caps || '?'));
+      pil.title = a.nombre;
+      pil.addEventListener('click', e => { e.stopPropagation(); abrirModal(encodeURIComponent(a.nombre)); });
+      temps.appendChild(pil);
+    });
+    hInfo.appendChild(temps);
+    if (totalEps) {
+      const prog = document.createElement('div');
+      prog.className = 'fq-prog';
+      const barra = document.createElement('i');
+      barra.style.width = Math.min(100, Math.round(totalVistos / totalEps * 100)) + '%';
+      prog.appendChild(barra);
+      hInfo.appendChild(prog);
+    }
     header.appendChild(hInfo);
 
     if (fq.manual) {
@@ -1941,7 +2022,11 @@ function render() {
     bSep.type = 'button'; bSep.className = 'fq-btn'; bSep.textContent = '⊘';
     bSep.title = _tr('Deshacer grupo'); bSep.setAttribute('aria-label', bSep.title);
     bSep.addEventListener('click', e => { e.stopPropagation(); deshacerGrupo(fq); });
-    acc.appendChild(bRen); acc.appendChild(bSep);
+    const bSaga = document.createElement('button');
+    bSaga.type = 'button'; bSaga.className = 'fq-btn'; bSaga.textContent = '🧩';
+    bSaga.title = _tr('Completar saga: ver qué temporadas te faltan'); bSaga.setAttribute('aria-label', bSaga.title);
+    bSaga.addEventListener('click', e => { e.stopPropagation(); completarSaga(fq); });
+    acc.appendChild(bSaga); acc.appendChild(bRen); acc.appendChild(bSep);
     header.appendChild(acc);
 
     const chevron = document.createElement('span');
@@ -3556,6 +3641,7 @@ document.addEventListener('keydown', e => {
     cerrarModal('modal-preview');
     cerrarModal('modal-queveo');
     if (document.getElementById('modal-grupo')?.classList.contains('open')) _cerrarModalGrupo(null);
+    cerrarModal('modal-saga');
   }
 });
 
@@ -4412,7 +4498,9 @@ const _claveTxt = t => (t || '').normalize('NFKC').toLowerCase().replace(/[^\p{L
 // "Dreamland"), el resultado principal pasa a ser el primero de la saga.
 function _corregirPrincipal(sp, ents, fuente) {
   const item = sp.querySelector('.sp-item');
-  const raiz = ents.find(e => e.raiz);
+  // La 1.ª temporada mejor que lo que casó la búsqueda (con «attack on titans»
+  // salía primero la 3.ª temporada parte 2).
+  const raiz = ents.find(e => e.temporada === 1) || ents.find(e => e.raiz);
   if (!item || !raiz) return;
   const k = _claveTxt(item.dataset.nombre);
   const igual = ents.find(e => [e.nombre, ...(e.titulos || [])].some(t => _claveTxt(t) === k));
@@ -4450,51 +4538,83 @@ function _corregirPrincipal(sp, ents, fuente) {
 
 const _FORMATO_SAGA = {TV: 'Serie', TV_SHORT: 'Serie corta', ONA: 'ONA', MOVIE: 'Película', OVA: 'OVA', SPECIAL: 'Especial'};
 
-async function _sagaPreview(q, sp) {
-  let d;
+async function _pedirSaga(nombre) {
   try {
     const r = await fetch('/api/buscar/franquicia', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({nombre: q})
+      body: JSON.stringify({nombre})
     });
-    if (!r.ok) return;
-    d = await r.json();
-  } catch(_) { return; }
-  // Si el usuario ya ha escrito otra cosa o cerrado el desplegable, nada.
-  if (!d || !d.ok || (d.entradas || []).length < 2) return;
-  if (sp.style.display === 'none' || (searchInput && searchInput.value.trim() !== q)) return;
-  sp.querySelectorAll('.sp-saga, .sp-saga-lista, .sp-saga-pie').forEach(n => n.remove());
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d && d.ok && (d.entradas || []).length > 1 ? d : null;
+  } catch(_) { return null; }
+}
 
-  const ents = d.entradas;
-  _corregirPrincipal(sp, ents, d.fuente);
-  const n = f => ents.filter(e => f.includes(e.formato)).length;
-  const series = n(['TV', 'TV_SHORT', 'ONA']), pelis = n(['MOVIE']), extras = n(['OVA', 'SPECIAL']);
-  const faltan = ents.filter(e => !e.en_lista).length;
+async function _sagaPreview(q, sp) {
+  const d = await _pedirSaga(q);
+  // Si el usuario ya ha escrito otra cosa o cerrado el desplegable, nada.
+  if (!d) return;
+  if (sp.style.display === 'none' || (searchInput && searchInput.value.trim() !== q)) return;
+  _corregirPrincipal(sp, d.entradas, d.fuente);
+  _pintarSaga(sp, d, {alTerminar: () => { cerrarPreview(); if (searchInput) searchInput.value = ''; }});
+}
+
+// Texto «6 temporadas · 87 episodios · 2 películas · ≈ 40 h».
+function _textoResumenSaga(r) {
   const partes = [];
-  if (series) partes.push(series + ' ' + _tr(series === 1 ? 'temporada' : 'temporadas'));
-  if (pelis) partes.push(pelis + ' ' + _tr(pelis === 1 ? 'película' : 'películas'));
-  if (extras) partes.push(extras + ' ' + _tr('OVA / especiales'));
+  if (r.temporadas) partes.push(r.temporadas + ' ' + _tr(r.temporadas === 1 ? 'temporada' : 'temporadas'));
+  if (r.episodios) partes.push(r.episodios + (r.incompleto ? '+' : '') + ' ' + _tr('episodios'));
+  if (r.peliculas) partes.push(r.peliculas + ' ' + _tr(r.peliculas === 1 ? 'película' : 'películas'));
+  if (r.extras) partes.push(r.extras + ' ' + _tr('OVA / especiales'));
+  if (r.horas) partes.push('≈ ' + r.horas + ' h');
+  return partes.join(' · ');
+}
+
+// Pinta una saga (resumen, una ficha por temporada y la lista para añadir)
+// dentro de `cont`. Se usa en el desplegable de búsqueda y en «Completar saga».
+function _pintarSaga(cont, d, {abierta = false, grupo = null, alTerminar = null} = {}) {
+  cont.querySelectorAll('.sp-saga, .saga-fichas, .sp-saga-lista, .sp-saga-pie').forEach(n => n.remove());
+  const ents = d.entradas;
+  const r = d.resumen || {};
+  const destino = grupo || d.nombre;
 
   const bar = document.createElement('div');
   bar.className = 'sp-saga';
   const txt = document.createElement('div');
   txt.className = 'sp-saga-txt';
   const b = document.createElement('b');
-  b.textContent = '📚 ' + d.nombre + ': ' + partes.join(' · ');
+  b.textContent = '📚 ' + d.nombre;
+  const linea = document.createElement('div');
+  linea.className = 'saga-linea';
+  linea.textContent = _textoResumenSaga(r);
   const sm = document.createElement('small');
-  sm.textContent = faltan ? _tr('Te faltan') + ' ' + faltan + ' ' + _tr('en tu lista') : _tr('Ya tienes toda la saga');
-  txt.appendChild(b); txt.appendChild(sm);
+  sm.textContent = r.faltan ? _tr('Te faltan') + ' ' + r.faltan + ' ' + _tr('en tu lista') : _tr('Ya tienes toda la saga');
+  txt.appendChild(b); txt.appendChild(linea); txt.appendChild(sm);
+  bar.appendChild(txt);
   const ver = document.createElement('button');
   ver.type = 'button'; ver.className = 'sp-saga-btn';
-  ver.textContent = _tr('Ver todas');
-  bar.appendChild(txt); bar.appendChild(ver);
-  sp.appendChild(bar);
+  if (!abierta) bar.appendChild(ver);
+  cont.appendChild(bar);
 
-  ver.onclick = (e) => {
-    e.stopPropagation();
-    const abierta = sp.querySelector('.sp-saga-lista');
-    if (abierta) { abierta.remove(); sp.querySelector('.sp-saga-pie')?.remove(); ver.textContent = _tr('Ver todas'); return; }
-    ver.textContent = _tr('Ocultar');
+  // Una ficha por temporada y película: «T1 · 25 eps · 2013». Verde si ya la tienes.
+  const fichas = document.createElement('div');
+  fichas.className = 'saga-fichas';
+  ents.filter(e => e.temporada || e.formato === 'MOVIE').forEach(e => {
+    const f = document.createElement('div');
+    f.className = 'saga-ficha' + (e.en_lista ? ' ya' : '');
+    f.title = e.nombre + (e.en_lista ? ' — ' + _tr('Ya en tu lista') : '');
+    const et = document.createElement('b');
+    et.textContent = e.temporada ? 'T' + e.temporada : '🎬';
+    const ep = document.createElement('span');
+    ep.textContent = e.formato === 'MOVIE' ? _tr('Película') : ((e.capitulos && e.capitulos !== '?') ? e.capitulos + ' eps' : '? eps');
+    const an = document.createElement('small');
+    an.textContent = (e.en_lista ? '✓ ' : '') + (e.anio || '');
+    f.appendChild(et); f.appendChild(ep); f.appendChild(an);
+    fichas.appendChild(f);
+  });
+  if (fichas.children.length) cont.appendChild(fichas);
+
+  const abrirLista = () => {
     const lista = document.createElement('div');
     lista.className = 'sp-saga-lista';
     ents.forEach(en => {
@@ -4512,7 +4632,7 @@ async function _sagaPreview(q, sp) {
       if (en.imagen) im.src = _thumbUrl(en.imagen); else im.style.visibility = 'hidden';
       const t = document.createElement('div'); t.className = 't';
       const tt = document.createElement('div'); tt.textContent = en.nombre;
-      const meta = [_tr(_FORMATO_SAGA[en.formato] || en.formato)];
+      const meta = [en.temporada ? _tr('Temporada') + ' ' + en.temporada : _tr(_FORMATO_SAGA[en.formato] || en.formato)];
       if (en.capitulos && en.capitulos !== 'película') meta.push(en.capitulos + ' eps');
       if (en.anio) meta.push(en.anio);
       if (en.en_lista) meta.push(_tr('Ya en tu lista'));
@@ -4527,7 +4647,7 @@ async function _sagaPreview(q, sp) {
     const add = document.createElement('button');
     add.type = 'button'; add.className = 'sp-saga-btn prim';
     pie.appendChild(add);
-    sp.appendChild(lista); sp.appendChild(pie);
+    cont.appendChild(lista); cont.appendChild(pie);
     function _contar() {
       const k = lista.querySelectorAll('input:checked:not(:disabled)').length;
       add.textContent = '+ ' + _tr('Añadir') + ' ' + k;
@@ -4539,26 +4659,54 @@ async function _sagaPreview(q, sp) {
       const urls = [...lista.querySelectorAll('input:checked:not(:disabled)')].map(c => c.value);
       if (!urls.length) return;
       // Todas van al mismo grupo (aunque sus títulos no se parezcan).
-      const grupo = d.nombre;
       const {ok, fail, cancelado} = await conProgreso(_tr('Añadiendo la saga…'), urls, async (url) => {
-        const r = await fetch('/api/animes', {
+        const resp = await fetch('/api/animes', {
           method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({nombre: url, fuente: d.fuente || 'anilist', grupo})
+          body: JSON.stringify({nombre: url, fuente: d.fuente || 'anilist', grupo: destino})
         });
-        return r.ok || r.status === 409;
+        return resp.ok || resp.status === 409;
       }, {paralelo: 2, etiqueta: url => (ents.find(e => e.url === url) || {}).nombre || url});
       // Lo que ya estaba en la lista con su propio nombre se mete también en la caja.
       const _k = _claveTxt;
       const yaEstaban = ANIMES.filter(a => !a.grupo && ents.some(e => e.en_lista &&
         ((e.anilist_id && +a.anilist_id === e.anilist_id) || [e.nombre, ...(e.titulos || [])].some(t => _k(t) === _k(a.nombre))))).map(a => a.nombre);
-      if (yaEstaban.length) { try { await asignarGrupo(yaEstaban, grupo); } catch(_) {} }
-      _franquiciasAbiertas[grupo] = true;
-      cerrarPreview();
-      if (searchInput) searchInput.value = '';
+      if (yaEstaban.length) { try { await asignarGrupo(yaEstaban, destino); } catch(_) {} }
+      _franquiciasAbiertas[destino] = true;
+      if (alTerminar) alTerminar();
       await cargar();
       toast('✓ ' + ok + ' ' + _tr('añadidos') + (fail ? ', ' + fail + ' ' + _tr('fallidos') : '') + (cancelado ? ' (' + _tr('cancelado') + ')' : ''), fail ? 'warn' : 'ok');
     };
   };
+
+  if (abierta) { abrirLista(); return; }
+  ver.textContent = _tr('Ver todas');
+  ver.onclick = (e) => {
+    e.stopPropagation();
+    const ab = cont.querySelector('.sp-saga-lista');
+    if (ab) { ab.remove(); cont.querySelector('.sp-saga-pie')?.remove(); ver.textContent = _tr('Ver todas'); return; }
+    ver.textContent = _tr('Ocultar');
+    abrirLista();
+  };
+}
+
+// «🧩 Completar saga» en una caja de la lista: busca la saga entera y
+// enseña qué temporadas faltan para añadirlas a esa misma caja.
+async function completarSaga(fq) {
+  const cuerpo = document.getElementById('ms-cuerpo');
+  document.getElementById('ms-titulo').textContent = '🧩 ' + _tr('Completar saga') + ': ' + fq.nombre;
+  cuerpo.innerHTML = '';
+  const cargando = document.createElement('p');
+  cargando.className = 'ms-estado';
+  cargando.textContent = _tr('Buscando todas las temporadas…');
+  cuerpo.appendChild(cargando);
+  abrirModalEl('modal-saga');
+  const miembros = fq._todos || fq.animes;
+  let d = await _pedirSaga(fq.nombre);
+  if (!d && miembros[0]) d = await _pedirSaga(miembros[0].nombre);
+  if (!document.getElementById('modal-saga').classList.contains('open')) return;
+  if (!d) { cargando.textContent = _tr('No he encontrado más temporadas de esta saga.'); return; }
+  cargando.remove();
+  _pintarSaga(cuerpo, d, {abierta: true, grupo: fq.nombre, alTerminar: () => cerrarModal('modal-saga')});
 }
 
 // Close preview on outside click

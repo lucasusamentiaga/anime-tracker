@@ -1695,7 +1695,42 @@ async def buscar_franquicia(req: BuscarRequest):
             return True
         return any(db.clave_nombre(t) in claves for t in [e["nombre"], *(e.get("titulos") or [])])
     entradas = [dict(e, en_lista=_ya(e)) for e in resp["entradas"]]
-    return dict(resp, entradas=entradas)
+    return dict(resp, entradas=entradas, resumen=resumen_saga(entradas))
+
+
+_FORMATOS_SERIE = ("TV", "TV_SHORT", "ONA")
+_MIN_EPISODIO, _MIN_PELICULA = 24, 110
+
+
+def resumen_saga(entradas: list[dict]) -> dict:
+    """Cuántas temporadas, episodios y horas tiene una saga. Numera las
+    temporadas (series por orden de estreno) en cada entrada: `temporada`."""
+    def _eps(e):
+        m = re.match(r"\s*(\d+)", str(e.get("capitulos") or ""))
+        return int(m.group(1)) if m else 0
+
+    temporadas = peliculas = extras = episodios = minutos = 0
+    incompleto = False
+    for e in entradas:
+        f = e.get("formato") or ""
+        n = _eps(e)
+        if f in _FORMATOS_SERIE:
+            temporadas += 1
+            e["temporada"] = temporadas
+            episodios += n
+            minutos += n * _MIN_EPISODIO
+            # "?" o "12+" (en emisión): el total no es definitivo
+            incompleto |= not n or "+" in str(e.get("capitulos"))
+        elif f == "MOVIE":
+            peliculas += 1
+            minutos += _MIN_PELICULA
+        else:
+            extras += 1
+            minutos += n * _MIN_EPISODIO
+    tienes = sum(1 for e in entradas if e.get("en_lista"))
+    return {"temporadas": temporadas, "episodios": episodios, "peliculas": peliculas,
+            "extras": extras, "horas": round(minutos / 60), "incompleto": incompleto,
+            "tienes": tienes, "faltan": len(entradas) - tienes}
 
 
 # ── Detección de URLs de fuentes conocidas ────────────────────────────────────

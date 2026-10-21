@@ -274,3 +274,56 @@ def test_la_pagina_no_usa_prompt_para_los_grupos():
     i = html.index("async function renombrarGrupo")
     j = html.index("// Editor: lista de grupos existentes")
     assert "prompt(" not in html[i:j] and "confirm(" not in html[i:j]
+
+
+# ── v2.14: resumen de la saga, cadenas largas y «Completar saga» ─────────────
+
+def test_resumen_saga_numera_temporadas_y_cuenta_episodios():
+    import main
+    ents = [{"formato": "TV", "capitulos": 25, "en_lista": True},
+            {"formato": "OVA", "capitulos": 3},
+            {"formato": "TV", "capitulos": 12},
+            {"formato": "MOVIE", "capitulos": "película"},
+            {"formato": "TV", "capitulos": "10+"}]
+    r = main.resumen_saga(ents)
+    assert (r["temporadas"], r["episodios"], r["peliculas"], r["extras"]) == (3, 47, 1, 1)
+    assert r["incompleto"] and r["tienes"] == 1 and r["faltan"] == 4
+    assert [e.get("temporada") for e in ents] == [1, None, 2, None, 3]
+    assert r["horas"] == round((47 * 24 + 3 * 24 + 110) / 60)
+
+
+def test_kitsu_sigue_cadenas_largas_hacia_atras():
+    """Buscar «attack on titans» daba como primer resultado la 3.ª temporada parte 2
+    y, con solo 2 saltos, se perdían las temporadas 1, 2 y 3."""
+    from scrapers import kitsu
+    cadena = {i: _k(i, f"AoT {i}", fecha=f"201{i}-01-01",
+                    rels=[("prequel", i - 1)] * (i > 1) + [("sequel", i + 1)] * (i < 6))
+              for i in range(1, 7)}
+
+    def get(params):
+        if "filter[text]" in params:
+            item, inc = cadena[5]
+            return {"data": [item], "included": inc}
+        ids = [int(x) for x in params["filter[id]"].split(",")]
+        return {"data": [cadena[i][0] for i in ids], "included": sum((cadena[i][1] for i in ids), [])}
+
+    out = kitsu.franquicia("attack on titans", get=get)
+    assert [e["nombre"] for e in out] == [f"AoT {i}" for i in range(1, 7)]
+
+
+def test_api_saga_trae_resumen(cliente, db, monkeypatch):
+    c, _ = cliente
+    monkeypatch.setattr(al, "franquicia", lambda q: [
+        {"anilist_id": 1, "nombre": "A", "formato": "TV", "capitulos": 25, "estado_anime": "", "imagen": "",
+         "genero": [], "anio": 2013, "mes": 4, "dia": 7, "raiz": True, "url": "u1", "titulos": []},
+        {"anilist_id": 2, "nombre": "A 2", "formato": "TV", "capitulos": 12, "estado_anime": "", "imagen": "",
+         "genero": [], "anio": 2017, "mes": 4, "dia": 1, "raiz": False, "url": "u2", "titulos": []}])
+    d = c.post("/api/buscar/franquicia", json={"nombre": "resumen zz"}).json()
+    assert d["resumen"]["temporadas"] == 2 and d["resumen"]["episodios"] == 37
+    assert [e["temporada"] for e in d["entradas"]] == [1, 2]
+
+
+def test_la_pagina_tiene_completar_saga_y_pastillas():
+    html = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
+    for trozo in ('id="modal-saga"', "completarSaga(fq)", "fq-temps", "_pintarSaga(", "saga-fichas"):
+        assert trozo in html, trozo

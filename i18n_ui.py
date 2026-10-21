@@ -23,6 +23,12 @@ LANGS = ("en", "fr", "de")
 
 UI: dict[str, tuple[str, str, str]] = {
     # ── v2.13: grupos del usuario y sagas completas al buscar ────────────────
+    "episodios": ("episodes", "épisodes", "Folgen"),
+    "Completar saga": ("Complete the saga", "Compléter la saga", "Saga vervollständigen"),
+    "Completar saga: ver qué temporadas te faltan": ("Complete the saga: see which seasons you're missing", "Compléter la saga : voir les saisons qui te manquent", "Saga vervollständigen: sehen, welche Staffeln dir fehlen"),
+    "Buscando todas las temporadas…": ("Looking for every season…", "Recherche de toutes les saisons…", "Alle Staffeln werden gesucht…"),
+    "No he encontrado más temporadas de esta saga.": ("I couldn't find more seasons of this saga.", "Je n'ai pas trouvé d'autres saisons de cette saga.", "Keine weiteren Staffeln dieser Saga gefunden."),
+    "Sigue con": ("Continue with", "Continue avec", "Weiter mit"),
     "Tu grupo": ("Your group", "Ton groupe", "Deine Gruppe"),
     "Renombrar grupo": ("Rename group", "Renommer le groupe", "Gruppe umbenennen"),
     "Deshacer grupo": ("Ungroup", "Défaire le groupe", "Gruppe auflösen"),

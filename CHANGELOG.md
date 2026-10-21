@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.14.0 — Sagas con temporadas y episodios a la vista
+
+- **Al buscar** (por ejemplo «attack on titans», aunque esté mal escrito) sale la saga con
+  su resumen: cuántas temporadas, cuántos episodios en total, películas, OVAs y las horas
+  aproximadas que se tarda en verla. Debajo, una ficha por temporada con sus episodios y
+  su año («T1 · 25 eps · 2013»), en verde las que ya tienes.
+- La saga se encuentra entera aunque la búsqueda acierte primero con una temporada del
+  medio (antes se perdían las anteriores), y el resultado principal pasa a ser la 1.ª
+  temporada.
+- **Cajas de la lista más claras**: temporadas y películas se cuentan por separado, una
+  barra de progreso de toda la saga, «▶ Sigue con …» con el siguiente episodio, y una
+  pastilla por temporada con su progreso (verde completada, morada viendo…). Pulsar una
+  pastilla abre esa temporada.
+- **🧩 Completar saga** en cada caja: busca todas las temporadas y te deja añadir las que
+  te faltan a esa misma caja.
+
 ## v2.13.0 — Sagas completas y grupos a tu gusto
 
 - **Al buscar un anime para añadirlo sale toda su saga**: debajo del resultado aparece

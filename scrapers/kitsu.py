@@ -154,7 +154,7 @@ def _relaciones(payload: dict) -> dict[str, list[str]]:
     return out
 
 
-def franquicia(nombre: str, get=_get, max_saltos: int = 2, maximo: int = 60) -> list[dict]:
+def franquicia(nombre: str, get=_get, max_saltos: int = 8, maximo: int = 60) -> list[dict]:
     """Saga del anime que mejor casa con `nombre`, según Kitsu. Nunca lanza."""
     comunes = {"include": "mediaRelationships.destination", "fields[anime]": _CAMPOS,
                "fields[mediaRelationships]": "role,destination"}

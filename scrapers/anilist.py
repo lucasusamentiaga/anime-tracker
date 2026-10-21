@@ -309,7 +309,7 @@ def _post(query: str, variables: dict, timeout: int = 15) -> dict:
     return (resp.json() or {}).get("data") or {}
 
 
-def franquicia(nombre: str, post=_post, max_saltos: int = 2) -> list[dict]:
+def franquicia(nombre: str, post=_post, max_saltos: int = 5) -> list[dict]:
     """Todas las entradas de la saga del anime que mejor casa con `nombre`.
 
     Una búsqueda (30 resultados con sus relaciones) suele traer ya toda la saga;
