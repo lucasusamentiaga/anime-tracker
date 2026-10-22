@@ -7,10 +7,13 @@ escritura. El riesgo es que una ruta muten por vía propia (SQL directo o helper
 sin invalidar): la siguiente petición GET /api/animes devolvería el estado viejo
 y la UI mostraría datos fantasma hasta reiniciar.
 
-El pin es FUNCIONAL en vez de intrusivo: se calienta la caché leyendo el
-listado ANTES de mutar, se muta por HTTP y se exige que el listado SIGUIENTE
-refleje el cambio. Si la invalidación se rompe (p. ej. Task 8 reestructura
-main.py), el test falla sin conocer variable alguna de database.py.
+El pin es FUNCIONAL en vez de intrusivo: en TODOS los pins se calienta la caché
+leyendo el listado ANTES de mutar (en las creaciones además se comprueba que el
+nombre nuevo aún no está en ese listado calentado), se muta por HTTP y se exige
+que el listado SIGUIENTE refleje el cambio. Si la invalidación se rompe (p. ej.
+Task 8 reestructura main.py), el test falla sin conocer variable alguna de
+database.py: el listado siguiente devolvería el estado viejo y la UI mostraría
+datos fantasma hasta reiniciar.
 
 rutas auditadas (todas pasan por un helper que llama a _invalidar_cache()):
   POST   /api/animes                     → db.guardar_anime
@@ -33,6 +36,13 @@ rutas auditadas (todas pasan por un helper que llama a _invalidar_cache()):
          animeav1_sync); cubren red, no se pinan aquí.
 Además, a nivel de helper: db.refrescar_metadata_anime y db.fusionar_animes
 (ambos llaman a _invalidar_cache) y db.watch_folder usa db.actualizar_anime.
+
+No se pinnan (no alimentan el listado cacheado): escrituras de historial,
+ep_log, notas por episodio y config/tags, y media (usa su propia
+_invalidar_media_cache). El único SQL directo contra animes fuera de los
+helpers está en migrations.completar_episodios_vistos, y ya invalida la caché
+explícitamente en migrations.py:267 (auditado; esa función ya tiene test en
+tests/test_metadatos.py).
 """
 from __future__ import annotations
 
@@ -170,7 +180,6 @@ def _scraper_bruto(nombre):
 
 def test_post_animes_crea_y_sale_en_el_listado(client, monkeypatch):
     """POST /api/animes con la búsqueda falseada (sin red)."""
-    monkeypatch.setattr(main, "_detect_url", lambda texto: False)
     # _buscar_con_fallback es asíncrona: el sustituto también lo debe ser.
     async def _fallback_fake(texto, fuente):
         return _scraper_bruto("Scratched"), "anilist"
@@ -178,9 +187,11 @@ def test_post_animes_crea_y_sale_en_el_listado(client, monkeypatch):
     monkeypatch.setattr(main, "_buscar_con_fallback", _fallback_fake)
     monkeypatch.setattr(main, "_enrich_needs", lambda data: (False, False))
     monkeypatch.setattr(main, "_find_anime_image", lambda nombre: None)
+    # Caché calentada ANTES de crear: sin el anime. Si guardar_anime dejara de
+    # invalidar, el listado siguiente seguiría siendo este listado viejo.
+    assert not any(a["nombre"] == "Scratched" for a in _calentar(client))
     r = client.post("/api/animes", json={"nombre": "Scratched"})
     assert r.status_code == 200, r.text
-    _calentar(client)
     assert _por_nombre(client, "Scratched")["anilist_id"] == 42
 
 
@@ -189,9 +200,9 @@ def test_post_manga_crea_y_sale_en_el_listado(client, monkeypatch):
     fake = types.SimpleNamespace(
         buscar_manga=lambda nombre: _scraper_bruto(nombre))
     monkeypatch.setattr(main, "SCRAPERS", {"anilist": fake})
+    assert not any(a["nombre"] == "MangaMania" for a in _calentar(client))
     r = client.post("/api/manga", json={"nombre": "MangaMania"})
     assert r.status_code == 200, r.text
-    _calentar(client)
     m = _por_nombre(client, "MangaMania")
     assert m["tipo"] == "manga"
 
@@ -201,10 +212,10 @@ def test_import_bulk_guarda_y_sale_en_el_listado(client, monkeypatch):
     fake = types.SimpleNamespace(
         buscar=lambda nombre: _scraper_bruto(nombre))
     monkeypatch.setattr(main, "SCRAPERS", {"anilist": fake})
+    assert not any(a["nombre"] == "Bulk1" for a in _calentar(client))
     r = client.post("/api/import/bulk", json={"texto": "Bulk1\nBulk2"})
     assert r.status_code == 200, r.text
     assert r.json()["añadidos"] == ["Bulk1", "Bulk2"]
-    _calentar(client)
     assert _por_nombre(client, "Bulk1")["anilist_id"] == 42
 
 
@@ -214,11 +225,11 @@ def test_import_mal_xml_guarda_y_sale_en_el_listado(client, monkeypatch):
     xml = (b"<myanimelist><anime><series_title>Clannad</series_title>"
            b"<my_status>On-Hold</my_status><my_score>9</my_score>"
            b"<my_watched_episodes>12</my_watched_episodes></anime></myanimelist>")
+    assert not any(a["nombre"] == "Clannad" for a in _calentar(client))
     r = client.post("/api/import/mal-xml",
                     files={"file": ("export.xml", xml, "text/xml")})
     assert r.status_code == 200, r.text
     assert r.json()["añadidos"] == 1
-    _calentar(client)
     a = _por_nombre(client, "Clannad")
     assert a["estado_usuario"] == "pausa"
     assert a["episodios_vistos"] == 12 and a["puntuacion"] == 9.0
@@ -241,13 +252,30 @@ def test_import_anilist_guarda_y_sale_en_el_listado(client, monkeypatch):
     }]}}
     monkeypatch.setattr(
         main, "_anilist", lambda query, variables, timeout=20: respuesta)
+    assert not any(a["nombre"] == "ImportAni" for a in _calentar(client))
     r = client.post("/api/import/anilist", json={"username": "fan"})
     body = r.json()
     assert r.status_code == 200 and body["ok"] is True, body
     assert body["añadidos"] == 1
-    _calentar(client)
     a = _por_nombre(client, "ImportAni")
     assert a["estado_usuario"] == "viendo" and a["episodios_vistos"] == 5
+
+
+def test_restore_devuelve_el_anime_al_listado_calentado(client):
+    """Flujo 'Deshacer' con la caché ya calentada: borrar → leer el listado
+    (sin el anime) → restaurar desde el JSON que guardó el frontend (no hay
+    fichero de copia: el body del POST ES la copia). Si restore no invalidara,
+    la lectura siguiente seguiría viendo el estado pre-restauración."""
+    datos = {"nombre": "Undo", "capitulos": "12",
+             "estado_usuario": "completado", "episodios_vistos": 9}
+    assert client.post("/api/animes/restore", json=datos).status_code == 200
+    assert client.delete("/api/animes/Undo").status_code == 200
+    # Caché calentada SIN el anime borrado
+    assert not any(a["nombre"] == "Undo" for a in _calentar(client))
+    r = client.post("/api/animes/restore", json=datos)
+    assert r.status_code == 200, r.text
+    a = _por_nombre(client, "Undo")
+    assert a["estado_usuario"] == "completado" and a["episodios_vistos"] == 9
 
 
 # ── Endpoints móviles (mismo helper, pero por la ruta móvil) ─────────────────
@@ -276,9 +304,8 @@ def test_mobile_plus1_actualiza_el_listado(client, sin_token_movil):
 
 # ── El grid slim comparte invalidación ───────────────────────────────────────
 
-def test_listado_slim_tambien_se_invalida(client, monkeypatch):
+def test_listado_slim_tambien_se_invalida(client):
     """_slim_cache se limpia junto a _lista_cache: más1 y PATCH se reflejan."""
-    monkeypatch.setattr(main, "_require_auth", lambda request: None)
     _sembrar(client, "S", episodios_vistos=1)
 
     def slim(nombre):
