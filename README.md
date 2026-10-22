@@ -110,6 +110,18 @@ falla, el instalador guarda un registro en `%TEMP%\miraru-instalacion.log`: adj�
 [aviso](https://github.com/lucasusamentiaga/anime-tracker/issues).
 </details>
 
+### Docker (self-hosting en otros sistemas)
+
+```bash
+docker build -t miraru .
+docker run -d --name miraru -p 8765:8765 -v miraru-data:/data miraru
+```
+
+Tu biblioteca se guarda en el volumen `miraru-data` (`/data`). Para actualizar, hacer copias
+de seguridad o exponer el puerto de forma segura (PIN + TLS), lee la guía completa:
+[`docs/self-host.md`](docs/self-host.md).
+*Run Miraru anywhere with Docker: your data stays in the `miraru-data` volume.*
+
 ## 📱 Móvil
 
 1. En el PC abre **📱 Acceso móvil**, elige un PIN y pulsa **Activar**.
