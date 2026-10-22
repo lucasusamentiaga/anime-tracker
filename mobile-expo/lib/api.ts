@@ -78,6 +78,46 @@ async function authed(path: string, init: RequestInit = {}): Promise<Response> {
   });
 }
 
+// Campos que acepta `PATCH /api/mobile/animes/{nombre}` — subconjunto de lo
+// que admite el modelo `ActualizarRequest` del servidor en main.py (que
+// también deja tocar favorito, notif_activa, notas, volumenes_leidos y grupo).
+// Aquí solo se expone lo que usa la ficha móvil; el resto los ignora pydantic.
+export type CamposAnime = Partial<
+  Pick<Anime, "estado_usuario" | "episodios_vistos" | "puntuacion">
+> & Partial<{
+  fecha_inicio: string;
+  fecha_fin: string;
+  temporada: string;
+  lista_personalizada: string;
+}>;
+
+// Escrituras autenticadas: lanzan SIEMPRE en fallo para que la UI deshaga el
+// cambio optimista. Señales: "no-auth" (401/403, token expirado o PIN caído),
+// "net" (sin conexión o sin respuesta; `fetch` rechaza con TypeError) o
+// "http <código>".
+//
+// El fetch de RN (Android) no tiene timeout por defecto: un PC que acepta la
+// conexión pero nunca responde colgaría la escritura indefinidamente (y con
+// el mutex de la UI, todas las siguientes). Se aborta a los 15 s y el aborto
+// se clasifica como "net".
+const TIMEOUT_ESCRITURA_MS = 15_000;
+
+async function write(path: string, init: RequestInit): Promise<any> {
+  const ctrl = new AbortController();
+  const reloj = setTimeout(() => ctrl.abort(), TIMEOUT_ESCRITURA_MS);
+  try {
+    const r = await authed(path, { ...init, signal: ctrl.signal });
+    if (r.status === 401 || r.status === 403) throw new Error("no-auth");
+    if (!r.ok) throw new Error("http " + r.status);
+    return await r.json();
+  } catch (e) {
+    if (e instanceof TypeError || (e as { name?: string })?.name === "AbortError") throw new Error("net");
+    throw e;
+  } finally {
+    clearTimeout(reloj);
+  }
+}
+
 export async function fetchAnimes(): Promise<Anime[]> {
   const r = await authed("/api/mobile/animes");
   if (!r.ok) throw new Error("no-auth");
@@ -91,13 +131,15 @@ export async function fetchStats(): Promise<any> {
   return r.json();
 }
 
-export async function plus1(nombre: string): Promise<void> {
-  await authed(`/api/mobile/animes/${encodeURIComponent(nombre)}/plus1`, { method: "POST" });
+export async function plus1(nombre: string): Promise<{ ok: true; episodios_vistos?: number }> {
+  const d = await write(`/api/mobile/animes/${encodeURIComponent(nombre)}/plus1`, { method: "POST" });
+  return d as { ok: true; episodios_vistos?: number };
 }
 
-export async function patchAnime(nombre: string, campos: Record<string, unknown>): Promise<void> {
-  await authed(`/api/mobile/animes/${encodeURIComponent(nombre)}`, {
+export async function patchAnime(nombre: string, cambios: CamposAnime): Promise<{ ok: true }> {
+  const d = await write(`/api/mobile/animes/${encodeURIComponent(nombre)}`, {
     method: "PATCH",
-    body: JSON.stringify(campos),
+    body: JSON.stringify(cambios),
   });
+  return d as { ok: true };
 }
