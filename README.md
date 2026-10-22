@@ -114,13 +114,18 @@ falla, el instalador guarda un registro en `%TEMP%\miraru-instalacion.log`: adj�
 
 ```bash
 docker build -t miraru .
-docker run -d --name miraru -p 8765:8765 -v miraru-data:/data miraru
+docker run -d --name miraru -p 127.0.0.1:8765:8765 -v miraru-data:/data miraru
 ```
+
+> ⚠️ El `-p 127.0.0.1:...` publica el puerto **solo en tu PC**. Con un volumen recién
+> creado aún no hay **PIN**: mientras no lo actives (podrás hacerlo en el navegador), todo
+> `/api/*` queda abierto en el puerto que publiques. Publica más amplio (LAN, proxy) solo
+> después de activar el PIN — detalles en [`docs/self-host.md`](docs/self-host.md).
 
 Tu biblioteca se guarda en el volumen `miraru-data` (`/data`). Para actualizar, hacer copias
 de seguridad o exponer el puerto de forma segura (PIN + TLS), lee la guía completa:
 [`docs/self-host.md`](docs/self-host.md).
-*Run Miraru anywhere with Docker: your data stays in the `miraru-data` volume.*
+*Run Miraru anywhere with Docker: your data stays in the `miraru-data` volume. The copy-paste command publishes the port on `127.0.0.1` only — with a fresh volume there is no PIN yet, so the API is open on any port you publish; set the PIN before binding wider.*
 
 ## 📱 Móvil
 

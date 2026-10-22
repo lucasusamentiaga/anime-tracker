@@ -9,6 +9,7 @@
 
 # ── Desarrollo y tests (la imagen solo instala requirements.txt) ──────────────
 tests/
+build/
 requirements-dev.txt
 hooks/
 build.py
