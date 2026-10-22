@@ -1364,30 +1364,6 @@ async def setup_status():
         "lang":                  get_lang(),
     }
 
-# ── Animes ────────────────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ── Detección de URLs de fuentes conocidas ────────────────────────────────────
 # Permite pegar la URL del anime en el buscador y resolver directamente la
 # fuente correcta, sin búsqueda fuzzy. Devolvemos (fuente, query) o None.
@@ -1597,12 +1573,6 @@ async def _buscar_con_fallback(nombre: str, fuente_pref: str) -> tuple[Optional[
 
 
 
-
-
-# NOTA: las rutas catch-all PATCH/DELETE de /api/animes/{nombre:path} se registran
-# MÁS ABAJO (tras las subrutas /nota, /tags/{tag}, etc.). Si se registraran aquí
-# —antes que las subrutas— el conversor :path se tragaría rutas como ".../nota" o
-# ".../tags/x" (nombre="X/nota") y las rompería. Ver el final de la sección animes.
 
 
 # ── Sync ──────────────────────────────────────────────────────────────────────
@@ -1976,12 +1946,6 @@ class TagRequest(BaseModel):
     tag: str
 
 
-# ── Sugerencias de búsqueda ───────────────────────────────────────────────────
-
-
-
-
-
 # ── Listas personalizadas ─────────────────────────────────────────────────────
 
 
@@ -2057,10 +2021,6 @@ def _fetch_ultimos_episodios(animes: list, max_resolver: int = 5,
     except Exception as e:
         _sync_log.warning("_fetch_ultimos_episodios: %s", e)
     return out
-
-
-# ── Animes relacionados ───────────────────────────────────────────────────────
-
 
 
 # ── Datos extra de AniList: trailer, streaming, similares ──────────────────────
@@ -2539,20 +2499,6 @@ class AnimeAV1ConectarRequest(BaseModel):
 
 
 
-
-# ── Catch-all de animes (PATCH/DELETE) ────────────────────────────────────────
-# IMPORTANTE: se definen AQUÍ, al final, para que se registren DESPUÉS de todas
-# las subrutas /api/animes/{nombre:path}/... Con el conversor :path (necesario
-# para nombres con '/', p.ej. "Fate/stay night"), si fueran antes se tragarían
-# rutas como ".../nota" o ".../tags/x" y las romperían.
-
-
-
-
-
-
-# ── Unificación, gamificación y export social ─────────────────────────────────
-# Los endpoints viven ahora en routers/gamificacion.py
 
 # ── Routers por dominio (Tarea 7: troceo de main.py) ─────────────────────────
 # Los módulos de routes/ llegan aquí al FINAL del fichero a propósito: algunos

@@ -11,6 +11,10 @@ Comparación sobre sets (no listas): el orden de registro lo gobiernan los
 include_router y no forma parte del contrato; lo que sí se pinza es que
 ninguna ruta cambie de path, método o clase de respuesta (las clases no el
 test: lo cubre el resto de la suite HTTP).
+
+Además se pinza que no haya pares (path, método) DUPLICADOS: la comparación
+por sets fundiría dos rutas idénticas sin quejarse, pero FastAPI solo
+despacha la primera — el resto sería código muerto imposible de tocar.
 """
 from __future__ import annotations
 
@@ -195,29 +199,37 @@ _RUTAS_PINADAS = {
 }
 
 
-def _pares_reales() -> set[tuple[str, str]]:
+def _pares_reales() -> list[tuple[str, str]]:
     """Extrae (path, método) de la app real. Las monturas entran como
-    ("<mount:path>", "*") para poder compararlas también."""
-    out: set[tuple[str, str]] = set()
+    ("<mount:path>", "*") para poder compararlas también. Devuelve LISTA (con
+    posibles repeticiones): el test necesita contar pares duplicados."""
+    out: list[tuple[str, str]] = []
     for r in main.app.routes:
         if isinstance(r, Mount):
-            out.add((f"<mount:{r.path}>", "*"))
+            out.append((f"<mount:{r.path}>", "*"))
             continue
         if isinstance(r, APIRoute) or hasattr(r, "methods"):
             for m in r.methods:  # type: ignore[attr-defined]
                 if m in ("HEAD", "OPTIONS"):
                     continue
-                out.add((r.path, m))
+                out.append((r.path, m))
         else:
-            out.add((r.path, "*"))
+            out.append((r.path, "*"))
     return out
 
 
 def test_la_tabla_de_rutas_es_exactamente_la_del_pre_refactor():
-    """Ninguna ruta nueva, ninguna desaparecida, ningún método cambiado."""
+    """Ninguna ruta nueva, ninguna desaparecida, ningún método cambiado,
+    y ningún par (path, método) duplicado."""
     reales = _pares_reales()
-    faltan = _RUTAS_PINADAS - reales
-    sobran = reales - _RUTAS_PINADAS
+    # El set fundiría dos rutas idénticas; primero se pinza que no ocurra.
+    duplicados = sorted({par for par in reales if reales.count(par) > 1})
+    assert len(reales) == len(set(reales)), (
+        f"Pares (path, método) DUPLICADOS en la app real: {duplicados}"
+    )
+    unicos = set(reales)
+    faltan = _RUTAS_PINADAS - unicos
+    sobran = unicos - _RUTAS_PINADAS
     assert not faltan, f"Rutas que FALTAN tras la división: {sorted(faltan)}"
     assert not sobran, f"Rutas que SOBRAN tras la división: {sorted(sobran)}"
 
