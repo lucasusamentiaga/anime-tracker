@@ -78,8 +78,10 @@ async function authed(path: string, init: RequestInit = {}): Promise<Response> {
   });
 }
 
-// Campos que acepta `PATCH /api/mobile/animes/{nombre}` (solo los del modelo
-// `ActualizarRequest` del servidor; el resto los ignora pydantic al vuelo).
+// Campos que acepta `PATCH /api/mobile/animes/{nombre}` — subconjunto de lo
+// que admite el modelo `ActualizarRequest` del servidor en main.py (que
+// también deja tocar favorito, notif_activa, notas, volumenes_leidos y grupo).
+// Aquí solo se expone lo que usa la ficha móvil; el resto los ignora pydantic.
 export type CamposAnime = Partial<
   Pick<Anime, "estado_usuario" | "episodios_vistos" | "puntuacion">
 > & Partial<{
@@ -91,16 +93,28 @@ export type CamposAnime = Partial<
 
 // Escrituras autenticadas: lanzan SIEMPRE en fallo para que la UI deshaga el
 // cambio optimista. Señales: "no-auth" (401/403, token expirado o PIN caído),
-// "net" (sin conexión; `fetch` rechaza con TypeError) o "http <código>".
+// "net" (sin conexión o sin respuesta; `fetch` rechaza con TypeError) o
+// "http <código>".
+//
+// El fetch de RN (Android) no tiene timeout por defecto: un PC que acepta la
+// conexión pero nunca responde colgaría la escritura indefinidamente (y con
+// el mutex de la UI, todas las siguientes). Se aborta a los 15 s y el aborto
+// se clasifica como "net".
+const TIMEOUT_ESCRITURA_MS = 15_000;
+
 async function write(path: string, init: RequestInit): Promise<any> {
+  const ctrl = new AbortController();
+  const reloj = setTimeout(() => ctrl.abort(), TIMEOUT_ESCRITURA_MS);
   try {
-    const r = await authed(path, init);
+    const r = await authed(path, { ...init, signal: ctrl.signal });
     if (r.status === 401 || r.status === 403) throw new Error("no-auth");
     if (!r.ok) throw new Error("http " + r.status);
     return await r.json();
   } catch (e) {
-    if (e instanceof TypeError) throw new Error("net");
+    if (e instanceof TypeError || (e as { name?: string })?.name === "AbortError") throw new Error("net");
     throw e;
+  } finally {
+    clearTimeout(reloj);
   }
 }
 

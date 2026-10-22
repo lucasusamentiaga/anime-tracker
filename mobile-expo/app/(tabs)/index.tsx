@@ -11,6 +11,10 @@ export default function Biblioteca() {
   const [items, setItems] = useState<Anime[]>([]);
   const [offline, setOffline] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Taps mientras una escritura está en curso: no se descartan en silencio,
+  // se avisa con un aviso pasajero en la cabecera ("guardando…").
+  const [ocupado, setOcupado] = useState(false);
+  const avisoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Anime abierto en la hoja de acciones (sigue el nombre, no el snapshot,
   // para que la ficha reaccione a los cambios optimistas de la lista).
   const [abierto, setAbierto] = useState<string | null>(null);
@@ -34,6 +38,14 @@ export default function Biblioteca() {
     load();
   }, [load]);
 
+  useEffect(() => () => clearTimeout(avisoTimer.current), []);
+
+  function avisoOcupado() {
+    setOcupado(true);
+    clearTimeout(avisoTimer.current);
+    avisoTimer.current = setTimeout(() => setOcupado(false), 1500);
+  }
+
   // Nunca silencioso: 401/token caducado → pista de Ajustes; fallo de red → WiFi.
   function alertaEscritura(e: unknown) {
     const msg = e instanceof Error ? e.message : "";
@@ -50,7 +62,10 @@ export default function Biblioteca() {
   }
 
   async function aplicarCampos(anime: Anime, cambios: CamposAnime, revertir: Partial<Anime>) {
-    if (escribiendo.current) return;
+    if (escribiendo.current) {
+      avisoOcupado();
+      return;
+    }
     escribiendo.current = true;
     const nombre = anime.nombre;
     setItems((its) => its.map((a) => (a.nombre === nombre ? { ...a, ...cambios } : a)));
@@ -65,7 +80,10 @@ export default function Biblioteca() {
   }
 
   async function aplicarPlus1(anime: Anime) {
-    if (escribiendo.current) return;
+    if (escribiendo.current) {
+      avisoOcupado();
+      return;
+    }
     escribiendo.current = true;
     const nombre = anime.nombre;
     setItems((its) =>
@@ -94,6 +112,7 @@ export default function Biblioteca() {
     <SafeAreaView className="flex-1 bg-bg">
       <View className="px-4 pt-2 pb-3 flex-row items-center justify-between">
         <Text className="text-fg text-2xl font-bold">Miraru</Text>
+        {ocupado && <Text className="text-light text-xs">guardando…</Text>}
         {offline && <Text className="text-muted text-xs">sin conexión</Text>}
       </View>
       <FlatList
