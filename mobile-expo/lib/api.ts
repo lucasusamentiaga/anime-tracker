@@ -78,6 +78,32 @@ async function authed(path: string, init: RequestInit = {}): Promise<Response> {
   });
 }
 
+// Campos que acepta `PATCH /api/mobile/animes/{nombre}` (solo los del modelo
+// `ActualizarRequest` del servidor; el resto los ignora pydantic al vuelo).
+export type CamposAnime = Partial<
+  Pick<Anime, "estado_usuario" | "episodios_vistos" | "puntuacion">
+> & Partial<{
+  fecha_inicio: string;
+  fecha_fin: string;
+  temporada: string;
+  lista_personalizada: string;
+}>;
+
+// Escrituras autenticadas: lanzan SIEMPRE en fallo para que la UI deshaga el
+// cambio optimista. Señales: "no-auth" (401/403, token expirado o PIN caído),
+// "net" (sin conexión; `fetch` rechaza con TypeError) o "http <código>".
+async function write(path: string, init: RequestInit): Promise<any> {
+  try {
+    const r = await authed(path, init);
+    if (r.status === 401 || r.status === 403) throw new Error("no-auth");
+    if (!r.ok) throw new Error("http " + r.status);
+    return await r.json();
+  } catch (e) {
+    if (e instanceof TypeError) throw new Error("net");
+    throw e;
+  }
+}
+
 export async function fetchAnimes(): Promise<Anime[]> {
   const r = await authed("/api/mobile/animes");
   if (!r.ok) throw new Error("no-auth");
@@ -91,13 +117,15 @@ export async function fetchStats(): Promise<any> {
   return r.json();
 }
 
-export async function plus1(nombre: string): Promise<void> {
-  await authed(`/api/mobile/animes/${encodeURIComponent(nombre)}/plus1`, { method: "POST" });
+export async function plus1(nombre: string): Promise<{ ok: true; episodios_vistos?: number }> {
+  const d = await write(`/api/mobile/animes/${encodeURIComponent(nombre)}/plus1`, { method: "POST" });
+  return d as { ok: true; episodios_vistos?: number };
 }
 
-export async function patchAnime(nombre: string, campos: Record<string, unknown>): Promise<void> {
-  await authed(`/api/mobile/animes/${encodeURIComponent(nombre)}`, {
+export async function patchAnime(nombre: string, cambios: CamposAnime): Promise<{ ok: true }> {
+  const d = await write(`/api/mobile/animes/${encodeURIComponent(nombre)}`, {
     method: "PATCH",
-    body: JSON.stringify(campos),
+    body: JSON.stringify(cambios),
   });
+  return d as { ok: true };
 }
