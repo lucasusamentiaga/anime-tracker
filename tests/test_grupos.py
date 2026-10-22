@@ -364,8 +364,9 @@ def test_grupo_con_solo_espacios_es_automatico(cliente, db):
 
 
 def test_la_cabecera_no_ensancha_la_pagina_en_movil():
-    html = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
-    assert ".header-nav{display:flex;gap:2px;align-items:center;flex-wrap:wrap" in html
+    # Task 2 extrajo el CSS del index a static/index_page.css; la regla vive ahí.
+    css = (ROOT / "static" / "index_page.css").read_text(encoding="utf-8")
+    assert ".header-nav{display:flex;gap:2px;align-items:center;flex-wrap:wrap" in css
 
 
 def test_puntuaciones_no_esperan_a_una_fuente_colgada(cliente, monkeypatch):
