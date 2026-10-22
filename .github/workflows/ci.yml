@@ -66,7 +66,7 @@ jobs:
           python -m py_compile i18n.py
           python -m py_compile launcher.py
           python -m py_compile build.py
-          for f in scrapers/*.py routers/*.py; do
+          for f in scrapers/*.py routers/*.py routes/*.py; do
             python -m py_compile "$f"
           done
           echo "All files compile successfully"
@@ -100,19 +100,20 @@ jobs:
           python << 'EOF'
           import glob, re
           from collections import Counter
-          # main.py usa @app.<verbo>("/ruta"); los routers usan @router con prefix.
+          # main.py usa @app.<verbo>("/ruta"); routers/ usa @router con prefix;
+          # routes/ (Tarea 7) usa @router SIN prefix: el path va ya completo.
           rutas = []
           src = open('main.py').read()
           VERBOS = {'get', 'post', 'put', 'patch', 'delete', 'api_route', 'websocket'}
           rutas += [(m, p) for m, p in re.findall(r'@app\.(\w+)\("([^"]+)"', src) if m in VERBOS]
-          for f in glob.glob('routers/*.py'):
+          for f in glob.glob('routers/*.py') + glob.glob('routes/*.py'):
               s = open(f).read()
               pref = re.search(r'APIRouter\([^)]*prefix\s*=\s*"([^"]*)"', s)
               pref = pref.group(1) if pref else ''
               rutas += [(m, pref + p) for m, p in re.findall(r'@router\.(\w+)\("([^"]*)"', s) if m in VERBOS]
           dupes = {k: v for k, v in Counter(f"{m}:{p}" for m, p in rutas).items() if v > 1}
           assert not dupes, f"Duplicate routes: {dupes}"
-          print(f"OK: {len(rutas)} routes (main + routers), no duplicates")
+          print(f"OK: {len(rutas)} routes (main + routers + routes), no duplicates")
           EOF
 
       - name: Verify schema consistency
