@@ -1,0 +1,54 @@
+# .dockerignore — deja dentro del contexto solo lo que la app necesita en runtime.
+# Cada cosa de más es una imagen más pesada y otra superficie de accidentes.
+
+# ── Control de versiones / CI ──────────────────────────────────────────────────
+.git
+.github
+.gitignore
+.superpowers
+
+# ── Desarrollo y tests (la imagen solo instala requirements.txt) ──────────────
+tests/
+build/
+requirements-dev.txt
+hooks/
+build.py
+build_msix.py
+mise.toml
+
+# ── Empaquetado Windows (packaging, instaladores, artefactos) ─────────────────
+packaging/
+compilar.bat
+deploy-github.bat
+Miraru.vbs
+_acceso_directo.py
+install.ps1
+*.exe
+*.msix
+
+# ── Móvil nativo (builds propios, no entra aquí) ──────────────────────────────
+mobile/
+mobile-expo/
+node_modules/
+dist/
+
+# ── Datos locales que no deben acabar en la imagen ────────────────────────────
+*.db
+*.db-wal
+*.db-shm
+backups/
+credentials.json
+
+# ── Cache y basura ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# ── Peso muerto: documentación y capturas (la app no las sirve) ───────────────
+docs/
+screenshots/
+CHANGELOG.md
