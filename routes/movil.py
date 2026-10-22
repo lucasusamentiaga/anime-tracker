@@ -18,7 +18,6 @@ from fastapi import APIRouter, HTTPException, Request
 import database as db
 import main  # circular a propósito: nombres de main se leen al servir
 import sheets_sync
-from core import VERSION
 from main import ActualizarRequest, PinRequest  # noqa: E402
 
 router = APIRouter()
@@ -33,7 +32,8 @@ async def mobile_ping():
     `app` conserva el identificador histórico a propósito: las apps móviles ya
     instaladas comprueban exactamente ese valor y cambiarlo las dejaría sin
     poder conectar. El nombre actual va en `name`."""
-    return {"app": "AnimeTracker", "name": "Miraru", "version": VERSION, "ok": True}
+    # costura: los tests parchean main.VERSION → se lee en tiempo de petición
+    return {"app": "AnimeTracker", "name": "Miraru", "version": main.VERSION, "ok": True}
 
 @router.post("/api/mobile/auth")
 async def mobile_auth(req: PinRequest, request: Request):

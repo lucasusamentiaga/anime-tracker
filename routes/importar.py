@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import database as db
 import main  # circular a propósito: nombres de main se leen al servir
 import sheets_sync
-from core import VERSION, executor
+from core import executor
 from main import ImportRequest  # noqa: E402  (modelo en main)
 
 router = APIRouter()
@@ -213,7 +213,8 @@ async def import_anilist(data: dict):
 async def export_json():
     """Exporta toda la lista como JSON para backup o migración."""
     animes = db.listar_animes()
-    content = json.dumps({"version": VERSION, "animes": animes}, ensure_ascii=False, indent=2)
+    # costura: los tests parchean main.VERSION → se lee en tiempo de petición
+    content = json.dumps({"version": main.VERSION, "animes": animes}, ensure_ascii=False, indent=2)
     return StreamingResponse(
         iter([content]),
         media_type="application/json",
