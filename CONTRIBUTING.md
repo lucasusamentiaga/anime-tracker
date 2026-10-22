@@ -25,7 +25,7 @@ pip install -r requirements-dev.txt                 # runtime deps + pytest, ruf
 python launcher.py
 ```
 
-The desktop app opens in your browser. `main.py` is the FastAPI entry point used under the hood; `launcher.py` is the recommended entry for development.
+The desktop app opens in your browser. `main.py` is the FastAPI entry point used under the hood — the API handlers live in `routes/` (app wiring, middleware and page routes stay in `main.py`) — and `launcher.py` is the recommended entry for development.
 
 ### Run the tests
 
@@ -94,7 +94,7 @@ pip install -r requirements-dev.txt                 # deps de runtime + pytest, 
 python launcher.py
 ```
 
-La app de escritorio abre en el navegador. `main.py` es el punto de entrada FastAPI por debajo; `launcher.py` es la entrada recomendada para desarrollar.
+La app de escritorio abre en el navegador. `main.py` es el punto de entrada FastAPI por debajo —los handlers del API viven en `routes/` (el cableado de la app, el middleware y las rutas de página se quedan en `main.py`)—; `launcher.py` es la entrada recomendada para desarrollar.
 
 ### Ejecutar los tests
 
