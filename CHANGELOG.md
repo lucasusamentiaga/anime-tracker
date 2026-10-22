@@ -1,5 +1,23 @@
 # Changelog
 
+## Sin publicar
+
+- **🐳 Autoalojamiento con Docker**: nueva imagen para montar tu propio servidor
+  (`Dockerfile`, Python 3.13-slim, usuario no root; tus datos — BD, backups y
+  `credentials.json` — viven en un volumen `/data`) con guía completa en
+  `docs/self-host.md`, incluida la advertencia de activar el PIN antes de abrir el
+  puerto: con un volumen nuevo no hay PIN y el API queda abierta.
+- **La app móvil (Expo) ya escribe en tu lista**: era solo lectura; ahora puedes marcar
+  el siguiente episodio (+1), cambiar el estado y poner puntuación desde el móvil contra
+  el servidor del PC. Si el móvil no lo alcanza (estás fuera de casa o el servidor está
+  apagado), la petición expira sola con un aviso claro, los toques repetidos no bloquean
+  la lista y tus datos locales no se tocan.
+- **Exportar tu biblioteca a AniList sin conexión**: nuevo `POST /api/export/anilist`
+  compone las mutaciones `SaveMediaListEntry` de todos tus animes con ID de AniList
+  (cuerpo `{"query": ..., "variables": ...}` por ítem, cada mutación lleva su plantilla
+  completa). Aquí no se envía nada ni necesita tu token: te las llevas y las repites tú
+  mismo contra AniList cuando quieras — un «replay» honesto que no necesita OAuth.
+
 ## v2.14.0 — Sagas con temporadas y episodios a la vista
 
 - **Al buscar** (por ejemplo «attack on titans», aunque esté mal escrito) sale la saga con
