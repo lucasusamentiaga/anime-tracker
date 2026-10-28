@@ -274,6 +274,21 @@ header{
   border-radius:6px;min-width:0;letter-spacing:.3px;
 }
 
+
+/* v2.14.1: en el móvil (la app se puede abrir desde el móvil en la red de casa)
+   la cabecera y los filtros ocupaban media pantalla y los botones flotantes de
+   redes tapaban la lista. Ahora lo secundario va tras «☰» y «⚙ Filtros». */
+.solo-movil{display:none!important}
+@media (max-width:640px){
+  .solo-movil{display:inline-flex!important}
+  header:not(.menu-abierto) .header-utils,
+  header:not(.menu-abierto) .header-settings,
+  header:not(.menu-abierto) .header-sep{display:none!important}
+  .toolbar{padding:8px 12px}
+  #tb2:not(.filtros-abiertos) > :not(.tb2-fija){display:none!important}
+  #tw-btn,#ig-btn{display:none!important}
+  #to-top{right:16px!important}
+}
 /* ── Toolbar ── */
 .toolbar{
   padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
@@ -1035,6 +1050,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
       <a href="/recomendaciones" class="nav-link" title="Recomendaciones"><span class="nav-icon">💡</span><span id="nav-recos">Recomendados</span></a>
       <a href="/peliculas" class="nav-link nav-link--accent" title="Películas y Series"><span class="nav-icon">🎬</span><span>Pelis</span></a>
     </nav>
+    <button class="btn btn-ghost btn-sm solo-movil" id="btn-menu-movil" type="button" onclick="toggleMenuMovil()" aria-expanded="false" aria-label="Más opciones">☰</button>
     <!-- Separador visual -->
     <span class="header-sep" aria-hidden="true"></span>
     <!-- Acciones rápidas — botones funcionales -->
@@ -1101,8 +1117,8 @@ fetch('/api/version').then(r => r.json()).then(d => {
   <button class="btn btn-ghost" id="btn-preview" onclick="previsualizarAnime()">👁 <span id="txt-preview">Previsualizar</span></button>
   <button class="btn btn-primary" id="btn-add" onclick="agregarDirecto()"><span id="txt-add">+ Añadir</span></button>
 </div>
-<div class="toolbar" style="border-top:none;padding-top:6px">
-  <div style="position:relative;flex:1;min-width:150px">
+<div class="toolbar" id="tb2" style="border-top:none;padding-top:6px">
+  <div class="tb2-fija" style="position:relative;flex:1;min-width:150px">
   <input id="f-nombre" type="text"
          placeholder="Buscar… (operadores: genre:action eps:>20 year:2024 fav:1)"
          title="Operadores: genre:|genero:, source:|fuente:, status:|estado:, list:|lista:, eps:OP N, score:OP N, year:|año:, fav:1/0. Ej: genre:action eps:>20"
@@ -1114,6 +1130,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
        max-height:min(70vh,560px);overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4);margin-top:4px">
   </div>
   </div>
+  <button class="btn btn-ghost btn-sm tb2-fija solo-movil" id="btn-filtros-movil" type="button" onclick="toggleFiltrosMovil()" aria-expanded="false">⚙ Filtros</button>
   <button class="btn btn-ghost btn-sm" id="btn-compact" onclick="toggleCompactAll()" title="Compactar / expandir franquicias" style="white-space:nowrap">📦 <span id="txt-compact">Expandir</span></button>
   <select id="f-tipo" onchange="render()" style="max-width:100px">
     <option value="">Todo</option>
@@ -1158,7 +1175,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
          min-width:220px;max-height:300px;overflow-y:auto;z-index:30;
          box-shadow:0 8px 24px rgba(0,0,0,.4);padding:6px"></div>
   </div>
-  <span class="count-label" id="count-label"></span>
+  <span class="count-label tb2-fija" id="count-label"></span>
 </div>
 
 <main>
@@ -1677,6 +1694,21 @@ function _debouncedRender() {
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
+
+// v2.14.1: menú y filtros plegables en pantallas estrechas (móvil).
+function toggleMenuMovil() {
+  const h = document.querySelector('header');
+  const abierto = h.classList.toggle('menu-abierto');
+  const b = document.getElementById('btn-menu-movil');
+  if (b) b.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+function toggleFiltrosMovil() {
+  const t = document.getElementById('tb2');
+  const abierto = t.classList.toggle('filtros-abiertos');
+  const b = document.getElementById('btn-filtros-movil');
+  if (b) b.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+
 // v2.14.1: si el diccionario de idioma llega después de pintar la lista,
 // se vuelve a pintar para que no queden textos en español mezclados.
 window.addEventListener('miraru-i18n-listo', () => { try { if (typeof ANIMES !== 'undefined' && ANIMES.length) render(); } catch (_) {} });

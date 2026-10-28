@@ -14,6 +14,9 @@
 - **«¿Qué veo esta noche?»**: los ánimos salen con tilde («Acción», «Épico», «Fantasía»)
   y traducidos.
 - **Películas**: el recuadro para conectar TMDB tiene versión en inglés.
+- **En el móvil** (abriendo Miraru desde el móvil en la red de casa) la cabecera y los
+  filtros ya no ocupan media pantalla: lo secundario va tras «☰» y «⚙ Filtros», y los
+  botones flotantes de redes ya no tapan la lista.
 
 ## v2.14.0 — Sagas con temporadas y episodios a la vista
 

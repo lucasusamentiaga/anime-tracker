@@ -240,6 +240,8 @@ UI: dict[str, tuple[str, str, str]] = {
     "Carmesí": ("Crimson", "Cramoisi", "Karmesin"),
     "Pizarra": ("Slate", "Ardoise", "Schiefer"),
     "Compactar": ("Collapse", "Réduire", "Einklappen"),
+    "Filtros": ("Filters", "Filtres", "Filter"),
+    "Más opciones": ("More options", "Plus d'options", "Weitere Optionen"),
     "Acción": ("Action", "Action", "Action"),
     "Comedia": ("Comedy", "Comédie", "Komödie"),
     "Relax": ("Chill", "Détente", "Entspannt"),
