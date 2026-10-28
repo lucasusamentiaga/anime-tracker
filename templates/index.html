@@ -288,6 +288,13 @@ header{
   #tb2:not(.filtros-abiertos) > :not(.tb2-fija){display:none!important}
   #tw-btn,#ig-btn{display:none!important}
   #to-top{right:16px!important}
+  /* La cabecera fija ocupaba un tercio de la pantalla al bajar y tapaba lo de
+     debajo (un toque en «+1» abría «Pelis»). En el móvil se desplaza con la página. */
+  header{position:relative!important}
+  /* Los avisos con botón (deshacer…) iban a media pantalla y tapaban la lista. */
+  #undo-snack,#action-snack{left:12px!important;right:12px!important;transform:none!important;
+    width:auto!important;max-width:none!important;bottom:12px!important}
+  #action-snack{bottom:72px!important}
 }
 /* ── Toolbar ── */
 .toolbar{
@@ -1361,7 +1368,7 @@ function toastUndo(msg, undoFn, secs = 6) {
     + 'background:var(--card);border:1px solid var(--accent);border-radius:10px;'
     + 'padding:10px 14px;display:flex;align-items:center;gap:14px;z-index:60;'
     + 'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px;'
-    + 'max-width:90vw';
+    + 'width:max-content;max-width:90vw';
   const txt = document.createElement('span');
   txt.textContent = msg;
   const btn = document.createElement('button');
@@ -1388,7 +1395,7 @@ function toastAction(msg, label, fn, secs = 8) {
   snack.style.cssText = 'position:fixed;bottom:132px;left:50%;transform:translateX(-50%);'
     + 'background:var(--card);border:1px solid var(--success,#22c55e);border-radius:10px;'
     + 'padding:10px 14px;display:flex;align-items:center;gap:14px;z-index:61;'
-    + 'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px;max-width:90vw';
+    + 'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px;width:max-content;max-width:90vw';
   const txt = document.createElement('span');
   txt.textContent = msg;
   const btn = document.createElement('button');
@@ -3527,7 +3534,8 @@ function mostrarUndoSnackbar(nombre, backup) {
   snack.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
     'background:var(--card);border:1px solid var(--accent);border-radius:10px;' +
     'padding:10px 14px;display:flex;align-items:center;gap:14px;z-index:60;' +
-    'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px';
+    'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px;' +
+    'width:max-content;max-width:90vw';
   const txt = document.createElement('span');
   txt.textContent = '🗑 ' + nombre + ' eliminado';
   const btn = document.createElement('button');

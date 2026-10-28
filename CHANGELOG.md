@@ -16,7 +16,10 @@
 - **Películas**: el recuadro para conectar TMDB tiene versión en inglés.
 - **En el móvil** (abriendo Miraru desde el móvil en la red de casa) la cabecera y los
   filtros ya no ocupan media pantalla: lo secundario va tras «☰» y «⚙ Filtros», y los
-  botones flotantes de redes ya no tapan la lista.
+  botones flotantes de redes ya no tapan la lista. La cabecera ya no se queda fija tapando
+  un tercio de la pantalla (un toque en «+1» podía abrir «Pelis»), el aviso de «Deshacer»
+  ocupa el ancho de la pantalla en vez de ir apretado en el centro, y el mapa de actividad
+  de Estadísticas empieza por lo más reciente.
 
 ## v2.14.0 — Sagas con temporadas y episodios a la vista
 

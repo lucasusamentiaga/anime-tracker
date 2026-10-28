@@ -30,6 +30,9 @@ header h1{
 .back-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
 main{padding:20px;max-width:900px;margin:0 auto}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+/* v2.14.1: dos columnas que en el móvil se salían de la pantalla. */
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:640px){.grid-2{grid-template-columns:minmax(0,1fr)}}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center}
 .kpi .value{font-size:28px;font-weight:700;color:var(--light)}
 .kpi .label{font-size:12px;color:var(--muted);margin-top:4px}
@@ -220,7 +223,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
     </p>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+  <div class="grid-2" style="margin-bottom:16px">
     <div class="section">
       <h2 id="lbl-by-state">Por estado</h2>
       <div id="chart-state" class="donut-wrap"></div>
@@ -285,7 +288,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
     <div class="anime-list" id="list-completion"></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="grid-2">
     <div class="section">
       <h2 id="lbl-top">Mejor valorados</h2>
       <div class="anime-list" id="list-top"></div>
@@ -716,6 +719,9 @@ async function loadHeatmap() {
 
     svg += '</svg>';
     wrap.innerHTML = svg;
+    // v2.14.1: en pantallas estrechas el mapa no cabe; se muestra lo más
+    // reciente (antes se veían solo los meses más antiguos).
+    wrap.scrollLeft = wrap.scrollWidth;
     empty.style.display = 'none';
   } catch(e) {
     console.warn('heatmap:', e);
