@@ -1638,8 +1638,12 @@ def _actualizar_relaciones(animes: list[dict], anilist_mod=None, sleep=None) -> 
 async def listar_franquicias():
     global _franquicias_cache, _franquicias_version
     import franquicias as fq_mod
+    # Versión = generación de la caché de la biblioteca (sube con cada cambio).
+    # Antes era id(lista): Python reutiliza los id de listas liberadas, así que
+    # una lista nueva podía "parecer" la vieja y las cajas no se actualizaban.
+    # Se lee ANTES de listar: si algo cambia en medio, la siguiente vez recalcula.
+    v = (db._cache_gen, _relaciones_version)
     animes = db.listar_animes_slim()
-    v = (id(animes), _relaciones_version)  # cambia al invalidarse la caché de slim
     if _franquicias_cache is None or v != _franquicias_version:
         _franquicias_cache = fq_mod.agrupar_franquicias(animes, _relaciones_guardadas())
         _franquicias_version = v

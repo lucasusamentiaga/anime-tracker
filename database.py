@@ -18,12 +18,19 @@ from typing import Optional
 # wrapped...). Cachear la lista completa e invalidar en cada mutación evita releer
 # toda la tabla repetidamente. Thread-safe porque los endpoints corren en el
 # executor y el middleware en el event loop.
+#
+# Generación: cada invalidación la sube. Una lectura que empezó antes de una
+# escritura NO guarda su resultado (ya viejo) en la caché; si no, un +1 hecho
+# justo mientras otro hilo leía la tabla podía "desaparecer" hasta la siguiente
+# mutación.
 _lista_cache: Optional[list[dict]] = None
 _lista_cache_lock = threading.Lock()
+_cache_gen = 0
 
 def _invalidar_cache() -> None:
-    global _lista_cache, _slim_cache
+    global _lista_cache, _slim_cache, _cache_gen
     with _lista_cache_lock:
+        _cache_gen += 1
         _lista_cache = None
         _slim_cache = None
 
@@ -302,13 +309,15 @@ def listar_animes() -> list[dict]:
     with _lista_cache_lock:
         if _lista_cache is not None:
             return _lista_cache
+        gen = _cache_gen
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT * FROM animes ORDER BY creado_en DESC"
         ).fetchall()
         result = [dict(r) for r in rows]
     with _lista_cache_lock:
-        _lista_cache = result
+        if gen == _cache_gen:
+            _lista_cache = result
     return result
 
 
@@ -328,13 +337,15 @@ def listar_animes_slim() -> list[dict]:
     with _lista_cache_lock:
         if _slim_cache is not None:
             return _slim_cache
+        gen = _cache_gen
     with get_conn() as conn:
         rows = conn.execute(
             f"SELECT {_SLIM_COLS} FROM animes ORDER BY creado_en DESC"
         ).fetchall()
         result = [dict(r) for r in rows]
     with _lista_cache_lock:
-        _slim_cache = result
+        if gen == _cache_gen:
+            _slim_cache = result
     return result
 
 
@@ -821,11 +832,13 @@ def borrar_nota_episodio(nombre: str, episodio: int) -> bool:
 # Caché en memoria de listar_media() con invalidación en cada mutación.
 _media_cache: Optional[list[dict]] = None
 _media_cache_lock = threading.Lock()
+_media_gen = 0      # igual que _cache_gen: no cachear lecturas que cruzan una escritura
 
 
 def _invalidar_media_cache() -> None:
-    global _media_cache
+    global _media_cache, _media_gen
     with _media_cache_lock:
+        _media_gen += 1
         _media_cache = None
 
 
@@ -834,11 +847,13 @@ def listar_media() -> list[dict]:
     with _media_cache_lock:
         if _media_cache is not None:
             return _media_cache
+        gen = _media_gen
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM media ORDER BY creado_en DESC").fetchall()
         result = [dict(r) for r in rows]
     with _media_cache_lock:
-        _media_cache = result
+        if gen == _media_gen:
+            _media_cache = result
     return result
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Sin publicar
+
+- **Un +1 ya no puede "desaparecer"**: si marcabas un episodio justo mientras otra parte
+  de la app leía la biblioteca, la lista podía quedarse con el número anterior hasta el
+  siguiente cambio. Lo mismo en Pelis y series y en las cajas de sagas.
+- Guía para colaborar (`CONTRIBUTING.md`), `.editorconfig` y plantilla de pull request.
+
 ## v2.14.1 — Sin contenido para adultos y arreglos
 
 - **Las búsquedas ya no muestran contenido para adultos.** Ni al buscar, ni en las sagas,

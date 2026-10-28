@@ -152,6 +152,8 @@ Para publicar una versión basta con subir un tag (`git tag -a vX.Y.Z -m vX.Y.Z 
 GitHub Actions compila `Miraru-Setup.exe` y `Miraru-Portable.exe` y los adjunta a la Release
 (`.github/workflows/release.yml`). En local: `python build.py` (instalador) o
 `python build.py --portable`. Para publicar en Scoop o winget, ver [`packaging/README.md`](packaging/README.md).
+
+¿Quieres colaborar? Lee [`CONTRIBUTING.md`](CONTRIBUTING.md).
 </details>
 
 ## 🔏 Política de firma de código / Code signing policy
