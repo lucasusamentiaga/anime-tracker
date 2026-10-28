@@ -1677,6 +1677,10 @@ function _debouncedRender() {
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
+// v2.14.1: si el diccionario de idioma llega después de pintar la lista,
+// se vuelve a pintar para que no queden textos en español mezclados.
+window.addEventListener('miraru-i18n-listo', () => { try { if (typeof ANIMES !== 'undefined' && ANIMES.length) render(); } catch (_) {} });
+
 function render() {
   const rawQ   = document.getElementById('f-nombre').value;
   const parsed = _parseSearch(rawQ);
@@ -1973,7 +1977,14 @@ function render() {
       const sig = document.createElement('span');
       sig.className = 'fq-sigue';
       const ep = (siguiente.episodios_vistos || 0) + 1;
-      sig.textContent = '▶ ' + _tr('Sigue con') + ' ' + siguiente.nombre + (esPeli(siguiente) ? '' : ' · ep ' + ep);
+      // Texto y título en nodos separados: el título no se traduce (data-no-i18n)
+      // y así el traductor de la página puede con «Sigue con» aunque llegue tarde.
+      sig.appendChild(document.createTextNode('▶ ' + _tr('Sigue con') + ' '));
+      const sigNom = document.createElement('span');
+      sigNom.setAttribute('data-no-i18n', '');
+      sigNom.textContent = siguiente.nombre;
+      sig.appendChild(sigNom);
+      if (!esPeli(siguiente)) sig.appendChild(document.createTextNode(' · ep ' + ep));
       hMeta.appendChild(sig);
     }
     hInfo.appendChild(hMeta);
@@ -3562,7 +3573,11 @@ async function abrirQueVeo() {
         (d.animos_disponibles || []).forEach(a => {
           const o = document.createElement('option');
           o.value = a;
-          o.textContent = a.charAt(0).toUpperCase() + a.slice(1);
+          // v2.14.1: nombres con tilde y traducibles (antes «Accion», «Epico»…).
+          const _ANIMOS = {accion: 'Acción', comedia: 'Comedia', romance: 'Romance', terror: 'Terror',
+            drama: 'Drama', chill: 'Relax', epico: 'Épico', llorar: 'Para llorar', misterio: 'Misterio',
+            fantasia: 'Fantasía'};
+          o.textContent = _tr(_ANIMOS[a] || (a.charAt(0).toUpperCase() + a.slice(1)));
           sel.appendChild(o);
         });
       }

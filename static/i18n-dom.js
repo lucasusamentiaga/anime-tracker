@@ -100,6 +100,10 @@
     window.confirm = m => _confirm(typeof m === 'string' ? (traducir(m) || m) : m);
 
     recorrer(document.body); titulo();
+    // v2.14.1: lo pintado con JS antes de que llegara el diccionario (la lista
+    // se carga en paralelo) se queda en español si mezcla texto y nombres.
+    // Avisamos para que la página lo vuelva a pintar ya traducido.
+    window.dispatchEvent(new Event('miraru-i18n-listo'));
     new MutationObserver(muts => {
       for (const m of muts) {
         if (m.type === 'childList') m.addedNodes.forEach(recorrer);

@@ -4,7 +4,7 @@ import re
 import unicodedata
 from typing import Optional
 
-from . import net
+from . import adulto, net
 from .base import AnimeData, BaseScraper
 
 # Session reutilizable para connection pooling (clave en importación masiva)
@@ -40,8 +40,10 @@ def candidatos_busqueda(nombre: str) -> list[str]:
 
 QUERY = """
 query ($search: String, $type: MediaType!) {
-  Media(search: $search, type: $type) {
+  Media(search: $search, type: $type, isAdult: false) {
     id
+    isAdult
+    popularity
     title { romaji english native }
     episodes
     chapters
@@ -58,11 +60,82 @@ query ($search: String, $type: MediaType!) {
 
 # Lookup por lotes de IDs (máx. 50 por página en AniList). Una sola petición
 # sustituye a N búsquedas por nombre y evita coincidencias erróneas de título.
+# v2.14.1: AniList da prioridad a un sinónimo exacto aunque sea de una serie
+# casi desconocida: "Demon Slayer" devolvía "Onigiri" (un corto de 2016 que
+# tiene ese sinónimo) en vez de Kimetsu no Yaiba. Cuando el resultado solo
+# casa por un sinónimo, se miran los primeros resultados de la búsqueda y se
+# prefiere uno mucho más popular cuyo título sí contiene lo buscado.
+QUERY_CANDIDATOS = """
+query ($search: String, $type: MediaType!) {
+  Page(perPage: 8) {
+    media(search: $search, type: $type, sort: SEARCH_MATCH, isAdult: false) {
+      id
+      isAdult
+      popularity
+      title { romaji english native }
+      episodes
+      chapters
+      volumes
+      format
+      coverImage { large }
+      genres
+      description(asHtml: false)
+      status
+      nextAiringEpisode { episode }
+    }
+  }
+}
+"""
+
+
+def _norm(t: str) -> str:
+    t = unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "", t.lower())
+
+
+def _titulo_casa(busqueda: str, media: dict) -> bool:
+    """True si lo buscado aparece en el título (inglés, romaji o nativo)."""
+    q = _norm(busqueda)
+    if not q:
+        return True
+    for t in (media.get("title") or {}).values():
+        n = _norm(t or "")
+        if n and (q in n or n in q):
+            return True
+    return False
+
+
+def _mejor_por_titulo(busqueda: str, primero: dict, media_type: str) -> Optional[dict]:
+    """Entre los 8 primeros resultados, el más popular cuyo título contiene
+    lo buscado, si es al menos 5 veces más popular que `primero`. Nunca lanza."""
+    try:
+        resp = _session.post(
+            ANILIST_API,
+            json={"query": QUERY_CANDIDATOS, "variables": {"search": busqueda, "type": media_type}},
+            headers={"User-Agent": "AnimeTracker/2.14", "Accept": "application/json",
+                     "Accept-Encoding": "identity"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        medias = ((((resp.json() or {}).get("data") or {}).get("Page") or {}).get("media") or [])
+    except Exception:
+        return None
+    base = primero.get("popularity") or 0
+    casan = [m for m in medias if m and _titulo_casa(busqueda, m) and not m.get("isAdult")]
+    if not casan:
+        return None
+    mejor = max(casan, key=lambda m: m.get("popularity") or 0)
+    if (mejor.get("popularity") or 0) >= max(1, base) * 5:
+        return mejor
+    return None
+
+
 QUERY_IDS = """
 query ($ids: [Int], $type: MediaType!) {
   Page(perPage: 50) {
     media(id_in: $ids, type: $type) {
       id
+      isAdult
       title { romaji english native }
       episodes
       chapters
@@ -82,6 +155,7 @@ QUERY_MAL = """
 query ($mal: Int, $type: MediaType!) {
   Media(idMal: $mal, type: $type) {
     id
+    isAdult
     title { romaji english native }
     episodes
     chapters
@@ -132,7 +206,7 @@ def _parse_media(media: dict, nombre: str, fuente: str,
             next_ep = nae.get("episode") or 0
             capitulos = f"{next_ep - 1}+" if next_ep > 1 else "?"
 
-    return AnimeData(
+    d = AnimeData(
         nombre=title,
         capitulos=capitulos,
         imagen=media["coverImage"].get("large", ""),
@@ -144,6 +218,10 @@ def _parse_media(media: dict, nombre: str, fuente: str,
         tipo="manga" if is_manga else "anime",
         volumenes_totales=media.get("volumes") or 0,
     )
+    if media.get("isAdult"):
+        # v2.14.1: lo marca para que el filtro de scrapers/adulto.py lo descarte.
+        d.__dict__["adulto"] = True
+    return d
 
 
 class AniListScraper(BaseScraper):
@@ -177,6 +255,8 @@ class AniListScraper(BaseScraper):
             if not media:
                 return None
 
+            if not _titulo_casa(nombre, media):
+                media = _mejor_por_titulo(nombre, media, media_type) or media
             return _parse_media(media, nombre, self.nombre_fuente, media_type)
         except Exception:
             return None
@@ -247,6 +327,8 @@ _MAX_FRANQUICIA = 60
 
 _CAMPOS_FRANQUICIA = """
       id
+      isAdult
+      popularity
       title { romaji english native }
       episodes
       format
@@ -262,7 +344,7 @@ _CAMPOS_FRANQUICIA = """
 QUERY_FRANQUICIA_BUSCAR = """
 query ($search: String) {
   Page(perPage: 30) {
-    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {CAMPOS}
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH, isAdult: false) {CAMPOS}
   }
 }
 """.replace("{CAMPOS}", "{" + _CAMPOS_FRANQUICIA + "}")
@@ -326,7 +408,16 @@ def franquicia(nombre: str, post=_post, max_saltos: int = 5) -> list[dict]:
     if not medias:
         return []
     por_id = {int(m["id"]): m for m in medias}
-    raiz = int(medias[0]["id"])
+    # v2.14.1: como en la búsqueda normal, un sinónimo exacto de una serie
+    # minoritaria no debe ganar a la saga que la gente busca ("Demon Slayer").
+    primero = medias[0]
+    if not _titulo_casa(nombre, primero):
+        casan = [m for m in medias if _titulo_casa(nombre, m)]
+        if casan:
+            mejor = max(casan, key=lambda m: m.get("popularity") or 0)
+            if (mejor.get("popularity") or 0) >= max(1, primero.get("popularity") or 0) * 5:
+                primero = mejor
+    raiz = int(primero["id"])
 
     visto = {raiz}
     frontera = [raiz]
@@ -363,6 +454,8 @@ def franquicia(nombre: str, post=_post, max_saltos: int = 5) -> list[dict]:
     for i in visto:
         m = por_id.get(i)
         if not m or (m.get("format") or "") not in FORMATOS_SAGA:
+            continue
+        if adulto.es_adulto(m):
             continue
         d = _parse_media(m, "", "anilist")
         if not d:

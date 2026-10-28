@@ -590,7 +590,38 @@ async function borrarKey(){
   }catch(e){ toast('Error'); }
 }
 
+// v2.14.1: el recuadro de conexión venía solo en español aunque la app
+// estuviera en otro idioma (frases partidas por enlaces y negritas que el
+// traductor de la página no puede unir). Ahora tiene versión en inglés, que
+// se usa para cualquier idioma que no sea el español.
+let _LANG_UI = 'es';
+fetch('/api/lang', {cache:'no-store'}).then(r => r.json()).then(d => {
+  if (!d || !d.lang || d.lang === _LANG_UI) return;
+  _LANG_UI = d.lang;
+  const box = document.querySelector('.keybox');
+  if (box) box.outerHTML = renderKeyBox();
+}).catch(() => {});
+const _esES = () => (_LANG_UI || 'es').startsWith('es');
+const _L = (es, en) => _esES() ? es : en;
+
 function renderKeyBox(){
+  if (!_esES()) return `<div class="keybox" data-no-i18n>
+    <h3>🔑 Connect The Movie Database (TMDB)</h3>
+    <p>This section uses <b>TMDB</b> (free for personal use) to search movies and series. You need your own API key — it takes 2 minutes and is only stored on your computer:</p>
+    <ol>
+      <li>Create a free account at <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org/signup</a> and verify your email.</li>
+      <li>Open <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org/settings/api</a> (Settings → API).</li>
+      <li>Click <b>"Request an API Key"</b> and choose <b>"Developer"</b>. Accept the terms and fill in the form (basic details are fine: app name "Miraru", personal use, any URL such as <code>http://localhost</code>).</li>
+      <li>You'll see two values. Copy the one below, <b>"API Key"</b> — the <b>short</b> one (32 characters, like <code>20f6...8644</code>).</li>
+    </ol>
+    <div class="warn-box">⚠️ <b>Important:</b> copy the <b>"API Key"</b> (the short one), <u>not</u> the <b>"API Read Access Token"</b> (the long one starting with <code>eyJ...</code>). This app uses the v3 key.</div>
+    <div class="key-row">
+      <input type="text" id="key-input" placeholder="Paste your API Key (v3) here" onkeydown="if(event.key==='Enter')guardarKey()">
+      <button class="btn btn-primary" id="key-save-btn" onclick="guardarKey()">Connect</button>
+    </div>
+    <div id="key-status" style="margin-top:10px;font-size:12.5px;min-height:18px"></div>
+    <p style="margin-top:6px;font-size:11px">The key is only stored in your local database. It is never shared and never leaves your computer.</p>
+  </div>`;
   return `<div class="keybox">
     <h3>🔑 Conecta The Movie Database (TMDB)</h3>
     <p>Esta sección usa <b>TMDB</b> (gratis para uso personal) para buscar películas y series. Necesitas tu propia API key — se saca en 2 minutos y se guarda solo en tu equipo:</p>
@@ -614,14 +645,14 @@ async function guardarKey(){
   const key = document.getElementById('key-input').value.trim();
   const status = document.getElementById('key-status');
   const btn = document.getElementById('key-save-btn');
-  if (!key){ status.innerHTML = '<span style="color:var(--warn)">Pega tu Clave de la API primero.</span>'; return; }
+  if (!key){ status.innerHTML = '<span style="color:var(--warn)">' + _L('Pega tu Clave de la API primero.', 'Paste your API Key first.') + '</span>'; return; }
   // Aviso si pegan el token largo por error
   if (key.startsWith('eyJ') || key.length > 60){
-    status.innerHTML = '<span style="color:var(--danger)">Eso parece el <b>Token de acceso de lectura</b> (el largo). Necesito la <b>"Clave de la API"</b> corta (~32 caracteres).</span>';
+    status.innerHTML = '<span style="color:var(--danger)">' + _L('Eso parece el <b>Token de acceso de lectura</b> (el largo). Necesito la <b>"Clave de la API"</b> corta (~32 caracteres).', 'That looks like the <b>API Read Access Token</b> (the long one). I need the short <b>"API Key"</b> (~32 characters).') + '</span>';
     return;
   }
   btn.disabled = true;
-  status.innerHTML = '<span class="spin" style="width:13px;height:13px;border-width:2px"></span> <span style="color:var(--muted)">Validando con TMDB...</span>';
+  status.innerHTML = '<span class="spin" style="width:13px;height:13px;border-width:2px"></span> <span style="color:var(--muted)">' + _L('Validando con TMDB...', 'Checking with TMDB...') + '</span>';
   try{
     const r = await fetch('/api/media/tmdb-key', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -630,15 +661,15 @@ async function guardarKey(){
     const d = await r.json();
     if (d.valid){
       _hasKey = true;
-      status.innerHTML = '<span style="color:var(--success)">✓ Clave válida y conectada. Cargando...</span>';
+      status.innerHTML = '<span style="color:var(--success)">' + _L('✓ Clave válida y conectada. Cargando...', '✓ Key accepted and connected. Loading...') + '</span>';
       toast('✓ TMDB conectado');
       setTimeout(()=>cargar(), 500);
     } else {
-      status.innerHTML = '<span style="color:var(--danger)">✗ TMDB rechazó esa clave. Revisa que copiaste la <b>"Clave de la API"</b> completa (sin espacios).</span>';
+      status.innerHTML = '<span style="color:var(--danger)">' + _L('✗ TMDB rechazó esa clave. Revisa que copiaste la <b>"Clave de la API"</b> completa (sin espacios).', '✗ TMDB rejected that key. Check that you copied the whole <b>"API Key"</b> (no spaces).') + '</span>';
       btn.disabled = false;
     }
   }catch(e){
-    status.innerHTML = '<span style="color:var(--danger)">Error de conexión. ¿Tienes internet?</span>';
+    status.innerHTML = '<span style="color:var(--danger)">' + _L('Error de conexión. ¿Tienes internet?', 'Connection error. Are you online?') + '</span>';
     btn.disabled = false;
   }
 }

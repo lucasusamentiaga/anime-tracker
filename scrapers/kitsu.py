@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import net
+from . import adulto, net
 from .base import AnimeData, BaseScraper
 
 # Session reutilizable: pooling + reintentos con backoff
@@ -25,7 +25,7 @@ STATUS_MAP = {
 def _a_animedata(item: dict, nombre: str = "") -> Optional[AnimeData]:
     """Un recurso `anime` de Kitsu (JSON:API) → AnimeData."""
     a = (item or {}).get("attributes") or {}
-    if not a:
+    if not a or adulto.es_adulto(item):
         return None
     titulo = (
         a.get("canonicalTitle")
@@ -63,7 +63,7 @@ class KitsuScraper(BaseScraper):
             resp = _session.get(
                 f"{BASE}/anime",
                 params={"filter[slug]": slug, "fields[anime]": (
-                    "canonicalTitle,titles,synopsis,episodeCount,posterImage,status,subtype")},
+                    "canonicalTitle,titles,synopsis,episodeCount,posterImage,status,subtype,nsfw,ageRating")},
                 headers=HEADERS, timeout=15)
             resp.raise_for_status()
             items = resp.json().get("data", [])
@@ -80,14 +80,15 @@ class KitsuScraper(BaseScraper):
                     "page[limit]": 5,
                     "fields[anime]": (
                         "canonicalTitle,titles,synopsis,"
-                        "episodeCount,posterImage,status,subtype"
+                        "episodeCount,posterImage,status,subtype,nsfw,ageRating"
                     ),
                 },
                 headers=HEADERS,
                 timeout=15,
             )
             resp.raise_for_status()
-            items = resp.json().get("data", [])
+            # v2.14.1: nunca contenido para adultos (nsfw / R18).
+            items = adulto.filtrar(resp.json().get("data", []))
             if not items:
                 return None
 
@@ -128,7 +129,7 @@ class KitsuScraper(BaseScraper):
 ROLES_SAGA = {"sequel", "prequel", "side_story", "parent_story", "full_story"}
 _FORMATOS = {"TV": "TV", "ONA": "ONA", "OVA": "OVA", "MOVIE": "MOVIE", "SPECIAL": "SPECIAL"}
 _CAMPOS = ("canonicalTitle,titles,subtype,episodeCount,startDate,slug,posterImage,"
-           "status,mediaRelationships")
+           "status,nsfw,ageRating,mediaRelationships")
 
 
 def _get(params: dict) -> dict:
@@ -194,7 +195,7 @@ def franquicia(nombre: str, get=_get, max_saltos: int = 8, maximo: int = 60) -> 
     out = []
     for i in visto:
         item = datos.get(i)
-        if not item:
+        if not item or adulto.es_adulto(item):
             continue
         a = item.get("attributes") or {}
         fmt = _FORMATOS.get((a.get("subtype") or "").upper())

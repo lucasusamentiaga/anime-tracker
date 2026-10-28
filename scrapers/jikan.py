@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from . import net
+from . import adulto, net
 from .base import AnimeData, BaseScraper
 
 # Session reutilizable: pooling + reintentos con backoff (Jikan devuelve 429 a menudo)
@@ -36,7 +36,7 @@ class JikanV4Scraper(BaseScraper):
                 timeout=15,
             )
             resp.raise_for_status()
-            items = resp.json().get("data", [])
+            items = adulto.filtrar(resp.json().get("data", []))
             if not items:
                 return None
 
@@ -97,7 +97,7 @@ class JikanV4Scraper(BaseScraper):
                                 params={"q": nombre, "limit": 1, "sfw": True},
                                 headers=HEADERS, timeout=15)
             resp.raise_for_status()
-            items = resp.json().get("data") or []
+            items = adulto.filtrar(resp.json().get("data") or [])
             return int(items[0].get("mal_id") or 0) if items else 0
         except Exception:
             return 0

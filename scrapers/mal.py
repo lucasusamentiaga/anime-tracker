@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import net
+from . import adulto, net
 from .base import AnimeData, BaseScraper
 
 # Session reutilizable: pooling + reintentos con backoff
@@ -22,12 +22,13 @@ class MALScraper(BaseScraper):
         try:
             resp = _session.get(
                 f"{JIKAN_BASE}/anime",
-                params={"q": nombre, "limit": 1},
+                params={"q": nombre, "limit": 3, "sfw": True},
                 headers={"User-Agent": "AnimeTracker/2.6.2", "Accept-Encoding": "identity"},
                 timeout=10,
             )
             resp.raise_for_status()
-            results = resp.json().get("data", [])
+            # v2.14.1: sfw + filtro propio (rating Rx, géneros explícitos).
+            results = adulto.filtrar(resp.json().get("data", []))
             if not results:
                 return None
 

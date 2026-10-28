@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 
+from scrapers import adulto
 from scrapers.net import make_session
 
 KITSU = "https://kitsu.io/api/edge"
@@ -136,7 +137,7 @@ def novedades(plataforma: str = "all", timeout: int = 20) -> list[dict]:
     enlaces, categorias = _indexar_incluidos(payload)
     resultados = []
 
-    for item in payload.get("data") or []:
+    for item in adulto.filtrar(payload.get("data") or []):
         attrs = item.get("attributes") or {}
         plats = []
         for lid in _relacionados(item, "streamingLinks"):
@@ -190,7 +191,7 @@ def recomendaciones(generos: list, existentes: set, timeout: int = 20) -> list[d
     _, categorias = _indexar_incluidos(payload)
 
     recos = []
-    for item in payload.get("data") or []:
+    for item in adulto.filtrar(payload.get("data") or []):
         attrs = item.get("attributes") or {}
         titulo = attrs.get("canonicalTitle") or ""
         if not titulo or titulo.lower().strip() in existentes:
@@ -228,7 +229,7 @@ def ficha_por_titulo(titulo: str, timeout: int = 15) -> dict:
         "filter[text]": titulo,
         "page[limit]": 1,
     }, timeout)
-    datos = payload.get("data") or []
+    datos = adulto.filtrar(payload.get("data") or [])
     if not datos:
         return {}
     attrs = datos[0].get("attributes") or {}

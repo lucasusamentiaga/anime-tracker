@@ -79,7 +79,7 @@ import metadatos
 import sheets_sync
 import trabajos
 from i18n import TRANSLATIONS, get_lang, set_lang
-from scrapers import SCRAPERS, AnimeData
+from scrapers import SCRAPERS, AnimeData, adulto
 from scrapers.anilist import ANILIST_MIN_INTERVAL, candidatos_busqueda
 
 # ── Rutas ─────────────────────────────────────────────────────────────────────
@@ -1195,7 +1195,7 @@ def _anilist_con_error(query: str, variables: dict, timeout: int = 15) -> tuple:
 def _find_anime_image(nombre: str) -> str:
     """Busca imagen de un anime en AniList como fallback cuando el scraper no devuelve una."""
     query = """query($search: String) {
-      Media(search: $search, type: ANIME) {
+      Media(search: $search, type: ANIME, isAdult: false) {
         coverImage { large medium }
         bannerImage
       }
@@ -1546,7 +1546,9 @@ def _generar_razon(anime: dict, animo: str, mood_genres: set, genre_weight: Coun
     gs = [g.strip() for g in (anime.get("genero") or "").split(",") if g.strip()]
     matched = [g for g in gs if g.lower() in mood_genres]
     if matched and animo:
-        razones.append(f"encaja con tu mood «{animo}» ({', '.join(matched[:2])})")
+        nombre_animo = {"accion": "acción", "epico": "épico", "fantasia": "fantasía",
+                        "llorar": "para llorar", "chill": "relax"}.get(animo, animo)
+        razones.append(f"encaja con tu mood «{nombre_animo}» ({', '.join(matched[:2])})")
     if anime.get("estado_usuario") in ("viendo", "watching"):
         vistos = int(anime.get("episodios_vistos") or 0)
         razones.append(f"ya llevas {vistos} eps")
@@ -1815,7 +1817,7 @@ def _buscar_por_mal_id(mal_id: int) -> Optional[AnimeData]:
         if not resp.ok:
             return None
         a = resp.json().get("data") or {}
-        if not a:
+        if not a or adulto.es_adulto(a):
             return None
         eps = a.get("episodes") or 0
         atype = (a.get("type") or "").upper()
@@ -2844,7 +2846,7 @@ def _fetch_novedades(plataforma: str) -> dict:
     query = """
     query ($page: Int, $perPage: Int) {
       Page(page: $page, perPage: $perPage) {
-        media(status: RELEASING, type: ANIME, sort: POPULARITY_DESC) {
+        media(status: RELEASING, type: ANIME, sort: POPULARITY_DESC, isAdult: false) {
           title { english romaji }
           episodes
           coverImage { large }
@@ -3539,6 +3541,7 @@ def _fetch_extra(nombre: str, anilist_id: int = 0) -> dict:
         externalLinks { site url }
         recommendations(sort: RATING_DESC, perPage: 8) {
           nodes { mediaRecommendation {
+            isAdult genres
             title { romaji english }
             coverImage { medium }
             siteUrl averageScore
@@ -3566,7 +3569,7 @@ def _fetch_extra(nombre: str, anilist_id: int = 0) -> dict:
     similar = []
     for node in ((m.get("recommendations") or {}).get("nodes") or []):
         mr = node.get("mediaRecommendation")
-        if not mr:
+        if not mr or adulto.es_adulto(mr):
             continue
         t = mr.get("title") or {}
         titulo = t.get("english") or t.get("romaji") or ""
@@ -3806,7 +3809,7 @@ def _fetch_recomendaciones(top_genres: list, existentes: set, existentes_ids: se
     try:
         query = """query($genres: [String]) {
           Page(page:1, perPage:30) {
-            media(sort:TRENDING_DESC, type:ANIME, genre_in:$genres,
+            media(sort:TRENDING_DESC, type:ANIME, genre_in:$genres, isAdult:false,
                   status_in:[RELEASING,NOT_YET_RELEASED,FINISHED]) {
               id title { romaji english }
               description(asHtml:false)

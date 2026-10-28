@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.14.1 — Sin contenido para adultos y arreglos
+
+- **Las búsquedas ya no muestran contenido para adultos.** Ni al buscar, ni en las sagas,
+  Novedades, Recomendaciones, «similares» o al pegar un enlace: se descarta lo que cada
+  fuente marca como solo adultos (AniList, Kitsu, Jikan/MyAnimeList). «Ecchi» no cuenta
+  como adulto. Lo pidió la certificación de la Microsoft Store.
+- **«Demon Slayer» ya encuentra Kimetsu no Yaiba** (antes añadía «Onigiri», una serie
+  que tiene ese nombre como sinónimo). Lo mismo al buscar su saga.
+- **Textos que se quedaban en español** con la app en inglés, francés o alemán:
+  «Compactar», «▶ Sigue con …», el panel de Apariencia, las vistas guardadas, el botón
+  +1 y la explicación de «¿Qué veo esta noche?».
+- **«¿Qué veo esta noche?»**: los ánimos salen con tilde («Acción», «Épico», «Fantasía»)
+  y traducidos.
+- **Películas**: el recuadro para conectar TMDB tiene versión en inglés.
+
 ## v2.14.0 — Sagas con temporadas y episodios a la vista
 
 - **Al buscar** (por ejemplo «attack on titans», aunque esté mal escrito) sale la saga con
