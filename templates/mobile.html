@@ -78,6 +78,7 @@ input:focus{outline:2px solid var(--accent);border-color:transparent}
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 <header>
@@ -237,7 +238,7 @@ async function cambiarPin() {
 }
 
 async function desactivar() {
-  if (!confirm('¿Desactivar el acceso móvil? Se cerrarán todas las sesiones activas.')) return;
+  if (!(await miraruConfirmar('¿Desactivar el acceso móvil? Se cerrarán todas las sesiones activas.', {ok: 'Desactivar', peligro: true}))) return;
   try {
     await fetch('/api/mobile/disable', {method: 'POST'});
     await cargarEstado();

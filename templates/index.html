@@ -682,6 +682,7 @@ body.sel-mode .ac .salir{display:none}
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 
@@ -3476,6 +3477,14 @@ async function plusEpisodio(enc) {
   const nombre = decodeURIComponent(enc);
   try {
     const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}/plus1`, {method:'POST'});
+    if (r.status === 409) {
+      // Ya estaba en el último episodio: ofrecer completarlo en vez de no hacer nada.
+      const a = ANIMES.find(x => x.nombre === nombre);
+      if (a && a.estado_usuario !== 'completado')
+        toastAction('🎉 ' + _tr('Ya has visto todos los episodios'), '✓ ' + (T('mark_completed') || 'Completar'), () => markComplete(enc));
+      else toast(_tr('Ya has visto todos los episodios'));
+      return;
+    }
     if (!r.ok) return;
     const d = await r.json();
     // Actualizar en memoria sin recargar todo
@@ -3521,12 +3530,17 @@ async function eliminar(enc) {
   try {
     const r = await fetch(`/api/animes/${encodeURIComponent(nombre)}`, {method: 'DELETE'});
     if (!r.ok) { toast(T('error'), 'err'); return; }
+    // El servidor devuelve la copia completa (notas, sinopsis, historial,
+    // episodios vistos con fecha…); los datos de la lista son solo un resumen.
+    const j = await r.json().catch(() => ({}));
     await cargar();
-    mostrarUndoSnackbar(nombre, animeBackup);
+    mostrarUndoSnackbar(nombre, j.copia || animeBackup);
   } catch(e) { toast(T('error'), 'err'); }
 }
 
+// `backup` puede ser una copia o una lista de copias (borrado múltiple).
 function mostrarUndoSnackbar(nombre, backup) {
+  const copias = Array.isArray(backup) ? backup : [backup];
   const old = document.getElementById('undo-snack');
   if (old) old.remove();
   const snack = document.createElement('div');
@@ -3537,21 +3551,33 @@ function mostrarUndoSnackbar(nombre, backup) {
     'box-shadow:0 6px 20px rgba(0,0,0,.3);animation:slideUp .25s ease;font-size:13px;' +
     'width:max-content;max-width:90vw';
   const txt = document.createElement('span');
-  txt.textContent = '🗑 ' + nombre + ' eliminado';
+  if (copias.length > 1) {
+    txt.textContent = '🗑 ' + _tr(copias.length + ' animes eliminados');
+  } else {
+    // El nombre del anime no se traduce; "eliminado" sí.
+    const n = document.createElement('span');
+    n.setAttribute('data-no-i18n', '');
+    n.textContent = nombre;
+    txt.append('🗑 ', n, ' ', _tr('eliminado'));
+  }
   const btn = document.createElement('button');
-  btn.textContent = 'Deshacer';
+  btn.textContent = _tr('Deshacer');
   btn.style.cssText = 'background:var(--accent);color:#fff;border:none;border-radius:6px;' +
     'padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer';
   btn.onclick = async () => {
     try {
       // Restauración exacta del registro completo (sin re-consultar la fuente):
       // instantánea, fiel y funciona sin conexión.
-      const r = await fetch('/api/animes/restore', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(backup)
-      });
-      if (!r.ok) { toast('Error al restaurar', 'err'); return; }
-      toast('↩ Restaurado');
+      let fallos = 0;
+      for (const c of copias) {
+        const r = await fetch('/api/animes/restore', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(c)
+        }).catch(() => null);
+        if (!r || !r.ok) fallos++;
+      }
+      if (fallos === copias.length) { toast(_tr('Error al restaurar'), 'err'); return; }
+      toast('↩ ' + _tr(fallos ? 'Restaurados ' + (copias.length - fallos) + ' de ' + copias.length : 'Restaurado'));
       await cargar();
     } catch(_) { toast('Error al restaurar', 'err'); }
     snack.remove();
@@ -3887,12 +3913,12 @@ function renderViewsMenu() {
   const add = document.createElement('button');
   add.style.cssText = 'width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px;font-size:12px;font-weight:600;cursor:pointer';
   add.textContent = '+ Guardar vista actual';
-  add.onclick = () => {
-    const name = (prompt('Nombre de la vista:') || '').trim().slice(0, 40);
+  add.onclick = async () => {
+    const name = ((await miraruPedir('Nombre de la vista:', '', {ok: 'Guardar'})) || '').trim().slice(0, 40);
     if (!name) return;
     const views = _loadViews();
     if (views.some(v => v.name === name)) {
-      if (!confirm('Ya existe una vista con ese nombre. ¿Sobrescribir?')) return;
+      if (!(await miraruConfirmar('Ya existe una vista con ese nombre. ¿Sobrescribir?', {ok: 'Sobrescribir'}))) return;
       const i = views.findIndex(v => v.name === name);
       views[i] = {name, filters: _currentFilters()};
     } else {
@@ -4032,7 +4058,7 @@ function _avisoVersionStore(d, forzar) {
 
 async function actualizarMiraru(version) {
   const tr = s => (window.miraruTraducir ? window.miraruTraducir(s) : s);
-  if (!confirm(tr('Se abrirá una ventana que descarga la nueva versión. Miraru se cerrará y volverá a abrirse solo en uno o dos minutos. Tu lista no se toca. ¿Actualizar ahora?'))) return;
+  if (!(await miraruConfirmar('Se abrirá una ventana que descarga la nueva versión. Miraru se cerrará y volverá a abrirse solo en uno o dos minutos. Tu lista no se toca. ¿Actualizar ahora?', {ok: 'Actualizar'}))) return;
   try {
     const r = await fetch('/api/actualizar', {method: 'POST'});
     const d = await r.json().catch(() => ({}));
@@ -4316,7 +4342,7 @@ function _paletteCommands() {
 // (con ~340 animes y el límite de AniList tarda varios minutos): aquí solo se
 // lanza y se consulta el progreso cada 4 s.
 async function refrescarMetadatos() {
-  if (!confirm('Esto vuelve a consultar los datos de cada anime (capítulos, portada, géneros) en AniList. No toca tu progreso (estado, puntuación, episodios vistos). Se hace en segundo plano y puede tardar varios minutos. ¿Continuar?')) return;
+  if (!(await miraruConfirmar('Esto vuelve a consultar los datos de cada anime (capítulos, portada, géneros) en AniList. No toca tu progreso (estado, puntuación, episodios vistos). Se hace en segundo plano y puede tardar varios minutos. ¿Continuar?', {ok: 'Continuar'}))) return;
   try {
     const r = await fetch('/api/animes/refrescar', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -4905,14 +4931,17 @@ async function bulkApply(field, value) {
 async function bulkEliminar() {
   const names = getSelectedNames();
   if (!names.length) { toast('Selecciona al menos un anime', 'warn'); return; }
-  if (!confirm('¿Eliminar ' + names.length + ' anime' + (names.length > 1 ? 's' : '') + '? No se puede deshacer.')) return;
+  // Sin el cuadro de confirmación del navegador: se borra y el aviso permite deshacerlo todo.
+  const copias = [];
   const {ok} = await conProgreso('Eliminando…', names, async (nombre) => {
     const r = await fetch('/api/animes/' + encodeURIComponent(nombre), {method: 'DELETE'});
+    if (r.ok) { const j = await r.json().catch(() => ({})); if (j.copia) copias.push(j.copia); }
     return r.ok;
   });
-  toast('🗑 ' + ok + ' eliminados');
   exitSelMode();
   await cargar();
+  if (copias.length) mostrarUndoSnackbar('', copias);
+  else toast('🗑 ' + ok + ' eliminados');
 }
 
 function bulkSetFavorito(val) {

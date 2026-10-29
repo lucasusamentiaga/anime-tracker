@@ -72,6 +72,7 @@ body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-seri
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 <script>try{if(localStorage.getItem('theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(_){}</script>
@@ -172,7 +173,7 @@ async function setLang(l) {
 // Miraru se lanza sin consola, así que este es el modo de apagarlo del todo.
 // Sin esto el servidor se quedaría corriendo de fondo sin forma clara de pararlo.
 async function salirDeMiraru() {
-  if (!confirm('¿Cerrar Miraru?\n\nSe cerrará el servidor y esta pestaña dejará de funcionar.'))
+  if (!(await miraruConfirmar('¿Cerrar Miraru?\n\nSe cerrará el servidor y esta pestaña dejará de funcionar.', {ok: 'Cerrar Miraru', peligro: true})))
     return;
   const btn = document.getElementById('btn-salir');
   if (btn) { btn.disabled = true; btn.textContent = 'Cerrando…'; }

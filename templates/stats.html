@@ -162,6 +162,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 <header>
@@ -849,7 +850,7 @@ async function exportarWrapped() {
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch(e) {
-    alert('No se pudo generar la imagen: ' + (e.message || 'error'));
+    miraruAviso('No se pudo generar la imagen: ' + (e.message || 'error'));
   } finally {
     if (btn) btn.disabled = false;
   }

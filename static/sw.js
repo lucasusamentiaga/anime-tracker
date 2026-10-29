@@ -42,7 +42,7 @@
 // v45 = sin servidor: franquicias guardadas y respuestas 503 (no 200) para que
 //       la página distinga «Miraru cerrado» de «lista vacía».
 // v46 = aviso emergente de versión nueva para instalaciones de Microsoft Store.
-const CACHE_NAME = 'miraru-v49';
+const CACHE_NAME = 'miraru-v50';
 const STATIC_ASSETS = [
   '/',
   '/app',
@@ -56,6 +56,7 @@ const STATIC_ASSETS = [
   '/static/theme.css',
   '/static/customize.js',
   '/static/i18n-dom.js',
+  '/static/dialogos.js',
   // Tipografias locales: sin esto la app offline pierde su tipografia
   '/static/fonts/inter-latin-400-normal.woff2',
   '/static/fonts/inter-latin-600-normal.woff2',

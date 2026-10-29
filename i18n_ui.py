@@ -727,6 +727,17 @@ UI: dict[str, tuple[str, str, str]] = {
     "Ya en tu lista": ("Already in your list", "Déjà dans ta liste", "Schon in deiner Liste"),
     "Ya está en tu lista": ("Already in your list", "Déjà dans ta liste", "Schon in deiner Liste"),
     "Restaurado": ("Restored", "Restauré", "Wiederhergestellt"),
+    "Deshacer": ("Undo", "Annuler", "Rückgängig"),
+    "Ya has visto todos los episodios": ("You've watched every episode", "Vous avez vu tous les épisodes", "Du hast alle Folgen gesehen"),
+    # Botones de las ventanas propias (static/dialogos.js)
+    "Aceptar": ("OK", "OK", "OK"),
+    "Sobrescribir": ("Overwrite", "Remplacer", "Überschreiben"),
+    "Actualizar": ("Update", "Mettre à jour", "Aktualisieren"),
+    "Continuar": ("Continue", "Continuer", "Weiter"),
+    "Cerrar Miraru": ("Close Miraru", "Fermer Miraru", "Miraru schließen"),
+    "Desactivar": ("Turn off", "Désactiver", "Deaktivieren"),
+    "Nombre de la vista:": ("View name:", "Nom de la vue :", "Name der Ansicht:"),
+    "eliminado": ("deleted", "supprimé", "gelöscht"),
     "Guardado": ("Saved", "Enregistré", "Gespeichert"),
     "TMDB conectado": ("TMDB connected", "TMDB connecté", "TMDB verbunden"),
     "Eliminado": ("Deleted", "Supprimé", "Gelöscht"),
@@ -769,6 +780,8 @@ UI: dict[str, tuple[str, str, str]] = {
 # Textos con números u otras partes variables. Se prueban en orden.
 PATTERNS: list[tuple[str, tuple[str, str, str]]] = [
     # v2.14.1: «¿Qué veo esta noche?» explicaba la elección solo en español.
+    (r"^(\d+) animes eliminados$", ("$1 anime deleted", "$1 animés supprimés", "$1 Anime gelöscht")),
+    (r"^Restaurados (\d+) de (\d+)$", ("Restored $1 of $2", "$1 sur $2 restaurés", "$1 von $2 wiederhergestellt")),
     (r"^ya llevas (\d+) eps$", ("you're $1 eps in", "déjà $1 épisodes vus", "schon $1 Folgen gesehen")),
     (r"^te gusta (.+)$", ("you like $1", "vous aimez $1", "du magst $1")),
     (r"^puntuación alta \((.+)\)$", ("high score ($1)", "note élevée ($1)", "hohe Wertung ($1)")),

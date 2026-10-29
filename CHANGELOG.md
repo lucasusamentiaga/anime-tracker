@@ -1,10 +1,30 @@
 # Changelog
 
-## Sin publicar
+## v2.14.2 — Debugging a fondo
 
-- **Un +1 ya no puede "desaparecer"**: si marcabas un episodio justo mientras otra parte
-  de la app leía la biblioteca, la lista podía quedarse con el número anterior hasta el
-  siguiente cambio. Lo mismo en Pelis y series y en las cajas de sagas.
+- **«Deshacer» tras borrar devuelve el anime tal cual estaba**: antes se perdían tus
+  notas, la sinopsis, el historial, los episodios vistos con fecha (estadísticas y mapa
+  de actividad), las etiquetas y su sitio en la lista.
+- **Borrar varios a la vez** ya no pregunta con la ventanita del navegador: se borran y
+  puedes deshacerlo todo con un clic.
+- **Adiós a las ventanas del navegador** («127.0.0.1 dice…»): guardar vista, cerrar
+  Miraru, actualizar, borrar una película… usan ventanas propias, con el tema de la app
+  y traducidas.
+- **El +1 no pasa del total** (12/12 ya no se convierte en 13/12) y, si ya estabas en el
+  último, te ofrece marcarlo como completado.
+- **Deshacer un +1 lo quita también de las estadísticas** (mapa de actividad, racha y
+  resumen del año contaban el episodio deshecho).
+- **El +1 del móvil cuenta igual que el del PC**: ahora aparece en el mapa de actividad
+  y la racha, y respeta el total.
+- **El +1 se sube a AniList** si lo tienes conectado (antes solo al guardar la ficha).
+- **«Todas las fuentes» ya no tarda más de un minuto** cuando una web está caída
+  (Jikan, AnimeFLV): enseña lo que haya llegado en 15 segundos.
+- Conectar AniList, sincronizar con Google Sheets o el email de prueba ya no congelan el
+  resto de la app mientras esperan.
+- Un +1 podía "desaparecer" si lo marcabas justo mientras la app leía la lista; lo mismo
+  en Pelis y series y en las cajas de sagas.
+- Errores que salían como «error del servidor» y no lo eran (datos mal formados al
+  deshacer o conectar AniList, email sin configurar) ahora explican qué pasa.
 - Guía para colaborar (`CONTRIBUTING.md`), `.editorconfig` y plantilla de pull request.
 
 ## v2.14.1 — Sin contenido para adultos y arreglos

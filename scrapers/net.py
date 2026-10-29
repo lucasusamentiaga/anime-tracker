@@ -24,11 +24,16 @@ _STATUS_REINTENTABLES = (429, 500, 502, 503, 504)
 
 
 def build_retry(total: int = 3, backoff: float = 0.6) -> Retry:
-    """backoff 0.6 → esperas de ~0.6s, 1.2s, 2.4s entre intentos."""
+    """backoff 0.6 → esperas de ~0.6s, 1.2s, 2.4s entre intentos.
+
+    Los 429/5xx se reintentan `total` veces (la web contesta, solo pide calma).
+    Un fallo de conexión o un timeout de lectura, en cambio, solo UNA vez: con
+    una web caída, 4 intentos × 15 s de timeout dejaban una búsqueda colgada
+    más de un minuto (medido: Jikan 45 s, AnimeFLV 65 s)."""
     kwargs = {
         "total": total,
-        "connect": total,
-        "read": total,
+        "connect": min(total, 1),
+        "read": min(total, 1),
         "status": total,
         "backoff_factor": backoff,
         "status_forcelist": _STATUS_REINTENTABLES,

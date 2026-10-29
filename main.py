@@ -1354,7 +1354,7 @@ async def upload_credentials(file: UploadFile = File(...)):
     return {"ok": True, "email": email}
 
 @app.post("/api/setup/verify")
-async def verify_setup(req: ConfigRequest):
+def verify_setup(req: ConfigRequest):
     ok, msg = sheets_sync.verificar_credenciales(req.spreadsheet_id, str(CREDENTIALS))
     if not ok:
         raise HTTPException(400, msg)
@@ -1904,6 +1904,7 @@ async def _rellenar_huecos(resultado, nombre: str, fuente_usada: str):
 # Plazo máximo para que el conjunto de fuentes conteste. Pasado esto, mejor un
 # "no encontrado" honesto que una rueda girando indefinidamente.
 _TIMEOUT_BUSQUEDA_TOTAL = 30
+_TIMEOUT_BUSQUEDA_MULTI = 15
 
 
 async def _buscar_con_fallback(nombre: str, fuente_pref: str) -> tuple[Optional[AnimeData], str]:
@@ -1986,19 +1987,28 @@ async def buscar_multi(req: BuscarRequest):
     if cached:
         return cached
 
-    async def _una(f: str):
-        try:
-            r = await loop.run_in_executor(executor, SCRAPERS[f].buscar, req.nombre)
-            return (f, r)
-        except Exception:
-            return (f, None)
-
-    pares = await asyncio.gather(*[_una(f) for f in SCRAPERS])
-    resultados = [{"fuente": f, "data": r.__dict__} for f, r in pares if r]
+    # Con un plazo común: antes se esperaba a TODAS las fuentes y, con una web
+    # caída (Jikan, AnimeFLV), "Todas las fuentes" tardaba más de un minuto.
+    # Lo que no conteste a tiempo se queda fuera; las respuestas parciales se
+    # cachean poco tiempo para volver a intentarlo pronto.
+    tareas = {asyncio.ensure_future(loop.run_in_executor(executor, SCRAPERS[f].buscar, req.nombre)): f
+              for f in SCRAPERS}
+    done, pendientes = await asyncio.wait(tareas.keys(), timeout=_TIMEOUT_BUSQUEDA_MULTI)
+    for t in pendientes:
+        t.cancel()
+    resultados = []
+    for t, f in tareas.items():
+        if t in done and not t.cancelled() and t.exception() is None and t.result():
+            resultados.append({"fuente": f, "data": t.result().__dict__})
     if not resultados:
         return {"ok": False, "mensaje": "No encontrado en ninguna fuente"}
     resp = {"ok": True, "resultados": resultados}
-    _cache_set(ck, resp)
+    if pendientes:
+        _sync_log.warning("Búsqueda múltiple de %r: sin respuesta de %s", req.nombre,
+                          sorted(tareas[t] for t in pendientes))
+        _cache_set(ck, resp, ttl=60)
+    else:
+        _cache_set(ck, resp)
     return resp
 
 @app.post("/api/buscar")
@@ -2177,12 +2187,17 @@ async def restaurar_anime(data: dict):
     A diferencia de POST /api/animes, NO re-consulta la fuente: restaura el
     registro completo recibido (capítulos, imagen, progreso, listas...) sin red,
     así el undo es instantáneo, fiel y funciona sin conexión."""
-    if not (data.get("nombre") or "").strip():
+    if isinstance(data.get("anime"), dict):
+        # Copia completa que devolvió DELETE (fila + historial + episodios + etiquetas)
+        ok, msg = db.restaurar_copia(data)
+        data = data["anime"]
+    elif not isinstance(data.get("nombre"), str) or not data["nombre"].strip():
         raise HTTPException(400, "Falta el nombre")
-    # genero puede venir como lista (JSON) o string; guardar_anime acepta ambos
-    ok, msg = db.guardar_anime(data)
+    else:
+        # Formato antiguo: solo la fila. genero puede venir como lista o string.
+        ok, msg = db.guardar_anime(data)
     if not ok:
-        raise HTTPException(409 if msg == "duplicado" else 500, msg)
+        raise HTTPException({"duplicado": 409, "nombre vacío": 400}.get(msg, 500), msg)
     cfg = _get_sheets_config()
     if cfg:
         ad = db.obtener_anime(data.get("nombre", ""))
@@ -2193,7 +2208,7 @@ async def restaurar_anime(data: dict):
 # ── Sync ──────────────────────────────────────────────────────────────────────
 
 @app.post("/api/sync")
-async def sync_sheets(req: SyncRequest):
+def sync_sheets(req: SyncRequest):
     sid = req.spreadsheet_id or db.get_config("spreadsheet_id")
     if not sid:
         raise HTTPException(400, "No hay spreadsheet_id configurado")
@@ -2523,6 +2538,12 @@ async def plus_episodio(nombre: str, nota: str = ""):
     if not anime:
         raise HTTPException(404, "No encontrado")
     nuevos = (anime.get("episodios_vistos") or 0) + 1
+    # No pasar del total: con 12/12, otro +1 (doble clic, el botón del móvil…)
+    # dejaba 13/12 y un episodio fantasma en las estadísticas. "24+" (en
+    # emisión) o "?" no son un tope.
+    total = str(anime.get("capitulos") or "").strip()
+    if total.isdigit() and int(total) > 0 and nuevos > int(total):
+        raise HTTPException(409, "Ya has visto todos los episodios")
     ok, msg = db.actualizar_anime(nombre, {"episodios_vistos": nuevos})
     if not ok:
         raise HTTPException(500, msg)
@@ -2536,6 +2557,10 @@ async def plus_episodio(nombre: str, nota: str = ""):
     actualizado = db.obtener_anime(nombre)
     if cfg and actualizado:
         _sync_bg(sheets_sync.update_anime_row, actualizado, cfg[0], cfg[1])
+    # Igual que al editar: con AniList conectado, el +1 también se sube (antes
+    # solo se subía al guardar desde la ficha y el +1 se quedaba en local).
+    if actualizado and actualizado.get("anilist_id") and anilist_sync.is_connected():
+        _sync_bg(anilist_sync.push_anime, actualizado)
     # Notificar por email solo si el anime está en emisión Y tiene la campanita
     if actualizado and actualizado.get("estado_anime", "").lower() in ("en emisión", "releasing", "en emision"):
         _enviar_notif_nuevo_episodio(actualizado, nuevos)
@@ -2657,17 +2682,10 @@ async def mobile_actualizar(nombre: str, req: ActualizarRequest, request: Reques
 @app.post("/api/mobile/animes/{nombre:path}/plus1")
 async def mobile_plus1(nombre: str, request: Request):
     _require_auth(request)
-    anime = db.obtener_anime(nombre)
-    if not anime:
-        raise HTTPException(404, "No encontrado")
-    nuevos = (anime.get("episodios_vistos") or 0) + 1
-    db.actualizar_anime(nombre, {"episodios_vistos": nuevos})
-    cfg = _get_sheets_config()
-    if cfg:
-        updated = db.obtener_anime(nombre)
-        if updated:
-            _sync_bg(sheets_sync.update_anime_row, updated, cfg[0], cfg[1])
-    return {"ok": True, "episodios_vistos": nuevos}
+    # Lo mismo que el +1 del PC. Antes era una copia a medias: lo visto desde
+    # el móvil no contaba en el mapa de actividad ni en la racha, no se subía a
+    # AniList y podía pasar del total de episodios.
+    return await plus_episodio(nombre)
 
 @app.get("/api/mobile/stats")
 async def mobile_stats(request: Request):
@@ -2969,11 +2987,13 @@ async def get_email_config():
     }
 
 @app.post("/api/notif/test-email")
-async def test_email():
+def test_email():
     """Envía un email de prueba."""
     ok, msg = _enviar_email_prueba()
     if not ok:
-        raise HTTPException(500, msg)
+        # Falta configuración → 400 (es cosa del usuario, no un fallo del servidor);
+        # el envío fallido (SMTP, contraseña) → 502.
+        raise HTTPException(400 if msg.startswith(("Configura", "Email no configurado")) else 502, msg)
     return {"ok": True, "msg": msg}
 
 def _enviar_email(destinatario: str, asunto: str, cuerpo: str) -> tuple[bool, str]:
@@ -4419,20 +4439,28 @@ async def anilist_status():
 @app.post("/api/anilist/connect")
 async def anilist_connect(req: Request):
     """Recibe client_id, client_secret, code y redirect_uri para completar OAuth2."""
-    body = await req.json()
+    try:
+        body = await req.json()
+    except ValueError:
+        body = None
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Faltan client_id, client_secret o code")
     client_id = body.get("client_id", "")
     client_secret = body.get("client_secret", "")
     code = body.get("code", "")
     redirect_uri = body.get("redirect_uri", "")
     if not all([client_id, client_secret, code]):
         raise HTTPException(400, "Faltan client_id, client_secret o code")
+    loop = asyncio.get_running_loop()
     try:
-        token_data = anilist_sync.exchange_code(code, client_id, client_secret,
-                                                redirect_uri)
+        # En el pool: son peticiones a AniList y en el bucle de eventos
+        # congelaban TODO el servidor (lista, +1…) hasta que contestaba.
+        token_data = await loop.run_in_executor(
+            executor, anilist_sync.exchange_code, code, client_id, client_secret, redirect_uri)
         token = token_data.get("access_token", "")
         if not token:
             raise HTTPException(400, "No se recibió access_token")
-        viewer = anilist_sync.fetch_viewer(token)
+        viewer = await loop.run_in_executor(executor, anilist_sync.fetch_viewer, token)
         anilist_sync.save_token(token, viewer["name"], viewer["id"])
         return {"ok": True, "username": viewer["name"], "userid": viewer["id"]}
     except HTTPException:
@@ -4649,6 +4677,8 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
         if 0 < delta <= 3:
             for ep in range(viejos + 1, nuevos + 1):
                 db.log_episode(nombre, ep)
+        elif delta < 0:
+            db.quitar_eps_recientes(nombre, nuevos)
     # Sync automático en background (Sheets + AniList)
     anime_dict = db.obtener_anime(nombre)
     if anime_dict:
@@ -4661,6 +4691,7 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
 
 @app.delete("/api/animes/{nombre:path}")
 async def eliminar_anime(nombre: str):
+    copia = db.copia_anime(nombre)          # para «Deshacer» (ver db.copia_anime)
     ok, msg = db.eliminar_anime(nombre)
     if not ok:
         raise HTTPException(404, msg)
@@ -4668,7 +4699,7 @@ async def eliminar_anime(nombre: str):
     cfg = _get_sheets_config()
     if cfg:
         _sync_bg(sheets_sync.delete_anime_row, nombre, cfg[0], cfg[1])
-    return {"ok": True}
+    return {"ok": True, "copia": copia}
 
 
 

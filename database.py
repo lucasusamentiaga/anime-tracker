@@ -579,6 +579,56 @@ def eliminar_anime(nombre: str) -> tuple[bool, str]:
     _invalidar_cache()
     return True, "ok"
 
+def copia_anime(nombre: str) -> Optional[dict]:
+    """Todo lo de un anime, para poder deshacer su borrado tal cual estaba:
+    la fila completa (sinopsis, notas, fecha de alta…), su historial de
+    estados, los episodios vistos con fecha (estadísticas y mapa de actividad)
+    y sus etiquetas. Antes «Deshacer» restauraba desde los datos ligeros de la
+    lista y se perdía todo eso."""
+    with get_conn() as conn:
+        fila = conn.execute("SELECT * FROM animes WHERE nombre=?", (nombre,)).fetchone()
+        if not fila:
+            return None
+        hist = conn.execute("SELECT estado, fecha, nota FROM historial WHERE nombre=? ORDER BY id",
+                            (nombre,)).fetchall()
+        eps = conn.execute("SELECT episodio, fecha FROM ep_log WHERE nombre=? ORDER BY id",
+                           (nombre,)).fetchall()
+        tags = conn.execute("SELECT value FROM config WHERE key=?", (f"tags:{nombre}",)).fetchone()
+    return {"anime": dict(fila), "historial": [dict(h) for h in hist],
+            "ep_log": [dict(e) for e in eps], "tags": tags[0] if tags else None}
+
+
+def restaurar_copia(copia: dict) -> tuple[bool, str]:
+    """Deshace un borrado con lo que devolvió `copia_anime`."""
+    anime = dict(copia.get("anime") or {})
+    nombre = str(anime.get("nombre") or "").strip()
+    if not nombre:
+        return False, "nombre vacío"
+    if buscar_por_clave(nombre):
+        return False, "duplicado"
+    anime.pop("id", None)
+    with get_conn() as conn:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(animes)")}
+        datos = {k: v for k, v in anime.items() if k in cols}
+        try:
+            conn.execute(f"INSERT INTO animes ({', '.join(datos)}) VALUES ({', '.join('?' * len(datos))})",
+                         list(datos.values()))
+        except sqlite3.IntegrityError:
+            return False, "duplicado"
+        conn.executemany("INSERT INTO historial (nombre, estado, fecha, nota) VALUES (?,?,?,?)",
+                         [(nombre, h.get("estado", ""), h.get("fecha", ""), h.get("nota") or "")
+                          for h in copia.get("historial") or [] if isinstance(h, dict)])
+        conn.executemany("INSERT OR IGNORE INTO ep_log (nombre, episodio, fecha) VALUES (?,?,?)",
+                         [(nombre, int(e["episodio"]), e.get("fecha") or "")
+                          for e in copia.get("ep_log") or []
+                          if isinstance(e, dict) and str(e.get("episodio", "")).lstrip("-").isdigit()])
+        if copia.get("tags"):
+            conn.execute("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)",
+                         (f"tags:{nombre}", str(copia["tags"])))
+    _invalidar_cache()
+    return True, "ok"
+
+
 def buscar_animes(query: str, limit: int = 20) -> list[dict]:
     """Búsqueda local rápida en la BD por nombre (parcial, case-insensitive)."""
     with get_conn() as conn:
@@ -673,6 +723,20 @@ def log_episode(nombre: str, episodio: int):
             )
     except Exception:
         pass  # no crashear por logs
+
+
+def quitar_eps_recientes(nombre: str, mayor_que: int, horas: int = 24) -> int:
+    """Al bajar los episodios vistos (el «Deshacer» del +1 o una corrección),
+    borra del registro los episodios por encima del nuevo número marcados en
+    las últimas `horas`. Antes se quedaban: el mapa de actividad, la racha y
+    el resumen del año contaban episodios que ya no estaban vistos. Lo antiguo
+    se respeta (bajar a 0 para un rewatch no borra la historia)."""
+    with get_conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM ep_log WHERE nombre=? AND episodio>? "
+            "AND fecha >= datetime('now','localtime',?)",
+            (nombre, int(mayor_que), f"-{int(horas)} hours"))
+        return cur.rowcount
 
 
 def ep_log_heatmap(dias: int = 365) -> list[dict]:

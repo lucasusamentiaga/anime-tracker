@@ -123,6 +123,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 
@@ -215,7 +216,7 @@ function T(k) { return TR[k] || k; }
 
 async function detectar() {
   const txt = document.getElementById('txt-input').value.trim();
-  if (!txt) { alert('Primero pega el texto de la página'); return; }
+  if (!txt) { miraruAviso('Primero pega el texto de la página'); return; }
 
   const btn = document.getElementById('btn-detect');
   const btxt = document.getElementById('detect-txt');
@@ -232,7 +233,7 @@ async function detectar() {
     candidatos = d.candidatos || [];
     renderCandidatos();
   } catch(e) {
-    alert('Error al detectar animes');
+    miraruAviso('Error al detectar animes');
   } finally {
     btn.disabled = false;
     btxt.textContent = '🔍 ' + (TR['detect_btn'] || 'Detectar animes');
@@ -291,7 +292,7 @@ function updateCount() {
 
 async function importar() {
   const seleccionados = candidatos.filter((_, i) => document.getElementById(`chk-${i}`)?.checked);
-  if (!seleccionados.length) { alert('Selecciona al menos un anime'); return; }
+  if (!seleccionados.length) { miraruAviso('Selecciona al menos un anime'); return; }
 
   const fuente = document.getElementById('sel-fuente').value;
   const btn    = document.getElementById('btn-import');

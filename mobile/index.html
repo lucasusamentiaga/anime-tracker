@@ -657,6 +657,7 @@ async function guardar() {
 async function plus1(enc, a) {
   try {
     const r=await api(`/api/mobile/animes/${enc}/plus1`,{method:'POST'});
+    if(r.status===409){ toast('Ya has visto todos los episodios'); return; }
     if(!r.ok) return;
     const d=await r.json();
     const idx=ANIMES.findIndex(x=>x.nombre===a.nombre);

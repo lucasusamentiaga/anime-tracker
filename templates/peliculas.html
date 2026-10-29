@@ -118,6 +118,7 @@ select:focus,.modal input:focus{border-color:var(--accent)}
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
 <script src="/static/i18n-dom.js" defer></script>
+<script src="/static/dialogos.js" defer></script>
 </head>
 <body>
 
@@ -523,7 +524,7 @@ async function toggleFav(){
 
 async function borrarItem(){
   if (_editId == null) return;
-  if (!confirm('¿Eliminar de tu lista? No se puede deshacer.')) return;
+  if (!(await miraruConfirmar('¿Eliminar de tu lista? No se puede deshacer.', {ok: 'Eliminar', peligro: true}))) return;
   try{
     const r = await fetch('/api/media/'+_editId, {method:'DELETE'});
     if (!r.ok){ toast('Error al eliminar'); return; }
@@ -581,7 +582,7 @@ function abrirAjustesKey(){
 }
 
 async function borrarKey(){
-  if (!confirm('¿Desconectar TMDB? Tendrás que volver a meter la clave para buscar.')) return;
+  if (!(await miraruConfirmar('¿Desconectar TMDB? Tendrás que volver a meter la clave para buscar.', {ok: 'Desconectar'}))) return;
   try{
     await fetch('/api/media/tmdb-key', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({api_key:''})});
     _hasKey = false;
