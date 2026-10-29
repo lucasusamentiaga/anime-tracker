@@ -340,3 +340,121 @@ def _post(s, cuerpo: dict):
         raise av1.ErrorAnimeAV1("Sesión de AnimeAV1 caducada", resp.status_code)
     if resp.status_code >= 400:
         raise av1.ErrorAnimeAV1(f"HTTP {resp.status_code}", resp.status_code)
+
+
+# ── Al instante (extensión del navegador → Miraru) ───────────────────────────
+#
+# La extensión «Miraru × AnimeAV1» (static/extension-animeav1/) ve cuándo pulsas
+# «Marcar como visto» en animeav1.com —su web hace POST /api/user/library
+# {"mediaId", "episode"}— y se lo cuenta a Miraru al momento. No necesita la
+# cookie: usa la sesión que ya tienes abierta en el navegador.
+
+CLAVE_ULTIMO_EVENTO = "animeav1_ext_ultimo"
+
+
+def titulo_de_pestana(titulo: str) -> str:
+    """«Sousou no Frieren Episodio 1 Sub Español Online en HD - AnimeAV1» →
+    «Sousou no Frieren»."""
+    t = re.sub(r"\s*[-|–]\s*AnimeAV1\s*$", "", titulo or "", flags=re.I)
+    t = re.sub(r"\s+(Episodio|Capítulo|Capitulo|Ep\.?)\s+\d+.*$", "", t, flags=re.I)
+    return t.strip()
+
+
+def resolver_evento(media_id: int, slug: str = "", titulo: str = "",
+                    s=None, anilist=None, sleep=_time.sleep) -> dict:
+    """¿Qué anime de Miraru es este de AnimeAV1? Devuelve
+    {"local": dict | None, "nuevo": AnimeData | None, "media": dict | None}.
+    Por orden: el mapa de ids guardado, el título, y si no, su ficha de
+    AnimeAV1 (id de MyAnimeList) → AniList, como al importar."""
+    locales = db.listar_animes()
+    por_nombre = {a["nombre"]: a for a in locales}
+    ids = _ids()
+    for nombre, mid in ids.items():
+        if mid == media_id and nombre in por_nombre:
+            return {"local": por_nombre[nombre], "nuevo": None, "media": None}
+    por_clave = {db.clave_nombre(a["nombre"]): a for a in locales}
+    t = titulo_de_pestana(titulo)
+    if t and db.clave_nombre(t) in por_clave:
+        local = por_clave[db.clave_nombre(t)]
+        ids[local["nombre"]] = media_id
+        _guardar_ids(ids)
+        return {"local": local, "nuevo": None, "media": None}
+    m = None
+    if slug:
+        try:
+            m = av1.obtener_media(slug, s=s or av1.sesion(get_cookie()))
+        except Exception as e:  # noqa: BLE001
+            log.warning("AnimeAV1: no se pudo leer la ficha %s: %s", slug, e)
+    if m:
+        e = {"titulo": m.get("title") or "",
+             "aka": m.get("aka") if isinstance(m.get("aka"), dict) else {}}
+        local = next((por_clave[k] for k in _claves_titulos(e) if k in por_clave), None)
+        if local is None and m.get("malId"):
+            if anilist is None:
+                from scrapers.anilist import AniListScraper
+                anilist = AniListScraper()
+            al = anilist.buscar_por_mal(int(m["malId"]))
+            if al:
+                por_aid = {a["anilist_id"]: a for a in locales if a.get("anilist_id")}
+                local = por_aid.get(al.anilist_id) or por_clave.get(db.clave_nombre(al.nombre))
+                if local is None:
+                    return {"local": None, "nuevo": al, "media": m}
+        if local is not None:
+            ids[local["nombre"]] = media_id
+            _guardar_ids(ids)
+            return {"local": local, "nuevo": None, "media": m}
+        return {"local": None, "nuevo": av1.a_anime_data(m), "media": m}
+    return {"local": None, "nuevo": None, "media": None}
+
+
+def recordar_id(nombre: str, media_id: int):
+    ids = _ids()
+    ids[nombre] = media_id
+    _guardar_ids(ids)
+
+
+def cambios_por_evento(local: dict, episodio: Optional[int], estado: Optional[int]) -> dict:
+    """Lo que hay que cambiar en Miraru.
+
+    - Marcar un episodio más avanzado que el de Miraru → se copia.
+    - Desmarcar en AnimeAV1 manda el episodio anterior (N-1): si Miraru iba
+      justo por N, baja a N-1.
+    - Un episodio más atrasado (repasar uno antiguo, o AnimeAV1 desfasado
+      respecto a Miraru) no baja tu progreso."""
+    cambios: dict = {}
+    actual = local.get("estado_usuario") or "pendiente"
+    if episodio is not None:
+        ep = max(0, int(episodio))
+        vistos = int(local.get("episodios_vistos") or 0)
+        if ep > vistos or ep == vistos - 1:
+            if ep != vistos:
+                cambios["episodios_vistos"] = ep
+        else:
+            ep = vistos
+        total = str(local.get("capitulos") or "").strip()
+        if total.isdigit() and int(total) > 0 and ep >= int(total):
+            if actual != "completado":
+                cambios["estado_usuario"] = "completado"
+        elif ep > vistos and actual == "pendiente":
+            cambios["estado_usuario"] = "viendo"          # empezar a verlo
+        elif ep < vistos and actual == "completado":
+            cambios["estado_usuario"] = "viendo"          # desmarcar el último
+    if estado is not None and episodio is None and estado in ESTADO_DESDE_AV1:
+        nuevo = ESTADO_DESDE_AV1[estado]
+        if nuevo != actual:
+            cambios["estado_usuario"] = nuevo
+    return cambios
+
+
+def guardar_ultimo_evento(nombre: str, episodio: Optional[int], accion: str):
+    db.set_config(CLAVE_ULTIMO_EVENTO, json.dumps(
+        {"ts": int(_time.time()), "nombre": nombre, "episodio": episodio, "accion": accion},
+        ensure_ascii=False))
+
+
+def ultimo_evento() -> dict:
+    try:
+        d = json.loads(db.get_config(CLAVE_ULTIMO_EVENTO) or "{}")
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}

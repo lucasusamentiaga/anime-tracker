@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Miraru × AnimeAV1",
+  "short_name": "Miraru AV1",
+  "version": "1.0.0",
+  "description": "Cuando marcas un episodio como visto en AnimeAV1, se apunta al momento en tu Miraru.",
+  "icons": {
+    "16": "iconos/16.png",
+    "32": "iconos/32.png",
+    "48": "iconos/48.png",
+    "128": "iconos/128.png"
+  },
+  "action": {
+    "default_title": "Miraru × AnimeAV1",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "iconos/16.png",
+      "32": "iconos/32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["webRequest", "storage", "alarms"],
+  "host_permissions": [
+    "https://animeav1.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ]
+}

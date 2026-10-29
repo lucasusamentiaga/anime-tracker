@@ -56,7 +56,7 @@ _setup_file_logging()
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -4566,6 +4566,95 @@ async def animeav1_connect(req: AnimeAV1ConectarRequest):
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"No se pudo contactar con AnimeAV1: {e}")
+
+
+class AnimeAV1EventoRequest(BaseModel):
+    mediaId: int = Field(..., ge=1)
+    episode: Optional[int] = Field(default=None, ge=0, le=100000)
+    status: Optional[int] = Field(default=None, ge=-1, le=4)
+    slug: str = Field("", max_length=200)
+    titulo: str = Field("", max_length=300)
+
+
+@app.post("/api/animeav1/evento")
+async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
+    """La extensión del navegador avisa de que has marcado (o desmarcado) un
+    episodio en animeav1.com, y Miraru lo copia al momento.
+
+    Exige la cabecera X-Miraru-Extension: una web cualquiera no puede mandarla
+    a 127.0.0.1 sin que el navegador pida permiso antes (CORS), así que ninguna
+    página puede cambiarte la lista por la espalda."""
+    if request.headers.get("X-Miraru-Extension") != "1":
+        raise HTTPException(403, "Solo la extensión de Miraru puede usar esta ruta")
+    loop = asyncio.get_running_loop()
+    try:
+        r = await asyncio.wait_for(loop.run_in_executor(
+            executor, animeav1_sync.resolver_evento, req.mediaId, req.slug, req.titulo), timeout=30)
+    except Exception as e:  # noqa: BLE001
+        _sync_log.warning("AnimeAV1 (extensión): %s", e)
+        raise HTTPException(502, "No se pudo identificar el anime en AnimeAV1") from e
+    local, nuevo = r["local"], r["nuevo"]
+    if req.status == -1 and local is None:
+        return {"ok": True, "accion": "nada"}
+    if local is None and nuevo is None:
+        raise HTTPException(404, "No encontré ese anime")
+    if local is None:
+        # No lo tenías en Miraru: se añade con lo que acabas de marcar.
+        datos = dict(nuevo.__dict__)
+        datos.update({"tipo": "anime", "estado_usuario": "viendo",
+                      "episodios_vistos": int(req.episode or 0)})
+        ok, msg = db.guardar_anime(datos)
+        if not ok:
+            raise HTTPException(409 if msg == "duplicado" else 500, msg)
+        animeav1_sync.recordar_id(datos["nombre"], req.mediaId)
+        if req.episode:
+            db.log_episode(datos["nombre"], int(req.episode))
+        animeav1_sync.guardar_ultimo_evento(datos["nombre"], req.episode, "añadido")
+        return {"ok": True, "accion": "añadido", "nombre": datos["nombre"],
+                "episodios_vistos": int(req.episode or 0)}
+    nombre = local["nombre"]
+    if req.status == -1:
+        # Quitado de tus listas en AnimeAV1: en Miraru no se borra nada.
+        return {"ok": True, "accion": "nada", "nombre": nombre}
+    cambios = animeav1_sync.cambios_por_evento(local, req.episode, req.status)
+    if cambios:
+        # Por el mismo camino que editar a mano: registro de actividad (mapa,
+        # racha), Google Sheets y AniList.
+        await actualizar_anime(nombre, ActualizarRequest(**cambios))
+    animeav1_sync.guardar_ultimo_evento(nombre, req.episode, "actualizado" if cambios else "sin cambios")
+    final = db.obtener_anime(nombre) or local
+    return {"ok": True, "accion": "actualizado" if cambios else "sin cambios", "nombre": nombre,
+            "episodios_vistos": final.get("episodios_vistos"), "estado": final.get("estado_usuario")}
+
+
+@app.get("/api/animeav1/extension")
+async def animeav1_extension_estado():
+    """Para la ventana de Miraru: ¿ha llegado algo de la extensión?"""
+    return {"ultimo": animeav1_sync.ultimo_evento()}
+
+
+@app.get("/api/animeav1/extension.zip")
+def animeav1_extension_zip():
+    """La extensión empaquetada para descargarla desde la propia app."""
+    import io
+    import zipfile
+    carpeta = STATIC_DIR / "extension-animeav1"
+    if not carpeta.is_dir():
+        raise HTTPException(404, "Esta instalación no trae la extensión")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in sorted(carpeta.rglob("*")):
+            if f.is_file():
+                z.write(f, "miraru-animeav1/" + f.relative_to(carpeta).as_posix())
+    return Response(buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="miraru-animeav1.zip"'})
+
+
+@app.get("/api/biblioteca/version")
+async def biblioteca_version():
+    """Número que cambia con cada cambio en la lista: la pestaña de Miraru lo
+    consulta para refrescarse sola (p. ej. al marcar un episodio en AnimeAV1)."""
+    return {"v": db._cache_gen}
 
 
 @app.post("/api/animeav1/disconnect")

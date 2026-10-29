@@ -1,7 +1,17 @@
 # Changelog
 
-## v2.14.2 — Debugging a fondo
+## v2.15.0 — AnimeAV1 al instante y debugging a fondo
 
+- **AnimeAV1 → Miraru al instante.** Con la extensión «Miraru × AnimeAV1» (se descarga
+  desde 🔗 Sincronizar listas), cada vez que pulsas «Marcar como visto» en un episodio de
+  AnimeAV1 se apunta en Miraru en ese mismo momento; si no tenías el anime, se añade.
+  Usa la sesión de tu navegador (no hace falta la cookie) y, si Miraru está cerrado, lo
+  guarda y lo manda al abrirlo. Desmarcar el último episodio también se copia; marcar uno
+  antiguo no baja tu progreso.
+- **La lista se actualiza sola** cuando algo cambia desde fuera (la extensión, el móvil,
+  otra pestaña), sin recargar.
+- Los botones de la ventana «Sincronizar listas» (Conectar, Importar, Subir…) salían sin
+  estilo: ya tienen el de la app.
 - **«Deshacer» tras borrar devuelve el anime tal cual estaba**: antes se perdían tus
   notas, la sinopsis, el historial, los episodios vistos con fecha (estadísticas y mapa
   de actividad), las etiquetas y su sitio en la lista.

@@ -116,6 +116,22 @@ body.sel-mode .ac.selected{opacity:1}
 .sync-pasos{font-size:12.5px;color:var(--fg);margin:0 0 12px 18px;padding:0;line-height:1.6}
 .sync-pasos li{margin-bottom:3px}
 .sync-nota{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.av1-ext{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08);border-radius:12px;padding:12px 14px}
+.av1-ext-cab{font-size:14px;margin-bottom:6px}
+.av1-ext-tag{font-size:10.5px;background:var(--accent);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px;vertical-align:1px}
+.av1-ext-pasos{font-size:12.5px;margin:0 0 10px 18px;padding:0;line-height:1.9}
+.av1-ext-pasos .btn{display:inline-flex;vertical-align:middle;margin:1px 0;text-decoration:none}
+.av1-ext-pasos a.btn-p{color:#fff}
+.av1-ext-pasos .btn-g{border:1px solid var(--border)!important;background:var(--card2)!important;color:var(--fg)!important}
+/* .btn-p / .btn-g se usaban en la ventana de AniList y AnimeAV1 pero nunca se
+   definieron aquí (solo en otras páginas): sus botones salían sin estilo. */
+.btn-p{background:var(--accent);color:#fff;border:1px solid transparent}
+.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-g:hover{color:var(--fg);border-color:var(--muted)}
+.av1-ext-pasos .gris{color:var(--muted);font-size:11.5px}
+.av1-ext-estado{font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:8px}
+.av1-ext-estado.ok{color:var(--fg)}
 .sync-estado{display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .sync-resultado{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:12px}
 #av1-cookie{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12px}
@@ -961,6 +977,18 @@ fetch('/api/version').then(r => r.json()).then(d => {
 
     <!-- v2.12: AnimeAV1 en el mismo panel -->
     <h4 class="sync-servicio" style="border-top:1px solid var(--border);padding-top:16px;margin-top:18px">AnimeAV1</h4>
+    <!-- v2.15: al instante con la extensión del navegador -->
+    <div class="av1-ext">
+      <div class="av1-ext-cab">⚡ <strong>Al instante</strong> <span class="av1-ext-tag">recomendado</span></div>
+      <p class="sync-ayuda" style="margin-bottom:8px">Cuando pulses <strong>«Marcar como visto» 👁</strong> en un episodio de AnimeAV1, se apunta en Miraru en ese mismo momento. Si no tenías el anime, se añade solo. Funciona con la sesión que ya tienes abierta en el navegador: no hace falta la cookie.</p>
+      <ol class="av1-ext-pasos">
+        <li><a class="btn btn-p btn-sm" href="/api/animeav1/extension.zip" download>⬇ Descargar la extensión</a> y descomprímela <span class="gris">(clic derecho en el .zip → «Extraer todo»)</span>.</li>
+        <li>En Chrome o Edge abre <button class="btn btn-g btn-sm" type="button" onclick="_av1CopiarExtensiones()">📋 chrome://extensions</button> <span class="gris">(pégalo en la barra de direcciones)</span> y activa <strong>«Modo de desarrollador»</strong>.</li>
+        <li>Pulsa <strong>«Cargar descomprimida»</strong> y elige la carpeta <strong>miraru-animeav1</strong>.</li>
+      </ol>
+      <div id="av1-ext-estado" class="av1-ext-estado">Todavía no ha llegado nada de la extensión.</div>
+    </div>
+    <p class="sync-ayuda" style="margin-top:14px"><strong>Importar o subir toda la lista</strong> (opcional):</p>
     <div id="av1-disconnected">
       <p class="sync-ayuda">Trae tus listas de AnimeAV1 (viendo, completados, por ver…) y manda allí tus cambios. AnimeAV1 no deja conectar apps con usuario y contraseña, así que Miraru usa la sesión de tu navegador. Solo hay que hacerlo una vez:</p>
       <ol class="sync-pasos">
@@ -5192,6 +5220,29 @@ function celebrarNivel(nivel){
     localStorage.setItem('miraru_gami_seen', JSON.stringify({nivel: nivel, ids: nowIds}));
   } catch(_){}
 })();
+
+// v2.15: la lista se refresca sola cuando cambia desde fuera (un episodio
+// marcado en AnimeAV1 con la extensión, el móvil, otra pestaña…). Solo mira
+// un número que cambia con cada cambio; si estás editando un anime, espera.
+let _verBiblio = null;
+async function _vigilarCambios() {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const r = await fetch('/api/biblioteca/version', {cache: 'no-store'});
+    if (!r.ok) return;
+    const {v} = await r.json();
+    if (_verBiblio === null || v === _verBiblio) { _verBiblio = v; return; }
+    const editando = [...document.querySelectorAll('.modal-bg.open')].some(m => m.id !== 'modal-anilist');
+    if (editando) return;                       // se aplicará al cerrarlo
+    _verBiblio = v;
+    await cargar();
+    if (typeof cargarContinuar === 'function') cargarContinuar();
+    if (document.getElementById('modal-anilist')?.classList.contains('open')) _av1ExtEstado();
+  } catch (_) {}
+}
+_vigilarCambios();                              // punto de partida: la lista recién cargada
+setInterval(_vigilarCambios, 4000);
+document.addEventListener('visibilitychange', _vigilarCambios);
 </script>
 
 <!-- AniList Sync JS -->
@@ -5225,7 +5276,32 @@ async function abrirAniList() {
 }
 
 // ── AnimeAV1 (v2.12) ─────────────────────────────────────────────────────────
+async function _av1ExtEstado() {
+  const el = document.getElementById('av1-ext-estado');
+  if (!el) return;
+  try {
+    const d = await (await fetch('/api/animeav1/extension')).json();
+    const u = d.ultimo || {};
+    if (!u.nombre) return;
+    const min = Math.max(0, Math.round((Date.now() / 1000 - u.ts) / 60));
+    const cuando = min < 1 ? _tr('hace un momento') : min < 60 ? _tr('hace ' + min + ' min') : new Date(u.ts * 1000).toLocaleString();
+    el.className = 'av1-ext-estado ok';
+    el.textContent = '';
+    const n = document.createElement('strong');
+    n.setAttribute('data-no-i18n', '');
+    n.textContent = u.nombre;
+    el.append('✅ ' + _tr('La extensión funciona. Último:') + ' ', n,
+      (u.episodio != null ? ' · ' + _tr('episodio') + ' ' + u.episodio : '') + ' · ' + cuando);
+  } catch (_) {}
+}
+
+async function _av1CopiarExtensiones() {
+  try { await navigator.clipboard.writeText('chrome://extensions'); toast(_tr('Copiado: pégalo en la barra de direcciones')); }
+  catch (_) { toast('chrome://extensions'); }
+}
+
 async function _av1Estado() {
+  _av1ExtEstado();
   let s = {conectado: false};
   try { const r = await fetch('/api/animeav1/status'); if (r.ok) s = await r.json(); } catch(_) {}
   document.getElementById('av1-disconnected').style.display = s.conectado ? 'none' : 'block';

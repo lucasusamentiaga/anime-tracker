@@ -447,6 +447,10 @@ async function init() {
   animTitle();
   loadStats();
   loadContinue();
+  // v2.15: al volver a esta pestaña (p. ej. tras marcar un episodio en AnimeAV1)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { loadContinue(); }
+  });
 }
 init();
 

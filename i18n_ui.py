@@ -728,6 +728,32 @@ UI: dict[str, tuple[str, str, str]] = {
     "Ya está en tu lista": ("Already in your list", "Déjà dans ta liste", "Schon in deiner Liste"),
     "Restaurado": ("Restored", "Restauré", "Wiederhergestellt"),
     "Deshacer": ("Undo", "Annuler", "Rückgängig"),
+    # v2.15: AnimeAV1 al instante (extensión del navegador)
+    "Al instante": ("Instantly", "Instantané", "Sofort"),
+    "recomendado": ("recommended", "recommandé", "empfohlen"),
+    "Cuando pulses": ("When you press", "Quand vous cliquez sur", "Wenn du auf"),
+    "«Marcar como visto» 👁": ("«Marcar como visto» (Mark as watched) 👁", "«Marcar como visto» (Marquer comme vu) 👁", "«Marcar como visto» (Als gesehen markieren) 👁"),
+    "en un episodio de AnimeAV1, se apunta en Miraru en ese mismo momento. Si no tenías el anime, se añade solo. Funciona con la sesión que ya tienes abierta en el navegador: no hace falta la cookie.": (
+        "on an AnimeAV1 episode, Miraru records it at that very moment. If the anime wasn't in your list, it's added. It uses the session already open in your browser: no cookie needed.",
+        "sur un épisode d'AnimeAV1, Miraru l'enregistre au même instant. Si l'animé n'était pas dans votre liste, il est ajouté. Utilise la session déjà ouverte dans votre navigateur : pas besoin du cookie.",
+        "bei einer AnimeAV1-Folge klickst, trägt Miraru sie sofort ein. Fehlt der Anime in deiner Liste, wird er hinzugefügt. Nutzt die Sitzung in deinem Browser: kein Cookie nötig."),
+    "⬇ Descargar la extensión": ("⬇ Download the extension", "⬇ Télécharger l'extension", "⬇ Erweiterung herunterladen"),
+    "y descomprímela": ("and unzip it", "et décompressez-la", "und entpacke sie"),
+    "(clic derecho en el .zip → «Extraer todo»)": ("(right-click the .zip → «Extract All»)", "(clic droit sur le .zip → «Extraire tout»)", "(Rechtsklick auf die .zip → «Alle extrahieren»)"),
+    "En Chrome o Edge abre": ("In Chrome or Edge open", "Dans Chrome ou Edge ouvrez", "Öffne in Chrome oder Edge"),
+    "(pégalo en la barra de direcciones)": ("(paste it in the address bar)", "(collez-le dans la barre d'adresse)", "(in die Adressleiste einfügen)"),
+    "y activa": ("and turn on", "et activez", "und aktiviere den"),
+    "«Modo de desarrollador»": ("«Developer mode»", "«Mode développeur»", "«Entwicklermodus»"),
+    "Pulsa": ("Click", "Cliquez sur", "Klicke auf"),
+    "«Cargar descomprimida»": ("«Load unpacked»", "«Charger l'extension non empaquetée»", "«Entpackte Erweiterung laden»"),
+    "y elige la carpeta": ("and choose the folder", "et choisissez le dossier", "und wähle den Ordner"),
+    "Todavía no ha llegado nada de la extensión.": ("Nothing has arrived from the extension yet.", "Rien n'est encore arrivé de l'extension.", "Von der Erweiterung ist noch nichts angekommen."),
+    "Importar o subir toda la lista": ("Import or upload the whole list", "Importer ou envoyer toute la liste", "Ganze Liste importieren oder hochladen"),
+    "(opcional):": ("(optional):", "(facultatif) :", "(optional):"),
+    "La extensión funciona. Último:": ("The extension works. Last:", "L'extension fonctionne. Dernier :", "Die Erweiterung funktioniert. Zuletzt:"),
+    "episodio": ("episode", "épisode", "Folge"),
+    "hace un momento": ("just now", "à l'instant", "gerade eben"),
+    "Copiado: pégalo en la barra de direcciones": ("Copied: paste it in the address bar", "Copié : collez-le dans la barre d'adresse", "Kopiert: in die Adressleiste einfügen"),
     "Ya has visto todos los episodios": ("You've watched every episode", "Vous avez vu tous les épisodes", "Du hast alle Folgen gesehen"),
     # Botones de las ventanas propias (static/dialogos.js)
     "Aceptar": ("OK", "OK", "OK"),
@@ -780,6 +806,7 @@ UI: dict[str, tuple[str, str, str]] = {
 # Textos con números u otras partes variables. Se prueban en orden.
 PATTERNS: list[tuple[str, tuple[str, str, str]]] = [
     # v2.14.1: «¿Qué veo esta noche?» explicaba la elección solo en español.
+    (r"^hace (\d+) min$", ("$1 min ago", "il y a $1 min", "vor $1 Min.")),
     (r"^(\d+) animes eliminados$", ("$1 anime deleted", "$1 animés supprimés", "$1 Anime gelöscht")),
     (r"^Restaurados (\d+) de (\d+)$", ("Restored $1 of $2", "$1 sur $2 restaurés", "$1 von $2 wiederhergestellt")),
     (r"^ya llevas (\d+) eps$", ("you're $1 eps in", "déjà $1 épisodes vus", "schon $1 Folgen gesehen")),

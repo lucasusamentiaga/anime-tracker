@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  body{margin:0;width:300px;background:#0a0812;color:#edecf4;font:13px/1.45 system-ui,"Segoe UI",sans-serif}
+  .cab{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #2b2542}
+  .cab img{width:28px;height:28px}
+  .cab b{font-size:14px}
+  .cuerpo{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+  .estado{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:#181426}
+  .punto{width:10px;height:10px;border-radius:50%;background:#a49dc0;flex-shrink:0}
+  .ok .punto{background:#22c55e}.mal .punto{background:#ef4444}
+  .gris{color:#a49dc0;font-size:12px}
+  .ultimo{padding:10px 12px;border-radius:10px;background:#181426}
+  details{color:#a49dc0;font-size:12px}
+  details input{width:80px;padding:4px 6px;border-radius:6px;border:1px solid #2b2542;background:#100d1c;color:inherit}
+  a.btn,button{display:block;text-align:center;text-decoration:none;border:0;border-radius:9px;padding:8px;
+    font:600 13px system-ui,sans-serif;cursor:pointer;background:#7c3aed;color:#fff}
+  [hidden]{display:none!important}
+  button.sec{background:#181426;color:#edecf4;border:1px solid #2b2542}
+</style>
+</head>
+<body>
+  <div class="cab"><img src="iconos/48.png" alt=""><div><b>Miraru × AnimeAV1</b><div class="gris">Episodios vistos, al instante</div></div></div>
+  <div class="cuerpo">
+    <div class="estado" id="estado"><span class="punto"></span><span id="estado-txt">Buscando Miraru…</span></div>
+    <div class="ultimo" id="ultimo"><span class="gris">Todavía no has marcado nada. Pulsa «Marcar como visto» en un episodio de AnimeAV1.</span></div>
+    <div class="gris" id="cola"></div>
+    <a class="btn" id="abrir" href="#" target="_blank">Abrir Miraru</a>
+    <button class="sec" id="reintentar" hidden>Enviar lo pendiente ahora</button>
+    <details><summary>Ajustes</summary>
+      <p>Puerto de Miraru: <input id="puerto" type="number" min="1" max="65535"> <span class="gris">(normalmente 8765)</span></p>
+    </details>
+  </div>
+<script src="popup.js"></script>
+</body>
+</html>
