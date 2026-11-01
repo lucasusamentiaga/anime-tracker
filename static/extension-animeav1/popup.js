@@ -5,7 +5,7 @@ function hace(ms) {
   if (s < 60) return 'hace un momento';
   if (s < 3600) return `hace ${Math.round(s / 60)} min`;
   if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
-  return new Date(ms).toLocaleDateString();
+  return new Date(ms).toLocaleDateString(undefined, {day: 'numeric', month: 'short'});
 }
 
 const limpiarTitulo = t => (t || '').replace(/\s*-\s*AnimeAV1\s*$/i, '').replace(/\s+Episodio\s+\d+.*$/i, '');
@@ -30,7 +30,13 @@ async function pintar() {
   }
   $('cerrado').hidden = abierto;
 
-  $('pendientes').hidden = !cola.length;
+  // Cerrado + pendientes: un solo aviso.
+  if (!abierto && cola.length) {
+    $('cerrado').textContent = cola.length === 1
+      ? 'Miraru está cerrado. 1 episodio te espera: se apuntará al abrirlo.'
+      : `Miraru está cerrado. ${cola.length} episodios te esperan: se apuntarán al abrirlo.`;
+  }
+  $('pendientes').hidden = !cola.length || !abierto;
   $('pendientes').textContent = cola.length === 1
     ? '1 episodio esperando a Miraru: se apuntará al abrirlo.'
     : `${cola.length} episodios esperando a Miraru: se apuntarán al abrirlo.`;
@@ -50,12 +56,15 @@ async function pintar() {
     $('u-nombre').textContent = ultimo.nombre;
     const total = parseInt(ultimo.capitulos, 10);
     $('u-ep').textContent = 'Episodio ' + (ultimo.episodio ?? '?') + (total > 0 ? ' de ' + total : '');
-    $('u-barra').style.width = total > 0 ? Math.min(100, Math.round((ultimo.episodio || 0) / total * 100)) + '%' : '100%';
+    const fr = total > 0 ? Math.min(1, (ultimo.episodio || 0) / total) : 1;
+    requestAnimationFrame(() => requestAnimationFrame(() => { $('u-barra').style.transform = `scaleX(${fr})`; }));
     $('u-cuando').textContent = hace(ultimo.cuando);
     if (ultimo.imagen) { $('u-img').src = ultimo.imagen; $('u-img').hidden = false; } else $('u-img').hidden = true;
   }
 
-  const antes = historial.slice(1, 5);
+  // Con avisos arriba, menos historial: la ventana de Chrome no pasa de 600 px.
+  const conAvisos = !abierto || cola.length || conFallo;
+  const antes = historial.slice(1, conAvisos ? 3 : 5);
   $('hist').hidden = !antes.length;
   $('hist').querySelectorAll('div').forEach(d => d.remove());
   antes.forEach(h => {

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Miraru × AnimeAV1",
   "short_name": "Miraru AV1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Cuando marcas un episodio como visto en AnimeAV1, se apunta al momento en tu Miraru.",
   "icons": {
     "16": "iconos/16.png",

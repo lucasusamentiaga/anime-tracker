@@ -1,5 +1,17 @@
 # Changelog
 
+## Sin publicar
+
+- **Google Drive, de verdad**: Miraru encuentra la unidad de Google Drive para escritorio
+  (G: u otra letra) con «Mi unidad» en cualquier idioma, el modo espejo y la app antigua;
+  Dropbox también se encuentra aunque esté en otra carpeta. Si hay Google Drive y OneDrive
+  no tiene la sesión iniciada, se usa Google Drive.
+- **Sin ninguna nube**, la ventana ☁ ofrece instalar Google Drive, OneDrive o Dropbox con un
+  clic (y Miraru la usa sola al volver).
+- **Extensión «Miraru × AnimeAV1» 1.3**: tipografía de Miraru, pasos que se marcan con un
+  check animado, animaciones suaves (y quietas si tu sistema pide menos movimiento), textos
+  que caben de 320 px a pantallas grandes y ventana que nunca pasa del alto de Chrome.
+
 ## v2.15.0 — Copia en la nube, AnimeAV1 al instante y debugging a fondo
 
 - **Tu lista sobrevive a formatear el PC.** Miraru guarda una copia en tu nube (OneDrive,

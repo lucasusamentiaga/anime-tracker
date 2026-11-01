@@ -123,12 +123,98 @@ def detectar_nubes() -> list[dict]:
     home = _home()
     for d in sorted(home.glob("OneDrive*")):
         poner("OneDrive", d)
-    for nombre in ("Mi unidad", "My Drive"):
-        for raiz in [home / "Google Drive"] + [Path(f"{l}:/") for l in "GHIJKLMNOP"]:
-            poner("Google Drive", raiz / nombre)
-    poner("Dropbox", home / "Dropbox")
+    for ruta in _carpetas_google_drive(home):
+        poner("Google Drive", ruta)
+    for ruta in _carpetas_dropbox(home):
+        poner("Dropbox", ruta)
     poner("iCloud Drive", home / "iCloudDrive")
+    for n in out:
+        if n["servicio"] == "Google Drive":
+            # Google Drive para escritorio solo monta su unidad (o su carpeta
+            # espejo) con la sesión iniciada: si existe, sincroniza.
+            n["sincroniza"] = True
     return sorted(out, key=lambda n: n["sincroniza"] is False)   # estable: no cambia el resto
+
+
+# Nombre de «Mi unidad» en los idiomas más comunes de Google Drive.
+_MI_UNIDAD = ("My Drive", "Mi unidad", "Mon Drive", "Meine Ablage", "Il mio Drive",
+              "O meu disco", "Meu Drive", "Mijn Drive", "Mój dysk", "Мой диск",
+              "マイドライブ", "내 드라이브", "我的雲端硬碟", "我的云端硬盘")
+_NO_SON_MI_UNIDAD = {"shared drives", "unidades compartidas", "drives partagés", "geteilte ablagen",
+                     "drive condivisi", "computers", "ordenadores", "ordinateurs", "computer",
+                     "$recycle.bin", ".shortcut-targets-by-id", "system volume information",
+                     ".file-revisions-by-id"}
+
+
+def _etiqueta_volumen(raiz: str) -> str:
+    """Etiqueta de una unidad de Windows («Google Drive» para la de DriveFS)."""
+    try:
+        import ctypes
+        buf = ctypes.create_unicode_buffer(261)
+        ok = ctypes.windll.kernel32.GetVolumeInformationW(  # type: ignore[attr-defined]
+            ctypes.c_wchar_p(raiz), buf, 261, None, None, None, None, 0)
+        return buf.value if ok else ""
+    except Exception:  # noqa: BLE001 — fuera de Windows o unidad no lista
+        return ""
+
+
+def _unidades_locales() -> list[str]:
+    """Unidades D:…Z: presentes, sin las de red ni los lectores de CD (una
+    unidad de red caída podría dejar la consulta colgada)."""
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        mapa = k32.GetLogicalDrives()
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for i in range(3, 26):
+        if mapa & (1 << i):
+            raiz = f"{chr(65 + i)}:\\"
+            if k32.GetDriveTypeW(ctypes.c_wchar_p(raiz)) not in (4, 5):   # 4 red, 5 CD
+                out.append(raiz)
+    return out
+
+
+def _carpetas_google_drive(home: Path) -> list[Path]:
+    """Google Drive para escritorio monta una unidad virtual (normalmente G:)
+    con la etiqueta «Google Drive»; dentro, «Mi unidad» tiene el nombre en el
+    idioma de la cuenta. En modo «espejo» es una carpeta en el perfil. También
+    la app antigua «Copia de seguridad y sincronización» (~/Google Drive)."""
+    out: list[Path] = []
+    for raiz in _unidades_locales():
+        if _etiqueta_volumen(raiz).lower() != "google drive":
+            continue
+        try:
+            subs = [d for d in Path(raiz).iterdir() if d.is_dir()]
+        except OSError:
+            continue
+        conocida = [d for d in subs if d.name in _MI_UNIDAD]
+        otras = [d for d in subs if d.name.lower() not in _NO_SON_MI_UNIDAD]
+        out.extend(conocida or otras[:1])
+    for nombre in _MI_UNIDAD:
+        out.append(home / nombre)                            # modo espejo
+        out.append(home / "Google Drive" / nombre)
+    out.append(home / "Google Drive")                        # app antigua
+    return [p for p in out if p.is_dir()]
+
+
+def _carpetas_dropbox(home: Path) -> list[Path]:
+    """Dropbox apunta su carpeta (personal y de empresa) en info.json."""
+    out: list[Path] = []
+    for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("APPDATA")):
+        if not base:
+            continue
+        info = Path(base) / "Dropbox" / "info.json"
+        try:
+            datos = json.loads(info.read_text(encoding="utf-8"))
+            for cuenta in datos.values():
+                if isinstance(cuenta, dict) and cuenta.get("path"):
+                    out.append(Path(cuenta["path"]))
+        except (OSError, ValueError):
+            pass
+    out.append(home / "Dropbox")
+    return [p for p in out if p.is_dir()]
 
 
 def carpeta_config() -> str:

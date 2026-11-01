@@ -122,7 +122,7 @@ body.sel-mode .ac.selected{opacity:1}
 .copia-estado.aviso{border-color:rgba(245,158,11,.5)}
 .copia-estado small{display:block;white-space:pre-line;color:var(--muted);font-size:11.5px;margin-top:2px;overflow-wrap:anywhere}
 .copia-nubes{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:8px}
-.copia-nube{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--card2);color:var(--fg);cursor:pointer;font:600 12.5px inherit;text-align:center}
+.copia-nube{text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--card2);color:var(--fg);cursor:pointer;font-size:12.5px;font-weight:600;line-height:1.3;text-align:center}
 .copia-nube:hover{border-color:var(--accent)}
 .copia-nube.on{border-color:var(--accent);background:rgba(var(--accent-rgb),.12)}
 .copia-nube .ico{font-size:24px}
@@ -975,7 +975,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
     <h3 id="nov-titulo">Tu lista, a salvo en tu nube</h3>
     <p class="nov-intro">Si formateas el ordenador, lo restableces de fábrica o te compras otro, tu lista ya no se pierde.</p>
     <ul class="nov-puntos">
-      <li><span>🔄</span><div><strong>Se guarda sola</strong><small>Miraru deja una copia en tu OneDrive (o Google Drive, Dropbox…) un minuto después de cada cambio. No tienes que hacer nada.</small></div></li>
+      <li><span>🔄</span><div><strong>Se guarda sola</strong><small>Miraru deja una copia en tu Google Drive, OneDrive o Dropbox un minuto después de cada cambio. No tienes que hacer nada.</small></div></li>
       <li><span>🖱️</span><div><strong>Se recupera con un clic</strong><small>Al instalar Miraru en un PC nuevo, te dirá «Hemos encontrado tu lista» y la traerá entera: episodios, notas, puntuaciones e historial.</small></div></li>
       <li><span>🔒</span><div><strong>Solo en tu nube</strong><small>La copia va a tu propia cuenta, nunca a servidores de Miraru, y no lleva contraseñas ni sesiones.</small></div></li>
     </ul>
@@ -5473,7 +5473,7 @@ async function _pintarCopia() {
       _pintarCopia();
     });
   }
-  if (!d.apagada) boton('Apagar', 'btn-g', () => copiaElegir('-'));
+  if (!d.apagada && d.activa) boton('Apagar', 'btn-g', () => copiaElegir('-'));
   // Nubes detectadas: un clic para elegir
   nubes.innerHTML = '';
   const actual = (d.carpeta || '').toLowerCase();
@@ -5489,7 +5489,25 @@ async function _pintarCopia() {
     b.onclick = () => copiaElegir(ruta);
     nubes.appendChild(b);
   });
-  if (!(d.nubes || []).length) nubes.innerHTML = '<p class="sync-nota">' + _tr('No hay ninguna nube instalada en este PC.') + '</p>';
+  if (!(d.nubes || []).length) {
+    // Sin nube: lo más fácil es instalar una (se detecta sola al volver aquí).
+    const n = document.createElement('p');
+    n.className = 'sync-nota';
+    n.style.gridColumn = '1 / -1';
+    n.textContent = _tr('No hay ninguna nube en este PC. Instala una (es gratis) y vuelve aquí: Miraru la usará sola.');
+    nubes.appendChild(n);
+    [['Google Drive', 'https://www.google.com/drive/download/', '15 GB gratis'],
+     ['OneDrive', 'https://www.microsoft.com/microsoft-365/onedrive/download', '5 GB gratis'],
+     ['Dropbox', 'https://www.dropbox.com/install', '2 GB gratis']].forEach(([nom, url, extra]) => {
+      const a = document.createElement('a');
+      a.className = 'copia-nube'; a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = _ICONO_NUBE[nom] || '☁';
+      const t = document.createElement('span'); t.textContent = _tr('Instalar') + ' ' + nom;
+      const sm = document.createElement('small'); sm.textContent = _tr(extra);
+      a.append(ico, t, sm);
+      nubes.appendChild(a);
+    });
+  }
   // Copias encontradas → recuperar
   lista.innerHTML = '';
   if ((d.copias || []).length) {
@@ -5595,6 +5613,8 @@ async function _mostrarNovedades() {
       sm.textContent = _tr('Instala OneDrive (viene con Windows), Google Drive o Dropbox y Miraru la usará sola.');
     }
     t.append(b, sm); est.append(ico, t);
+    const verCopia = document.querySelector('#modal-novedades .btn-p');
+    if (verCopia) verCopia.textContent = (d && d.activa && d.sincroniza !== false) ? _tr('☁ Ver mi copia') : _tr('☁ Activarla');
     abrirModalEl('modal-novedades');
   } catch (_) {}
 }

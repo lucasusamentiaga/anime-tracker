@@ -6,7 +6,6 @@ function poner(id, estado, texto) {
   p.classList.remove('ok', 'mal', 'espera');
   p.classList.add(estado);
   p.querySelector('.estado').textContent = texto;
-  p.querySelector('.num span').textContent = estado === 'ok' ? '✓' : p.dataset.n || p.querySelector('.num span').textContent;
 }
 
 async function base() {
@@ -52,13 +51,13 @@ function pintarResultado(u) {
   $('r-nombre').textContent = u.nombre;
   const total = parseInt(u.capitulos, 10);
   $('r-ep').textContent = 'Episodio ' + (u.episodio ?? '?') + (total > 0 ? ' de ' + total : '');
-  $('r-barra').style.width = total > 0 ? Math.min(100, Math.round((u.episodio || 0) / total * 100)) + '%' : '100%';
+  const fr = total > 0 ? Math.min(1, (u.episodio || 0) / total) : 1;
+  requestAnimationFrame(() => requestAnimationFrame(() => { $('r-barra').style.transform = `scaleX(${fr})`; }));
   if (u.imagen) { $('r-portada').src = u.imagen; $('r-portada').hidden = false; } else { $('r-portada').hidden = true; }
   poner('p-prueba', 'ok', '¡Ya está! A partir de ahora, cada episodio que marques en AnimeAV1 aparecerá en Miraru.');
   document.body.classList.add('celebra');
 }
 
-document.querySelectorAll('.paso').forEach(p => { p.dataset.n = p.querySelector('.num span').textContent; });
 comprobarMiraru();
 comprobarAnimeAV1();
 setInterval(comprobarMiraru, 3000);

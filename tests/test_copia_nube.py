@@ -145,3 +145,53 @@ def test_onedrive_sin_sesion_se_avisa(cn, db, nube, monkeypatch):
     assert cn.estado()["sincroniza"] is False
     monkeypatch.setattr(cn, "_cuentas_onedrive", lambda: {str(nube).lower(): True})
     assert cn.estado()["sincroniza"] is True
+
+
+def test_google_drive_unidad_virtual_en_cualquier_idioma(cn, db, tmp_path, monkeypatch):
+    """Google Drive para escritorio monta una unidad «Google Drive» (G:) y
+    dentro «Mi unidad» con el nombre en el idioma de la cuenta."""
+    monkeypatch.delenv("OneDrive")
+    unidad = tmp_path / "G"
+    (unidad / "Meine Ablage").mkdir(parents=True)
+    (unidad / "Geteilte Ablagen").mkdir()
+    monkeypatch.setattr(cn, "_unidades_locales", lambda: [str(unidad)])
+    monkeypatch.setattr(cn, "_etiqueta_volumen", lambda r: "Google Drive")
+    n = cn.detectar_nubes()
+    assert n == [{"servicio": "Google Drive", "ruta": str(unidad / "Meine Ablage"), "sincroniza": True}]
+    _lista(db, 2)
+    assert cn.guardar_copia()["ok"]
+    assert (unidad / "Meine Ablage" / "Miraru" / "miraru-copia-PC-LUCAS.zip").exists()
+
+
+def test_google_drive_nombre_desconocido_y_modo_espejo(cn, tmp_path, monkeypatch):
+    monkeypatch.delenv("OneDrive")
+    unidad = tmp_path / "H"
+    (unidad / "Moje dokumenty Google").mkdir(parents=True)
+    (unidad / ".shortcut-targets-by-id").mkdir()
+    monkeypatch.setattr(cn, "_unidades_locales", lambda: [str(unidad)])
+    monkeypatch.setattr(cn, "_etiqueta_volumen", lambda r: "Google Drive")
+    assert [x["ruta"] for x in cn.detectar_nubes()] == [str(unidad / "Moje dokumenty Google")]
+    # Modo espejo: carpeta en el perfil
+    monkeypatch.setattr(cn, "_unidades_locales", lambda: [])
+    home = tmp_path / "home"
+    (home / "Mi unidad").mkdir(parents=True)
+    assert cn.detectar_nubes()[0]["ruta"] == str(home / "Mi unidad")
+
+
+def test_dropbox_por_info_json(cn, tmp_path, monkeypatch):
+    monkeypatch.delenv("OneDrive")
+    caja = tmp_path / "D" / "Dropbox (Empresa)"
+    caja.mkdir(parents=True)
+    app = tmp_path / "appdata"
+    (app / "Dropbox").mkdir(parents=True)
+    (app / "Dropbox" / "info.json").write_text(json.dumps({"business": {"path": str(caja)}}))
+    monkeypatch.setenv("LOCALAPPDATA", str(app))
+    assert cn.detectar_nubes()[0] == {"servicio": "Dropbox", "ruta": str(caja), "sincroniza": None}
+
+
+def test_onedrive_sin_sesion_va_detras_de_google_drive(cn, nube, tmp_path, monkeypatch):
+    monkeypatch.setattr(cn, "_cuentas_onedrive", lambda: {str(nube).lower(): False})
+    (tmp_path / "home" / "My Drive").mkdir(parents=True)
+    servicios = [x["servicio"] for x in cn.detectar_nubes()]
+    assert servicios == ["Google Drive", "OneDrive"]
+    assert cn.carpeta_activa().parent.name == "My Drive"

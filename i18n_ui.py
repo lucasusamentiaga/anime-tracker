@@ -736,10 +736,10 @@ UI: dict[str, tuple[str, str, str]] = {
         "Si vous formatez, réinitialisez ou changez d'ordinateur, votre liste n'est plus perdue.",
         "Wenn du deinen PC formatierst, zurücksetzt oder einen neuen kaufst, geht deine Liste nicht mehr verloren."),
     "Se guarda sola": ("It saves itself", "Elle s'enregistre toute seule", "Speichert sich selbst"),
-    "Miraru deja una copia en tu OneDrive (o Google Drive, Dropbox…) un minuto después de cada cambio. No tienes que hacer nada.": (
-        "Miraru leaves a copy in your OneDrive (or Google Drive, Dropbox…) a minute after each change. You don't have to do anything.",
-        "Miraru dépose une copie dans votre OneDrive (ou Google Drive, Dropbox…) une minute après chaque changement. Vous n'avez rien à faire.",
-        "Miraru legt eine Minute nach jeder Änderung eine Kopie in dein OneDrive (oder Google Drive, Dropbox…). Du musst nichts tun."),
+    "Miraru deja una copia en tu Google Drive, OneDrive o Dropbox un minuto después de cada cambio. No tienes que hacer nada.": (
+        "Miraru leaves a copy in your Google Drive, OneDrive or Dropbox a minute after each change. You don't have to do anything.",
+        "Miraru dépose une copie dans votre Google Drive, OneDrive ou Dropbox une minute après chaque changement. Vous n'avez rien à faire.",
+        "Miraru legt eine Minute nach jeder Änderung eine Kopie in dein Google Drive, OneDrive oder Dropbox. Du musst nichts tun."),
     "Se recupera con un clic": ("Restored with one click", "Récupérée en un clic", "Mit einem Klick wiederhergestellt"),
     "Al instalar Miraru en un PC nuevo, te dirá «Hemos encontrado tu lista» y la traerá entera: episodios, notas, puntuaciones e historial.": (
         "When you install Miraru on a new PC, it will say \"We found your list\" and bring it back whole: episodes, notes, scores and history.",
@@ -751,6 +751,7 @@ UI: dict[str, tuple[str, str, str]] = {
         "La copie va sur votre propre compte, jamais sur des serveurs de Miraru, et ne contient ni mots de passe ni sessions.",
         "Die Kopie landet in deinem eigenen Konto, nie auf Miraru-Servern, und enthält keine Passwörter oder Sitzungen."),
     "Entendido": ("Got it", "Compris", "Verstanden"),
+    "☁ Activarla": ("☁ Turn it on", "☁ L'activer", "☁ Aktivieren"),
     "☁ Ver mi copia": ("☁ See my backup", "☁ Voir ma copie", "☁ Meine Kopie ansehen"),
     "Tu lista se está guardando ahí. No tienes que hacer nada más.": ("Your list is being saved there. Nothing else to do.", "Votre liste y est enregistrée. Rien d'autre à faire.", "Deine Liste wird dort gespeichert. Sonst nichts zu tun."),
     "Falta un paso: inicia sesión en OneDrive": ("One step left: sign in to OneDrive", "Une étape de plus : connectez-vous à OneDrive", "Ein Schritt fehlt: bei OneDrive anmelden"),
@@ -802,6 +803,14 @@ UI: dict[str, tuple[str, str, str]] = {
         "Die Kopie liegt im Ordner, wird aber erst hochgeladen, wenn du OneDrive öffnest und dich anmeldest."),
     "sin sesión iniciada": ("not signed in", "non connecté", "nicht angemeldet"),
     "Tu lista no está protegida: pulsa para verlo": ("Your list isn't protected: click to see why", "Votre liste n'est pas protégée : cliquez pour voir", "Deine Liste ist nicht geschützt: klicken für Details"),
+    "No hay ninguna nube en este PC. Instala una (es gratis) y vuelve aquí: Miraru la usará sola.": (
+        "There's no cloud on this PC. Install one (it's free) and come back: Miraru will use it automatically.",
+        "Aucun cloud sur ce PC. Installez-en un (c'est gratuit) et revenez : Miraru l'utilisera tout seul.",
+        "Auf diesem PC gibt es keine Cloud. Installiere eine (kostenlos) und komm zurück: Miraru nutzt sie automatisch."),
+    "Instalar": ("Install", "Installer", "Installieren"),
+    "15 GB gratis": ("15 GB free", "15 Go gratuits", "15 GB kostenlos"),
+    "5 GB gratis": ("5 GB free", "5 Go gratuits", "5 GB kostenlos"),
+    "2 GB gratis": ("2 GB free", "2 Go gratuits", "2 GB kostenlos"),
     "Copias encontradas": ("Backups found", "Copies trouvées", "Gefundene Kopien"),
     "este PC": ("this PC", "ce PC", "dieser PC"),
     "Recuperar": ("Restore", "Récupérer", "Wiederherstellen"),
