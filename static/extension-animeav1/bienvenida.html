@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Miraru × AnimeAV1 — Bienvenida</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body class="bienvenida">
+  <div class="fondo" aria-hidden="true"></div>
+  <main>
+    <header class="hero">
+      <div class="logos">
+        <img src="iconos/128.png" alt="Miraru" class="logo">
+        <span class="mas">+</span>
+        <span class="av1">AV1</span>
+      </div>
+      <h1>¡Listo! Ya está instalada</h1>
+      <p class="sub">Cuando marques un episodio como visto en AnimeAV1, se apuntará <strong>solo</strong> en tu Miraru, en ese mismo momento.</p>
+    </header>
+
+    <section class="pasos">
+      <article class="paso" id="p-miraru">
+        <div class="num"><span>1</span></div>
+        <div class="cuerpo">
+          <h2>Miraru abierto en tu PC</h2>
+          <p class="estado">Comprobando…</p>
+          <div class="acciones"><a class="btn" id="abrir-miraru" href="#" target="_blank">Abrir Miraru</a></div>
+        </div>
+      </article>
+
+      <article class="paso" id="p-av1">
+        <div class="num"><span>2</span></div>
+        <div class="cuerpo">
+          <h2>Sesión iniciada en AnimeAV1</h2>
+          <p class="estado">Comprobando…</p>
+          <div class="acciones"><a class="btn" href="https://animeav1.com" target="_blank" rel="noopener">Ir a AnimeAV1</a></div>
+        </div>
+      </article>
+
+      <article class="paso" id="p-prueba">
+        <div class="num"><span>3</span></div>
+        <div class="cuerpo">
+          <h2>Pruébalo con un episodio</h2>
+          <p class="estado">Abre cualquier episodio en AnimeAV1 y pulsa este botón, que está debajo del vídeo:</p>
+          <div class="maqueta" aria-hidden="true">
+            <span class="m-btn">‹</span>
+            <span class="m-btn m-ojo" title="Marcar como visto">👁<span class="m-cursor">👆</span></span>
+            <span class="m-btn">⬇</span>
+            <span class="m-btn">›</span>
+            <span class="m-etiqueta">Marcar como visto</span>
+          </div>
+          <div class="resultado" id="resultado" hidden>
+            <img id="r-portada" alt="">
+            <div>
+              <div class="r-ok">✓ ¡Funciona! Apuntado en Miraru</div>
+              <div class="r-nombre" id="r-nombre"></div>
+              <div class="r-ep" id="r-ep"></div>
+              <div class="barra"><span id="r-barra"></span></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="extra">
+      <div class="tarjeta">
+        <div class="ico">📌</div>
+        <div><strong>Tenla a mano</strong><p>Pulsa la pieza de puzle 🧩 arriba a la derecha del navegador y la chincheta junto a «Miraru × AnimeAV1». Su icono te avisa: <b class="ok">✓</b> apuntado, <b class="mal">!</b> Miraru cerrado (se apunta al abrirlo), <b class="warn">?</b> no se pudo.</p></div>
+      </div>
+      <div class="tarjeta">
+        <div class="ico">🔒</div>
+        <div><strong>Solo mira ese botón</strong><p>La extensión no lee tu historial ni nada más de AnimeAV1: solo se entera de cuándo marcas un episodio, y se lo cuenta a Miraru en tu propio PC.</p></div>
+      </div>
+    </section>
+  </main>
+<script src="bienvenida.js"></script>
+</body>
+</html>

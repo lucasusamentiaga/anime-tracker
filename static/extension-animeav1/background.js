@@ -146,8 +146,11 @@ async function enviarUnaVez() {
     hechos.add(id);
     const d = await r.json().catch(() => ({}));
     if (r.ok) {
-      await chrome.storage.local.set({ultimo: {cuando: Date.now(), nombre: d.nombre || '',
-        episodio: d.episodios_vistos, accion: d.accion || ''}});
+      const ultimo = {cuando: Date.now(), nombre: d.nombre || '', episodio: d.episodios_vistos,
+        accion: d.accion || '', estado: d.estado || '', imagen: d.imagen || '', capitulos: d.capitulos || ''};
+      const {historial = []} = await chrome.storage.local.get('historial');
+      await chrome.storage.local.set({ultimo, historial: [ultimo, ...historial.filter(h =>
+        !(h.nombre === ultimo.nombre && h.episodio === ultimo.episodio))].slice(0, 8)});
       await marcar('✓', '#16a34a', `Apuntado en Miraru: ${d.nombre || ''}`);
     } else if (r.status >= 500) {
       reintentar.push(id);         // fallo pasajero (AnimeAV1 o AniList no contestan)
@@ -173,6 +176,11 @@ async function marcar(texto, color, titulo) {
 }
 
 chrome.alarms.create('reintentar', {periodInMinutes: 1});
+
+// Al instalarla: la guía de bienvenida (comprueba sola que todo está listo).
+chrome.runtime.onInstalled.addListener(({reason}) => {
+  if (reason === 'install') chrome.tabs.create({url: chrome.runtime.getURL('bienvenida.html')});
+});
 chrome.alarms.onAlarm.addListener(a => { if (a.name === 'reintentar') enviarCola(); });
 chrome.runtime.onStartup.addListener(enviarCola);
 chrome.runtime.onMessage.addListener((msg, _s, responder) => {

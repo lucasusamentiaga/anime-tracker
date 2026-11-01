@@ -1,7 +1,18 @@
 # Changelog
 
-## v2.15.0 — AnimeAV1 al instante y debugging a fondo
+## v2.15.0 — Copia en la nube, AnimeAV1 al instante y debugging a fondo
 
+- **Tu lista sobrevive a formatear el PC.** Miraru guarda una copia en tu nube (OneDrive,
+  Google Drive, Dropbox o iCloud Drive) al poco de cada cambio. Al instalar Miraru en un
+  PC nuevo o recién restablecido, te ofrece recuperarla con un clic. Con OneDrive se
+  activa sola; botón ☁ para ver el estado, elegir otra nube o apagarla. La copia no lleva
+  contraseñas ni sesiones. Si OneDrive no tiene la sesión iniciada, Miraru te avisa (la
+  copia no subiría a ningún sitio).
+- **Extensión «Miraru × AnimeAV1» más clara**: al instalarla se abre una guía que comprueba
+  sola cada paso (Miraru abierto, sesión en AnimeAV1, primera prueba) y lo celebra cuando
+  funciona; su ventana enseña la portada y el progreso de lo último que marcaste.
+- Términos de uso (`TERMS.md`) y política de privacidad actualizada (copia en la nube,
+  AnimeAV1 y la extensión).
 - **AnimeAV1 → Miraru al instante.** Con la extensión «Miraru × AnimeAV1» (se descarga
   desde 🔗 Sincronizar listas), cada vez que pulsas «Marcar como visto» en un episodio de
   AnimeAV1 se apunta en Miraru en ese mismo momento; si no tenías el anime, se añade.

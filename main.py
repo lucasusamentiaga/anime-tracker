@@ -74,6 +74,7 @@ except ImportError:  # Pydantic 1 (Python puro): el que usa install.ps1, sin DLL
 
 import anilist_sync
 import animeav1_sync
+import copia_nube
 import database as db
 import metadatos
 import sheets_sync
@@ -124,6 +125,8 @@ async def _lifespan(app: FastAPI):
     except Exception:
         pass
     _start_auto_backup_once()
+    if not _sin_hilos_de_fondo():
+        copia_nube.iniciar_hilo()
     migrations.completar_episodios_vistos()   # rápido (solo SQL), idempotente
     _start_cap200_fix_once()
     _start_emision_refresh_once()
@@ -3138,6 +3141,83 @@ async def crear_backup(incluir_credenciales: bool = False):
         "incluye_credenciales": incluir_credenciales,
     }
 
+# ── Copia en la nube (v2.15): no perder la lista al formatear el PC ──────────
+
+class CopiaCarpetaRequest(BaseModel):
+    ruta: str = Field("", max_length=500)     # "" = automática, "-" = apagada
+
+
+class CopiaRecuperarRequest(BaseModel):
+    archivo: str = Field(..., max_length=600)
+
+
+def _copias_permitidas() -> dict:
+    return {c["archivo"]: c for c in copia_nube.buscar_copias()}
+
+
+@app.get("/api/copia")
+def copia_estado():
+    est = copia_nube.estado()
+    est["copias"] = list(_copias_permitidas().values())
+    est["lista_vacia"] = copia_nube.lista_vacia()
+    return est
+
+
+@app.post("/api/copia/carpeta")
+def copia_elegir_carpeta(req: CopiaCarpetaRequest):
+    ruta = req.ruta.strip()
+    if ruta not in ("", "-"):
+        p = Path(ruta)
+        if not p.is_absolute():
+            raise HTTPException(400, "Escribe la ruta completa de la carpeta")
+        if p.name.lower() != copia_nube.NOMBRE_CARPETA.lower():
+            p = p / copia_nube.NOMBRE_CARPETA
+        try:
+            p.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise HTTPException(400, f"No se puede usar esa carpeta: {e}") from e
+        ruta = str(p)
+    db.set_config(copia_nube.CLAVE_CARPETA, ruta)
+    r = {"ok": True}
+    if ruta != "-" and not copia_nube.lista_vacia():
+        try:
+            r["copia"] = copia_nube.guardar_copia()
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(500, f"No se pudo guardar la copia: {e}") from e
+    return r
+
+
+@app.post("/api/copia/ahora")
+def copia_ahora():
+    if copia_nube.carpeta_activa() is None:
+        raise HTTPException(400, "Elige primero dónde guardar la copia")
+    r = copia_nube.guardar_copia()
+    if not r["ok"] and r.get("motivo") == "pendiente":
+        raise HTTPException(409, "Antes decide si recuperas la copia que ya hay")
+    return r
+
+
+@app.post("/api/copia/recuperar")
+def copia_recuperar(req: CopiaRecuperarRequest):
+    # Solo copias encontradas por Miraru: nada de rutas arbitrarias.
+    if req.archivo not in _copias_permitidas():
+        raise HTTPException(404, "No encuentro esa copia")
+    try:
+        r = copia_nube.recuperar(Path(req.archivo))
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    global _relaciones_cache, _franquicias_cache
+    _relaciones_cache = None          # las relaciones de AniList vienen en la copia
+    _franquicias_cache = None
+    return r
+
+
+@app.post("/api/copia/empezar-de-cero")
+def copia_empezar_de_cero():
+    copia_nube.empezar_de_cero()
+    return {"ok": True}
+
+
 @app.get("/api/backups")
 async def listar_backups():
     backup_dir = Path(os.environ.get("ANIME_APP_DIR", str(APP_DIR))) / "backups"
@@ -4617,7 +4697,8 @@ async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
             db.log_episode(datos["nombre"], int(req.episode))
         animeav1_sync.guardar_ultimo_evento(datos["nombre"], req.episode, "añadido")
         return {"ok": True, "accion": "añadido", "nombre": datos["nombre"],
-                "episodios_vistos": int(req.episode or 0)}
+                "episodios_vistos": int(req.episode or 0), "estado": datos["estado_usuario"],
+                "imagen": datos.get("imagen") or "", "capitulos": str(datos.get("capitulos") or "")}
     nombre = local["nombre"]
     if req.status == -1:
         # Quitado de tus listas en AnimeAV1: en Miraru no se borra nada.
@@ -4629,8 +4710,10 @@ async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
         await actualizar_anime(nombre, ActualizarRequest(**cambios))
     animeav1_sync.guardar_ultimo_evento(nombre, req.episode, "actualizado" if cambios else "sin cambios")
     final = db.obtener_anime(nombre) or local
+    # imagen y capitulos: para que la ventana de la extensión enseñe la portada y el progreso
     return {"ok": True, "accion": "actualizado" if cambios else "sin cambios", "nombre": nombre,
-            "episodios_vistos": final.get("episodios_vistos"), "estado": final.get("estado_usuario")}
+            "episodios_vistos": final.get("episodios_vistos"), "estado": final.get("estado_usuario"),
+            "imagen": final.get("imagen") or "", "capitulos": str(final.get("capitulos") or "")}
 
 
 @app.get("/api/animeav1/extension")

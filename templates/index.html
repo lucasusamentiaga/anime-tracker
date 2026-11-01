@@ -116,6 +116,30 @@ body.sel-mode .ac.selected{opacity:1}
 .sync-pasos{font-size:12.5px;color:var(--fg);margin:0 0 12px 18px;padding:0;line-height:1.6}
 .sync-pasos li{margin-bottom:3px}
 .sync-nota{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.copia-estado{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--card2);border:1px solid var(--border);margin-bottom:10px;font-size:13px}
+.copia-estado .ico{font-size:26px;line-height:1}
+.copia-estado.ok{border-color:rgba(34,197,94,.45)}
+.copia-estado.aviso{border-color:rgba(245,158,11,.5)}
+.copia-estado small{display:block;white-space:pre-line;color:var(--muted);font-size:11.5px;margin-top:2px;overflow-wrap:anywhere}
+.copia-nubes{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:8px}
+.copia-nube{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--card2);color:var(--fg);cursor:pointer;font:600 12.5px inherit;text-align:center}
+.copia-nube:hover{border-color:var(--accent)}
+.copia-nube.on{border-color:var(--accent);background:rgba(var(--accent-rgb),.12)}
+.copia-nube .ico{font-size:24px}
+.copia-nube small{font-weight:400;color:var(--muted);font-size:10.5px}
+.copia-otra{font-size:12px;color:var(--muted);margin-bottom:6px}
+.copia-otra input{background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--fg);padding:6px 9px;font-size:12px}
+.copia-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin-top:8px;font-size:12.5px}
+.copia-item div{flex:1;min-width:0}
+.copia-item small{color:var(--muted);display:block}
+.copia-aviso{border:1px solid rgba(var(--accent-rgb),.5);background:linear-gradient(135deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),.04));border-radius:16px;padding:18px 20px;margin-bottom:18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.copia-aviso .ico{font-size:40px;line-height:1}
+.copia-aviso .txt{flex:1;min-width:220px}
+.copia-aviso h3{margin:0 0 4px;font-size:17px}
+.copia-aviso p{margin:0;color:var(--muted);font-size:13px}
+.copia-aviso .acc{display:flex;gap:8px;flex-wrap:wrap}
+#btn-copia{position:relative}
+#btn-copia.copia-mal::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 2px var(--bg)}
 .av1-ext{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08);border-radius:12px;padding:12px 14px}
 .av1-ext-cab{font-size:14px;margin-bottom:6px}
 .av1-ext-tag{font-size:10.5px;background:var(--accent);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px;vertical-align:1px}
@@ -125,10 +149,10 @@ body.sel-mode .ac.selected{opacity:1}
 .av1-ext-pasos .btn-g{border:1px solid var(--border)!important;background:var(--card2)!important;color:var(--fg)!important}
 /* .btn-p / .btn-g se usaban en la ventana de AniList y AnimeAV1 pero nunca se
    definieron aquí (solo en otras páginas): sus botones salían sin estilo. */
-.btn-p{background:var(--accent);color:#fff;border:1px solid transparent}
-.btn-p:hover{background:var(--accent2)}
-.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.btn-g:hover{color:var(--fg);border-color:var(--muted)}
+.btn.btn-p{background:var(--accent);color:#fff;border:1px solid transparent}
+.btn.btn-p:hover{background:var(--accent2)}
+.btn.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn.btn-g:hover{color:var(--fg);border-color:var(--muted)}
 .av1-ext-pasos .gris{color:var(--muted);font-size:11.5px}
 .av1-ext-estado{font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:8px}
 .av1-ext-estado.ok{color:var(--fg)}
@@ -918,6 +942,29 @@ fetch('/api/version').then(r => r.json()).then(d => {
   </div>
 </div>
 
+<!-- Modal: copia en la nube (v2.15) -->
+<div class="modal-bg" id="modal-copia" onclick="if(event.target===this)cerrarModal('modal-copia')">
+  <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto">
+    <h3>☁ Copia en la nube</h3>
+    <p class="sync-ayuda">Si formateas el ordenador o lo restableces de fábrica, tu lista se borra con él. Miraru guarda una copia en tu nube (OneDrive, Google Drive, Dropbox…) y, al instalarlo de nuevo, te ofrece recuperarla con un clic.</p>
+    <div id="copia-estado" class="copia-estado"></div>
+    <div id="copia-acciones" class="modal-actions" style="justify-content:flex-start;margin:0 0 12px"></div>
+    <h4 class="sync-servicio" style="margin-top:6px">¿Dónde se guarda?</h4>
+    <div id="copia-nubes" class="copia-nubes"></div>
+    <details class="copia-otra"><summary>Otra carpeta</summary>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="copia-ruta" type="text" placeholder="C:\Users\tú\Mi nube" style="flex:1">
+        <button class="btn btn-p btn-sm" type="button" onclick="copiaElegir(document.getElementById('copia-ruta').value)">Usar</button>
+      </div>
+    </details>
+    <div id="copia-lista"></div>
+    <p class="sync-nota" style="margin-top:12px">La copia no lleva contraseñas ni sesiones (AniList, AnimeAV1, correo, PIN del móvil): al recuperarla en otro PC tendrás que volver a conectarlas.</p>
+    <div class="modal-actions" style="border-top:1px solid var(--border);padding-top:14px;margin-top:10px">
+      <button class="btn btn-g" type="button" onclick="cerrarModal('modal-copia')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: AniList Sync -->
 <div class="modal-bg" id="modal-anilist" onclick="if(event.target===this)cerrarModal('modal-anilist')">
   <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto">
@@ -1119,6 +1166,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
       <button class="btn btn-ghost btn-sm" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema"><span id="nav-theme">🌙</span></button>
       <a href="/mobile" class="btn btn-ghost btn-sm" title="Acceso móvil">📱</a>
       <button class="btn btn-ghost btn-sm" onclick="abrirAniList()" title="Sincronizar con AniList y AnimeAV1" id="btn-anilist">🔗</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirCopia()" title="Copia en la nube" id="btn-copia">☁</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirWatchFolder()" title="Auto-detección episodios" id="btn-watchfolder">📂</button>
       <a href="/setup" class="btn btn-ghost btn-sm" title="Configuración">⚙</a>
       <a href="/" class="btn btn-ghost btn-sm" title="Menú inicio">⌂</a>
@@ -1224,6 +1272,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
     </h2>
     <div id="continuar-strip" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin"></div>
   </section>
+  <div id="copia-aviso" class="copia-aviso" style="display:none"></div>
   <div id="lista"></div>
   <p id="empty-msg"></p>
 
@@ -4362,6 +4411,7 @@ function _paletteCommands() {
     {icon: '🎬', label: 'Novedades',     run: () => location.href = '/novedades'},
     {icon: '✨', label: 'Recomendaciones', run: () => location.href = '/recomendaciones'},
     {icon: '📥', label: 'Importar',      run: () => location.href = '/import'},
+    {icon: '☁', label: 'Copia en la nube', run: () => abrirCopia()},
     {icon: '🏠', label: 'Inicio',        run: () => location.href = '/'},
     {icon: '🔄', label: T('sync') || 'Sincronizar', run: () => sincronizar()},
     {icon: '🎲', label: T('random') || 'Anime aleatorio', run: () => animeAleatorio()},
@@ -5280,6 +5330,179 @@ async function abrirAniList() {
   await _av1Estado();
   abrirModalEl('modal-anilist');
 }
+
+// ── Copia en la nube (v2.15) ────────────────────────────────────────────────
+const _ICONO_NUBE = {'OneDrive': '☁️', 'Google Drive': '🟢', 'Dropbox': '📦', 'iCloud Drive': '🍎', 'carpeta': '📁'};
+
+function _fechaCorta(ts) {
+  if (!ts) return '';
+  const min = Math.round((Date.now() / 1000 - ts) / 60);
+  if (min < 1) return _tr('hace un momento');
+  if (min < 60) return _tr('hace ' + min + ' min');
+  return new Date(ts * 1000).toLocaleString([], {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'});
+}
+
+async function _copiaDatos() {
+  try { const r = await fetch('/api/copia', {cache: 'no-store'}); if (r.ok) return await r.json(); } catch (_) {}
+  return null;
+}
+
+async function abrirCopia() {
+  abrirModalEl('modal-copia');
+  await _pintarCopia();
+}
+
+async function _pintarCopia() {
+  _marcarBotonCopia();
+  const d = await _copiaDatos();
+  const est = document.getElementById('copia-estado');
+  const acc = document.getElementById('copia-acciones');
+  const nubes = document.getElementById('copia-nubes');
+  const lista = document.getElementById('copia-lista');
+  if (!d || !est) return;
+  est.className = 'copia-estado';
+  acc.innerHTML = '';
+  const linea = (ico, titulo, sub) => {
+    est.innerHTML = '';
+    const i = document.createElement('span'); i.className = 'ico'; i.textContent = ico;
+    const t = document.createElement('div');
+    const b = document.createElement('strong'); b.textContent = _tr(titulo);
+    const sm = document.createElement('small'); sm.textContent = sub || '';
+    t.append(b, sm); est.append(i, t);
+  };
+  const boton = (txt, clase, fn) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm ' + clase;
+    b.textContent = _tr(txt); b.onclick = fn; acc.appendChild(b); return b;
+  };
+  if (d.apagada) {
+    est.classList.add('aviso');
+    linea('⚠️', 'La copia en la nube está apagada', _tr('Si formateas el PC, perderás tu lista.'));
+  } else if (!d.activa) {
+    est.classList.add('aviso');
+    linea('⚠️', 'No encuentro ninguna nube en este PC', _tr('Instala OneDrive, Google Drive o Dropbox, o elige otra carpeta abajo.'));
+  } else if (d.pendiente) {
+    est.classList.add('aviso');
+    linea('⏸', 'Hay una copia anterior de este PC', _tr('Recupérala o empieza de cero; mientras tanto no se escribe encima.'));
+  } else if (d.sincroniza === false) {
+    est.classList.add('aviso');
+    linea('⚠️', d.servicio + ': ' + _tr('no has iniciado sesión'),
+      _tr('La copia se guarda en la carpeta, pero no sube a la nube hasta que abras OneDrive e inicies sesión.') + '\n' + d.carpeta);
+    boton('☁ Guardar ahora', 'btn-p', async () => { await fetch('/api/copia/ahora', {method: 'POST'}); _pintarCopia(); });
+  } else {
+    est.classList.add('ok');
+    const u = d.ultima || {};
+    const sub = u.ts ? _tr('Última copia') + ': ' + _fechaCorta(u.ts) + ' · ' + (u.animes || 0) + ' animes'
+                     : _tr('La primera copia se hará en un momento');
+    linea('✅', 'Tu lista está a salvo en ' + d.servicio, sub + '\n' + d.carpeta);
+    boton('☁ Guardar ahora', 'btn-p', async (e) => {
+      e.target.disabled = true;
+      const r = await fetch('/api/copia/ahora', {method: 'POST'});
+      toast(r.ok ? '☁ ' + _tr('Copia guardada') : _tr('No se pudo guardar la copia'), r.ok ? 'ok' : 'err');
+      _pintarCopia();
+    });
+  }
+  if (!d.apagada) boton('Apagar', 'btn-g', () => copiaElegir('-'));
+  // Nubes detectadas: un clic para elegir
+  nubes.innerHTML = '';
+  const actual = (d.carpeta || '').toLowerCase();
+  (d.nubes || []).forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const ruta = n.ruta + (n.ruta.endsWith('\\') ? '' : '\\') + 'Miraru';
+    b.className = 'copia-nube' + (actual.startsWith(n.ruta.toLowerCase()) && !d.apagada ? ' on' : '');
+    const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = _ICONO_NUBE[n.servicio] || '☁';
+    const t = document.createElement('span'); t.textContent = n.servicio;
+    const sm = document.createElement('small'); sm.textContent = n.sincroniza === false ? '⚠ ' + _tr('sin sesión iniciada') : n.ruta;
+    b.append(ico, t, sm);
+    b.onclick = () => copiaElegir(ruta);
+    nubes.appendChild(b);
+  });
+  if (!(d.nubes || []).length) nubes.innerHTML = '<p class="sync-nota">' + _tr('No hay ninguna nube instalada en este PC.') + '</p>';
+  // Copias encontradas → recuperar
+  lista.innerHTML = '';
+  if ((d.copias || []).length) {
+    const h = document.createElement('h4'); h.className = 'sync-servicio'; h.style.marginTop = '14px';
+    h.textContent = _tr('Copias encontradas'); lista.appendChild(h);
+    d.copias.forEach(c => lista.appendChild(_itemCopia(c)));
+  }
+}
+
+function _itemCopia(c) {
+  const it = document.createElement('div'); it.className = 'copia-item';
+  const ico = document.createElement('span'); ico.style.fontSize = '20px'; ico.textContent = _ICONO_NUBE[c.servicio] || '☁';
+  const t = document.createElement('div');
+  const b = document.createElement('strong'); b.textContent = (c.animes ?? '?') + ' animes · ' + _fechaCorta(c.ts);
+  const sm = document.createElement('small'); sm.textContent = c.servicio + ' · ' + (c.este_pc ? _tr('este PC') : (c.equipo || ''));
+  t.append(b, sm);
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-g btn-sm';
+  btn.textContent = _tr('Recuperar'); btn.onclick = () => copiaRecuperar(c);
+  it.append(ico, t, btn);
+  return it;
+}
+
+async function copiaElegir(ruta) {
+  const r = await fetch('/api/copia/carpeta', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                               body: JSON.stringify({ruta: ruta || ''})});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { toast(_tr(d.detail || 'Error'), 'err'); return; }
+  toast(ruta === '-' ? _tr('Copia en la nube apagada') : '☁ ' + _tr('Copia guardada'));
+  _pintarCopia();
+}
+
+async function copiaRecuperar(c) {
+  const txt = _tr('¿Recuperar esta copia?') + '\n\n' + (c.animes ?? '?') + ' animes · ' + _fechaCorta(c.ts) +
+    '\n\n' + _tr('Sustituye la lista de este PC (antes se guarda una copia de seguridad por si acaso).');
+  if (!(await miraruConfirmar(txt, {ok: 'Recuperar'}))) return;
+  const r = await fetch('/api/copia/recuperar', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                                 body: JSON.stringify({archivo: c.archivo})});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { toast(_tr(d.detail || 'Error'), 'err'); return; }
+  toast('🎉 ' + _tr('Lista recuperada') + ': ' + (d.animes ?? '') + ' animes');
+  document.getElementById('copia-aviso').style.display = 'none';
+  cerrarModal('modal-copia');
+  await cargar();
+  if (typeof cargarContinuar === 'function') cargarContinuar();
+}
+
+// Al abrir Miraru: si la lista está vacía (PC nuevo o recién formateado) y hay
+// una copia en la nube, se ofrece recuperarla en grande, arriba del todo.
+async function _ofrecerRecuperar() {
+  const d = await _copiaDatos();
+  const caja = document.getElementById('copia-aviso');
+  if (!d || !caja || !(d.copias || []).length || !(d.lista_vacia || d.pendiente)) return;
+  const c = d.copias[0];
+  caja.innerHTML = '';
+  const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = '☁️';
+  const txt = document.createElement('div'); txt.className = 'txt';
+  const h = document.createElement('h3'); h.textContent = _tr('¡Hemos encontrado tu lista en ') + c.servicio + '!';
+  const p = document.createElement('p');
+  p.textContent = (c.animes ?? '?') + ' animes · ' + _tr('guardada') + ' ' + _fechaCorta(c.ts) + (c.equipo ? ' · ' + c.equipo : '');
+  txt.append(h, p);
+  const acc = document.createElement('div'); acc.className = 'acc';
+  const si = document.createElement('button'); si.className = 'btn btn-p'; si.textContent = _tr('Recuperar mi lista');
+  si.onclick = () => copiaRecuperar(c);
+  const no = document.createElement('button'); no.className = 'btn btn-g'; no.textContent = _tr('Empezar de cero');
+  no.onclick = async () => {
+    if (!(await miraruConfirmar(_tr('¿Empezar con una lista nueva? La copia antigua no se borra: se aparta en la misma carpeta.'), {ok: 'Empezar de cero'}))) return;
+    await fetch('/api/copia/empezar-de-cero', {method: 'POST'});
+    caja.style.display = 'none';
+  };
+  acc.append(si, no);
+  caja.append(ico, txt, acc);
+  caja.style.display = 'flex';
+}
+setTimeout(_ofrecerRecuperar, 600);
+
+// El botón ☁ avisa (punto naranja) si la lista NO está protegida.
+async function _marcarBotonCopia() {
+  const d = await _copiaDatos();
+  const b = document.getElementById('btn-copia');
+  if (!d || !b) return;
+  const mal = d.apagada || !d.activa || d.pendiente || d.sincroniza === false;
+  b.classList.toggle('copia-mal', mal);
+  b.title = mal ? _tr('Tu lista no está protegida: pulsa para verlo') : _tr('Copia en la nube');
+}
+setTimeout(_marcarBotonCopia, 1500);
 
 // ── AnimeAV1 (v2.12) ─────────────────────────────────────────────────────────
 async function _av1ExtEstado() {

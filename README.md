@@ -52,6 +52,8 @@ ni nube.
 - **Carpeta vigilada**: marca como visto el episodio que acabas de descargar
 - Sincronización con Google Sheets (opcional)
 - Acceso desde el **móvil** por la WiFi de casa, con PIN (instalable como app)
+- **Copia en la nube** (OneDrive, Google Drive, Dropbox): si formateas el PC, recuperas tu lista con un clic
+- **AnimeAV1 al instante**: con la extensión «Miraru × AnimeAV1», lo que marcas como visto allí se apunta solo
 - Funciona sin conexión con lo que ya tienes guardado
 - 4 idiomas (español, inglés, francés, alemán), modo claro y oscuro y colores personalizables
 - Importa desde MyAnimeList (XML), AniList o pegando el texto de cualquier web; exporta a CSV y JSON; copias de seguridad automáticas
@@ -177,6 +179,8 @@ Miraru guarda tu lista en tu propio equipo. Solo se conecta a servicios externos
 - **Empaquetado**: PyInstaller
 
 ## 📄 Licencia
+
+[Términos de uso](TERMS.md) · [Política de privacidad](PRIVACY.md)
 
 [MIT](LICENSE) — [@T0ff3_x](https://x.com/T0ff3_x)
 
