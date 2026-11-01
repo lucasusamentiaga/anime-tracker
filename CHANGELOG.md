@@ -11,6 +11,11 @@
 - **Extensión «Miraru × AnimeAV1» más clara**: al instalarla se abre una guía que comprueba
   sola cada paso (Miraru abierto, sesión en AnimeAV1, primera prueba) y lo celebra cuando
   funciona; su ventana enseña la portada y el progreso de lo último que marcaste.
+- **Aviso de novedades** al abrir la versión nueva por primera vez, con el estado real de tu
+  copia en la nube (y qué hacer si OneDrive no tiene la sesión iniciada).
+- **Aviso de actualización más claro y para todos**: dice qué trae la versión nueva, tiene el
+  botón adecuado a cómo instalaste Miraru (Microsoft Store, un clic o instalador) y, si no
+  actualizas, te lo recuerda a los 3 días.
 - Términos de uso (`TERMS.md`) y política de privacidad actualizada (copia en la nube,
   AnimeAV1 y la extensión).
 - **AnimeAV1 → Miraru al instante.** Con la extensión «Miraru × AnimeAV1» (se descarga

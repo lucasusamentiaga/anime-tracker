@@ -728,6 +728,46 @@ UI: dict[str, tuple[str, str, str]] = {
     "Ya está en tu lista": ("Already in your list", "Déjà dans ta liste", "Schon in deiner Liste"),
     "Restaurado": ("Restored", "Restauré", "Wiederhergestellt"),
     "Deshacer": ("Undo", "Annuler", "Rückgängig"),
+    # v2.15: aviso de novedades y de actualización
+    "Nuevo en Miraru": ("New in Miraru", "Nouveau dans Miraru", "Neu in Miraru"),
+    "Tu lista, a salvo en tu nube": ("Your list, safe in your cloud", "Votre liste, à l'abri dans votre cloud", "Deine Liste, sicher in deiner Cloud"),
+    "Si formateas el ordenador, lo restableces de fábrica o te compras otro, tu lista ya no se pierde.": (
+        "If you format your computer, factory-reset it or buy a new one, your list is no longer lost.",
+        "Si vous formatez, réinitialisez ou changez d'ordinateur, votre liste n'est plus perdue.",
+        "Wenn du deinen PC formatierst, zurücksetzt oder einen neuen kaufst, geht deine Liste nicht mehr verloren."),
+    "Se guarda sola": ("It saves itself", "Elle s'enregistre toute seule", "Speichert sich selbst"),
+    "Miraru deja una copia en tu OneDrive (o Google Drive, Dropbox…) un minuto después de cada cambio. No tienes que hacer nada.": (
+        "Miraru leaves a copy in your OneDrive (or Google Drive, Dropbox…) a minute after each change. You don't have to do anything.",
+        "Miraru dépose une copie dans votre OneDrive (ou Google Drive, Dropbox…) une minute après chaque changement. Vous n'avez rien à faire.",
+        "Miraru legt eine Minute nach jeder Änderung eine Kopie in dein OneDrive (oder Google Drive, Dropbox…). Du musst nichts tun."),
+    "Se recupera con un clic": ("Restored with one click", "Récupérée en un clic", "Mit einem Klick wiederhergestellt"),
+    "Al instalar Miraru en un PC nuevo, te dirá «Hemos encontrado tu lista» y la traerá entera: episodios, notas, puntuaciones e historial.": (
+        "When you install Miraru on a new PC, it will say \"We found your list\" and bring it back whole: episodes, notes, scores and history.",
+        "En installant Miraru sur un nouveau PC, il dira « Nous avons trouvé votre liste » et la rapportera entière : épisodes, notes, scores et historique.",
+        "Wenn du Miraru auf einem neuen PC installierst, sagt es „Wir haben deine Liste gefunden“ und holt sie komplett zurück: Folgen, Notizen, Bewertungen und Verlauf."),
+    "Solo en tu nube": ("Only in your cloud", "Seulement dans votre cloud", "Nur in deiner Cloud"),
+    "La copia va a tu propia cuenta, nunca a servidores de Miraru, y no lleva contraseñas ni sesiones.": (
+        "The copy goes to your own account, never to Miraru servers, and has no passwords or sessions.",
+        "La copie va sur votre propre compte, jamais sur des serveurs de Miraru, et ne contient ni mots de passe ni sessions.",
+        "Die Kopie landet in deinem eigenen Konto, nie auf Miraru-Servern, und enthält keine Passwörter oder Sitzungen."),
+    "Entendido": ("Got it", "Compris", "Verstanden"),
+    "☁ Ver mi copia": ("☁ See my backup", "☁ Voir ma copie", "☁ Meine Kopie ansehen"),
+    "Tu lista se está guardando ahí. No tienes que hacer nada más.": ("Your list is being saved there. Nothing else to do.", "Votre liste y est enregistrée. Rien d'autre à faire.", "Deine Liste wird dort gespeichert. Sonst nichts zu tun."),
+    "Falta un paso: inicia sesión en OneDrive": ("One step left: sign in to OneDrive", "Une étape de plus : connectez-vous à OneDrive", "Ein Schritt fehlt: bei OneDrive anmelden"),
+    "Pulsa la tecla Windows, escribe OneDrive, ábrelo y entra con tu cuenta de Microsoft. Sin eso la copia no sube a la nube.": (
+        "Press the Windows key, type OneDrive, open it and sign in with your Microsoft account. Without that the backup doesn't reach the cloud.",
+        "Appuyez sur la touche Windows, tapez OneDrive, ouvrez-le et connectez-vous avec votre compte Microsoft. Sans cela, la copie ne part pas dans le cloud.",
+        "Drücke die Windows-Taste, tippe OneDrive, öffne es und melde dich mit deinem Microsoft-Konto an. Sonst wird die Kopie nicht hochgeladen."),
+    "No hay ninguna nube en este PC": ("There's no cloud on this PC", "Aucun cloud sur ce PC", "Auf diesem PC gibt es keine Cloud"),
+    "Instala OneDrive (viene con Windows), Google Drive o Dropbox y Miraru la usará sola.": ("Install OneDrive (it comes with Windows), Google Drive or Dropbox and Miraru will use it automatically.", "Installez OneDrive (inclus dans Windows), Google Drive ou Dropbox et Miraru l'utilisera tout seul.", "Installiere OneDrive (in Windows enthalten), Google Drive oder Dropbox und Miraru nutzt es automatisch."),
+    "Actualización disponible": ("Update available", "Mise à jour disponible", "Update verfügbar"),
+    "Tienes la": ("You have", "Vous avez la", "Du hast"),
+    "Qué trae:": ("What's new:", "Nouveautés :", "Neu:"),
+    "Se actualiza con un clic: Miraru se cierra, se pone al día y vuelve a abrirse. Tu lista no se toca.": ("One-click update: Miraru closes, updates and opens again. Your list isn't touched.", "Mise à jour en un clic : Miraru se ferme, se met à jour et se rouvre. Votre liste n'est pas touchée.", "Update mit einem Klick: Miraru schließt sich, aktualisiert sich und öffnet sich wieder. Deine Liste bleibt unberührt."),
+    "Actualizar ahora": ("Update now", "Mettre à jour", "Jetzt aktualisieren"),
+    "Descarga el instalador nuevo y ábrelo: se instala encima y tu lista no se toca.": ("Download the new installer and open it: it installs over the old one and your list isn't touched.", "Téléchargez le nouvel installateur et ouvrez-le : il s'installe par-dessus et votre liste n'est pas touchée.", "Lade den neuen Installer herunter und öffne ihn: Er installiert sich darüber, deine Liste bleibt unberührt."),
+    "O pásate a la versión de Microsoft Store, que se actualiza sola.": ("Or switch to the Microsoft Store version, which updates itself.", "Ou passez à la version Microsoft Store, qui se met à jour toute seule.", "Oder wechsle zur Microsoft-Store-Version, die sich selbst aktualisiert."),
+    "Descargar la versión nueva": ("Download the new version", "Télécharger la nouvelle version", "Neue Version herunterladen"),
     # v2.15: copia en la nube
     "☁ Copia en la nube": ("☁ Cloud backup", "☁ Sauvegarde cloud", "☁ Cloud-Sicherung"),
     "Copia en la nube": ("Cloud backup", "Sauvegarde cloud", "Cloud-Sicherung"),
@@ -856,6 +896,7 @@ UI: dict[str, tuple[str, str, str]] = {
 # Textos con números u otras partes variables. Se prueban en orden.
 PATTERNS: list[tuple[str, tuple[str, str, str]]] = [
     # v2.14.1: «¿Qué veo esta noche?» explicaba la elección solo en español.
+    (r"^Ya está activada en (.+)$", ("Already on in $1", "Déjà activée dans $1", "Bereits aktiv in $1")),
     (r"^Tu lista está a salvo en (.+)$", ("Your list is safe in $1", "Votre liste est à l'abri dans $1", "Deine Liste ist sicher in $1")),
     (r"^hace (\d+) min$", ("$1 min ago", "il y a $1 min", "vor $1 Min.")),
     (r"^(\d+) animes eliminados$", ("$1 anime deleted", "$1 animés supprimés", "$1 Anime gelöscht")),

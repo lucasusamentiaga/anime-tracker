@@ -6,6 +6,7 @@ la release de GitHub: esa sale antes de que Microsoft certifique el paquete.
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -38,12 +39,50 @@ def test_instalacion_store_compara_con_la_store_y_no_con_github(app_dir, monkeyp
     d = TestClient(main.app).get("/api/version/latest").json()
     assert d["instalacion"] == "store" and d["latest"] == "2.13.0" and d["update_available"]
     assert d["url"].startswith("ms-windows-store://pdp/?productid=")
-    assert all("displaycatalog.mp.microsoft.com" in u for u in llamadas)
+    # La versión sale del catálogo de la Store; el CHANGELOG solo da los titulares.
+    assert "displaycatalog.mp.microsoft.com" in llamadas[0]
+    assert all("displaycatalog.mp.microsoft.com" in u or u == main._URL_CHANGELOG for u in llamadas)
 
 
-def test_la_pagina_muestra_el_aviso_una_vez_por_version():
+def test_la_pagina_muestra_el_aviso_y_lo_recuerda_a_los_3_dias():
     from pathlib import Path
     html = (Path(__file__).resolve().parent.parent / "templates" / "index.html").read_text(encoding="utf-8")
     trozo = html[html.index("async function comprobarActualizacion"):]
-    assert "_avisoVersionStore(d, false)" in trozo
-    assert "aviso_store_version" in html[html.index("function _avisoVersionStore"):]
+    assert "_avisoActualizacion(d, false)" in trozo
+    aviso = html[html.index("function _avisoActualizacion"):]
+    assert "aviso_version" in aviso and "_REAVISO_MS" in aviso
+    # Store, install.ps1 y .exe tienen cada uno su botón
+    for txt in ("Abrir Microsoft Store", "Actualizar ahora", "Descargar la versión nueva"):
+        assert txt in aviso
+
+
+def test_novedades_del_changelog():
+    import main
+    texto = """# Changelog
+
+## v2.15.0 — Algo
+
+- **Tu lista sobrevive a formatear el PC.** Detalle largo.
+- Un punto sin titular que no sale.
+- **Guía `nueva`**: más cosas
+
+## v2.14.1 — Otra
+
+- **Viejo**
+"""
+    assert main.novedades_en_changelog(texto, "2.15.0") == ["Tu lista sobrevive a formatear el PC", "Guía nueva"]
+    assert main.novedades_en_changelog(texto, "9.9.9") == []
+    real = (Path(__file__).resolve().parent.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+    import core
+    assert main.novedades_en_changelog(real, core.VERSION), "el CHANGELOG no tiene titulares para esta versión"
+
+
+def test_aviso_de_novedades_una_vez_por_version(db, monkeypatch):
+    import main
+    importlib.reload(main)
+    c = TestClient(main.app, client=("127.0.0.1", 1))
+    assert c.get("/api/aviso-novedades").json()["mostrar"] is True
+    c.post("/api/aviso-novedades/visto")
+    assert c.get("/api/aviso-novedades").json()["mostrar"] is False
+    monkeypatch.setattr(main, "VERSION", "99.0.0")
+    assert c.get("/api/aviso-novedades").json()["mostrar"] is True

@@ -139,6 +139,27 @@ body.sel-mode .ac.selected{opacity:1}
 .copia-aviso p{margin:0;color:var(--muted);font-size:13px}
 .copia-aviso .acc{display:flex;gap:8px;flex-wrap:wrap}
 #btn-copia{position:relative}
+.modal.nov{max-width:470px;text-align:left;overflow:hidden}
+.nov-hero{display:flex;align-items:center;justify-content:center;gap:18px;margin:-6px -6px 14px;padding:22px 0 18px;border-radius:14px;
+  background:radial-gradient(260px 120px at 50% 0,rgba(var(--accent-rgb),.35),transparent 70%),var(--card2)}
+.nov-pc,.nov-nube{font-size:46px;line-height:1;position:relative}
+.nov-nube{animation:novFlota 3s ease-in-out infinite}
+.nov-lista{position:absolute;font-size:20px;right:-8px;bottom:-4px}
+.nov-flecha{display:flex;gap:6px}
+.nov-flecha i{width:9px;height:9px;border-radius:50%;background:var(--accent2);opacity:.25;animation:novPunto 1.2s infinite}
+.nov-flecha i:nth-child(2){animation-delay:.2s}.nov-flecha i:nth-child(3){animation-delay:.4s}
+@keyframes novPunto{40%{opacity:1;transform:scale(1.25)}}
+@keyframes novFlota{50%{transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){.nov-nube,.nov-flecha i{animation:none;opacity:1}}
+.nov-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px}
+.modal.nov h3{font-size:21px;margin:8px 0 4px}
+.nov-intro{color:var(--muted);font-size:13.5px;margin:0 0 12px;line-height:1.55}
+.nov-puntos{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:10px}
+.nov-puntos li{display:flex;gap:12px;align-items:flex-start}
+.nov-puntos li>span{font-size:20px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--card2);flex-shrink:0}
+.nov-puntos strong{display:block;font-size:13.5px}
+.nov-puntos small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
+.upd-lista{margin:6px 0 12px;padding-left:20px;font-size:13px;line-height:1.7}
 #btn-copia.copia-mal::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 2px var(--bg)}
 .av1-ext{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08);border-radius:12px;padding:12px 14px}
 .av1-ext-cab{font-size:14px;margin-bottom:6px}
@@ -938,6 +959,30 @@ fetch('/api/version').then(r => r.json()).then(d => {
     </div>
     <div id="qv-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px">
       No hay animes pendientes o en curso en tu biblioteca. ¡Añade algunos primero!
+    </div>
+  </div>
+</div>
+
+<!-- Modal: novedades de la versión (se enseña una vez) -->
+<div class="modal-bg" id="modal-novedades" onclick="if(event.target===this)cerrarNovedades()">
+  <div class="modal nov" role="dialog" aria-modal="true" aria-labelledby="nov-titulo">
+    <div class="nov-hero" aria-hidden="true">
+      <div class="nov-pc">💻<span class="nov-lista">📋</span></div>
+      <div class="nov-flecha"><i></i><i></i><i></i></div>
+      <div class="nov-nube">☁️</div>
+    </div>
+    <span class="nov-tag">Nuevo en Miraru</span>
+    <h3 id="nov-titulo">Tu lista, a salvo en tu nube</h3>
+    <p class="nov-intro">Si formateas el ordenador, lo restableces de fábrica o te compras otro, tu lista ya no se pierde.</p>
+    <ul class="nov-puntos">
+      <li><span>🔄</span><div><strong>Se guarda sola</strong><small>Miraru deja una copia en tu OneDrive (o Google Drive, Dropbox…) un minuto después de cada cambio. No tienes que hacer nada.</small></div></li>
+      <li><span>🖱️</span><div><strong>Se recupera con un clic</strong><small>Al instalar Miraru en un PC nuevo, te dirá «Hemos encontrado tu lista» y la traerá entera: episodios, notas, puntuaciones e historial.</small></div></li>
+      <li><span>🔒</span><div><strong>Solo en tu nube</strong><small>La copia va a tu propia cuenta, nunca a servidores de Miraru, y no lleva contraseñas ni sesiones.</small></div></li>
+    </ul>
+    <div id="nov-estado" class="copia-estado"></div>
+    <div class="modal-actions">
+      <button class="btn btn-g" type="button" onclick="cerrarNovedades()">Entendido</button>
+      <button class="btn btn-p" type="button" onclick="cerrarNovedades(); abrirCopia()">☁ Ver mi copia</button>
     </div>
   </div>
 </div>
@@ -3801,6 +3846,7 @@ function abrirModalEl(id) { document.getElementById(id).classList.add('open'); }
 function cerrarModal(id)   { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    if (document.getElementById('modal-novedades')?.classList.contains('open')) cerrarNovedades();
     cerrarModal('modal-edit');
     cerrarModal('modal-preview');
     cerrarModal('modal-queveo');
@@ -4065,37 +4111,32 @@ async function comprobarActualizacion() {
     if (!r.ok) return;
     const d = await r.json();
     if (!d.update_available || !d.latest) return;
-    // v2.12.1: instalada desde Microsoft Store → aviso emergente (una vez por
-    // versión) cuando la Store ya ofrece la nueva; el servidor compara con la
-    // versión publicada en la Store, no con GitHub.
-    if (d.instalacion === 'store') {
-      document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
-      el.removeAttribute('target');
-      el.href = '#';
-      el.title = _tr('Hay una versión nueva en Microsoft Store');
-      el.style.display = 'inline-flex';
-      el.onclick = (ev) => { ev.preventDefault(); _avisoVersionStore(d, true); };
-      _avisoVersionStore(d, false);
-      return;
-    }
-    el.href = d.url || `https://github.com/lucasusamentiaga/anime-tracker/releases`;
     document.getElementById('update-badge-txt').textContent = 'v' + d.latest;
+    el.removeAttribute('target');
+    el.href = '#';
+    el.title = d.instalacion === 'store' ? _tr('Hay una versión nueva en Microsoft Store')
+                                         : `Nueva versión: v${d.latest}. Tú tienes v${d.current}.`;
     el.style.display = 'inline-flex';
-    el.title = `Nueva versión: ${d.name || d.latest}. Tú tienes v${d.current}.`;
-    // v2.11.2: instalado con install.ps1 -> se actualiza con un clic (sin ir a GitHub)
-    if (d.instalacion === 'ps1') {
-      el.removeAttribute('target');
-      el.title = `Actualizar a v${d.latest} (tienes v${d.current})`;
-      el.onclick = (ev) => { ev.preventDefault(); actualizarMiraru(d.latest); };
-    }
+    el.onclick = (ev) => { ev.preventDefault(); _avisoActualizacion(d, true); };
+    // Esperar a que no haya otro aviso abierto (novedades, recuperar lista…):
+    // se reintenta cada 2 s durante un rato en vez de perderlo.
+    let intentos = 0;
+    const probar = () => {
+      if (!document.querySelector('.modal-bg.open')) { _avisoActualizacion(d, false); return; }
+      if (++intentos < 90) setTimeout(probar, 2000);
+    };
+    setTimeout(probar, 3500);
   } catch(_) {}
 }
 
-function _avisoVersionStore(d, forzar) {
-  let visto = '';
-  try { visto = localStorage.getItem('aviso_store_version') || ''; } catch(_) {}
-  if (!forzar && visto === d.latest) return;
-  try { localStorage.setItem('aviso_store_version', d.latest); } catch(_) {}
+// v2.15: un solo aviso para todas las instalaciones, con lo que trae la versión
+// nueva. Sale al abrir Miraru y, si sigues sin actualizar, otra vez a los 3 días.
+const _REAVISO_MS = 3 * 24 * 3600 * 1000;
+function _avisoActualizacion(d, forzar) {
+  let visto = {};
+  try { visto = JSON.parse(localStorage.getItem('aviso_version') || '{}'); } catch(_) {}
+  if (!forzar && visto.v === d.latest && Date.now() - (visto.ts || 0) < _REAVISO_MS) return;
+  try { localStorage.setItem('aviso_version', JSON.stringify({v: d.latest, ts: Date.now()})); } catch(_) {}
   document.getElementById('modal-version-store')?.remove();
   const bg = document.createElement('div');
   bg.className = 'modal-bg open';
@@ -4108,36 +4149,67 @@ function _avisoVersionStore(d, forzar) {
   bg.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
   const caja = document.createElement('div');
   caja.className = 'modal';
-  caja.style.maxWidth = '440px';
+  caja.style.maxWidth = '460px';
+  const tag = document.createElement('span');
+  tag.className = 'nov-tag';
+  tag.textContent = _tr('Actualización disponible');
   const h = document.createElement('h3');
   h.id = 'mvs-titulo';
+  h.style.margin = '8px 0 4px';
   h.textContent = '⬆ ' + _tr('Hay una versión nueva de Miraru') + ' (v' + d.latest + ')';
+  const sub = document.createElement('p');
+  sub.style.cssText = 'font-size:12.5px;color:var(--muted);margin:0 0 6px';
+  sub.textContent = _tr('Tienes la') + ' v' + d.current + '.';
+  caja.append(tag, h, sub);
+  // Qué trae (titulares del CHANGELOG, en español)
+  if ((d.novedades || []).length && (typeof LANG === 'undefined' || !LANG || LANG === 'es')) {
+    const q = document.createElement('p');
+    q.style.cssText = 'font-size:13px;font-weight:700;margin:8px 0 0';
+    q.textContent = _tr('Qué trae:');
+    const ul = document.createElement('ul');
+    ul.className = 'upd-lista';
+    d.novedades.forEach(n => { const li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+    caja.append(q, ul);
+  }
   const p1 = document.createElement('p');
   p1.style.cssText = 'font-size:13px;line-height:1.6;color:var(--fg);margin:8px 0';
-  p1.textContent = _tr('Microsoft Store la instala sola en segundo plano, normalmente en uno o dos días.');
   const p2 = document.createElement('p');
   p2.style.cssText = 'font-size:13px;line-height:1.6;color:var(--muted);margin:0 0 14px';
-  p2.textContent = _tr('Si la quieres ya: pulsa «Abrir Microsoft Store», luego «Actualizar», y después cierra Miraru con ⏻ Salir y vuelve a abrirlo. Tu lista no se toca.');
   const acciones = document.createElement('div');
   acciones.className = 'modal-actions';
   const luego = document.createElement('button');
+  luego.type = 'button';
   luego.className = 'btn btn-g';
   luego.textContent = _tr('Más tarde');
   luego.onclick = cerrar;
-  const abrir = document.createElement('button');
-  abrir.type = 'button';
-  abrir.className = 'btn btn-p';
-  abrir.textContent = _tr('Abrir Microsoft Store');
-  abrir.onclick = () => {
-    location.href = d.url || 'ms-windows-store://pdp/?productid=9PJZK97ZG03G';
-    setTimeout(cerrar, 300);
-  };
-  acciones.append(luego, abrir);
-  caja.append(h, p1, p2, acciones);
+  const ir = document.createElement('button');
+  ir.type = 'button';
+  ir.className = 'btn btn-p';
+  if (d.instalacion === 'store') {
+    p1.textContent = _tr('Microsoft Store la instala sola en segundo plano, normalmente en uno o dos días.');
+    p2.textContent = _tr('Si la quieres ya: pulsa «Abrir Microsoft Store», luego «Actualizar», y después cierra Miraru con ⏻ Salir y vuelve a abrirlo. Tu lista no se toca.');
+    ir.textContent = _tr('Abrir Microsoft Store');
+    ir.onclick = () => { location.href = d.url || 'ms-windows-store://pdp/?productid=9PJZK97ZG03G'; setTimeout(cerrar, 300); };
+  } else if (d.instalacion === 'ps1') {
+    p1.textContent = _tr('Se actualiza con un clic: Miraru se cierra, se pone al día y vuelve a abrirse. Tu lista no se toca.');
+    ir.textContent = _tr('Actualizar ahora');
+    ir.onclick = () => { cerrar(); actualizarMiraru(d.latest); };
+  } else {
+    p1.textContent = _tr('Descarga el instalador nuevo y ábrelo: se instala encima y tu lista no se toca.');
+    p2.textContent = _tr('O pásate a la versión de Microsoft Store, que se actualiza sola.');
+    ir.textContent = _tr('Descargar la versión nueva');
+    ir.onclick = () => { window.open('https://github.com/lucasusamentiaga/anime-tracker/releases/latest/download/Miraru-Setup.exe', '_blank', 'noopener'); cerrar(); };
+  }
+  if (p1.textContent) caja.appendChild(p1);
+  if (p2.textContent) caja.appendChild(p2);
+  acciones.append(luego, ir);
+  caja.appendChild(acciones);
   bg.appendChild(caja);
   document.body.appendChild(bg);
-  abrir.focus();
+  ir.focus();
 }
+// Nombre antiguo (por si algún código lo llama todavía)
+const _avisoVersionStore = _avisoActualizacion;
 
 async function actualizarMiraru(version) {
   const tr = s => (window.miraruTraducir ? window.miraruTraducir(s) : s);
@@ -5492,6 +5564,43 @@ async function _ofrecerRecuperar() {
   caja.style.display = 'flex';
 }
 setTimeout(_ofrecerRecuperar, 600);
+
+// v2.15: aviso de novedades, una vez por versión (lo recuerda el servidor).
+async function _mostrarNovedades() {
+  try {
+    const r = await fetch('/api/aviso-novedades', {cache: 'no-store'});
+    if (!r.ok || !(await r.json()).mostrar) return;
+    // Si arriba ya está la tarjeta de «Hemos encontrado tu lista», esa manda.
+    if (document.getElementById('copia-aviso')?.style.display === 'flex') { _novedadVista(); return; }
+    if (document.querySelector('.modal-bg.open')) return;          // otro aviso abierto: la próxima vez
+    const d = await _copiaDatos();
+    const est = document.getElementById('nov-estado');
+    est.className = 'copia-estado';
+    est.innerHTML = '';
+    const ico = document.createElement('span'); ico.className = 'ico';
+    const t = document.createElement('div');
+    const b = document.createElement('strong');
+    const sm = document.createElement('small');
+    if (d && d.activa && !d.apagada && d.sincroniza !== false) {
+      est.classList.add('ok'); ico.textContent = '✅';
+      b.textContent = _tr('Ya está activada en ' + d.servicio);
+      sm.textContent = _tr('Tu lista se está guardando ahí. No tienes que hacer nada más.');
+    } else if (d && d.sincroniza === false) {
+      est.classList.add('aviso'); ico.textContent = '⚠️';
+      b.textContent = _tr('Falta un paso: inicia sesión en OneDrive');
+      sm.textContent = _tr('Pulsa la tecla Windows, escribe OneDrive, ábrelo y entra con tu cuenta de Microsoft. Sin eso la copia no sube a la nube.');
+    } else {
+      est.classList.add('aviso'); ico.textContent = '⚠️';
+      b.textContent = _tr('No hay ninguna nube en este PC');
+      sm.textContent = _tr('Instala OneDrive (viene con Windows), Google Drive o Dropbox y Miraru la usará sola.');
+    }
+    t.append(b, sm); est.append(ico, t);
+    abrirModalEl('modal-novedades');
+  } catch (_) {}
+}
+function _novedadVista() { fetch('/api/aviso-novedades/visto', {method: 'POST'}).catch(() => {}); }
+function cerrarNovedades() { cerrarModal('modal-novedades'); _novedadVista(); }
+setTimeout(_mostrarNovedades, 1800);
 
 // El botón ☁ avisa (punto naranja) si la lista NO está protegida.
 async function _marcarBotonCopia() {

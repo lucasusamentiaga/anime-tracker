@@ -303,6 +303,8 @@ async def latest_version():
     comprobar = _check_store_version if instalacion == "store" else _check_github_release
     data = await loop.run_in_executor(executor, comprobar)
     data["instalacion"] = instalacion
+    if data.get("update_available") and data.get("latest"):
+        data["novedades"] = await loop.run_in_executor(executor, novedades_de, data["latest"])
     _update_cache["ts"] = now
     _update_cache["data"] = data
     return data
@@ -392,6 +394,37 @@ def _check_github_release() -> dict:
         }
     except Exception as e:
         return {"current": VERSION, "latest": None, "update_available": False, "error": str(e)[:120]}
+
+
+_URL_CHANGELOG = "https://raw.githubusercontent.com/lucasusamentiaga/anime-tracker/main/CHANGELOG.md"
+
+
+def novedades_en_changelog(texto: str, version: str, maximo: int = 5) -> list[str]:
+    """Los titulares (lo que va en **negrita** al empezar cada punto) de la
+    sección «## vX.Y.Z» del CHANGELOG: lo que se enseña en el aviso de
+    actualización para que se vea qué trae la versión nueva."""
+    m = re.search(rf"^## v{re.escape(version)}\b.*?$(.*?)(?=^## |\Z)", texto or "", re.M | re.S)
+    if not m:
+        return []
+    out = []
+    for linea in re.findall(r"^- (.+?)$", m.group(1), re.M):
+        t = re.match(r"\*\*(.+?)\*\*", linea)
+        if not t:
+            continue                       # solo los puntos con titular
+        frase = t.group(1).replace("`", "").strip().rstrip(".:")
+        if frase:
+            out.append(frase[:140])
+        if len(out) >= maximo:
+            break
+    return out
+
+
+def novedades_de(version: str) -> list[str]:
+    try:
+        r = requests.get(_URL_CHANGELOG, timeout=8, headers={"User-Agent": f"Miraru/{VERSION}"})
+        return novedades_en_changelog(r.text, version) if r.status_code == 200 else []
+    except Exception:  # noqa: BLE001
+        return []
 
 
 STORE_ID = "9PJZK97ZG03G"
@@ -3140,6 +3173,24 @@ async def crear_backup(incluir_credenciales: bool = False):
         "size_kb": size_kb,
         "incluye_credenciales": incluir_credenciales,
     }
+
+# ── Aviso de novedades (una vez por versión) ─────────────────────────────────
+_CLAVE_NOVEDADES = "novedades_vistas"
+
+
+@app.get("/api/aviso-novedades")
+def novedades_estado():
+    """¿Hay que enseñar el aviso de novedades de esta versión? Se guarda en la
+    BD (no en el navegador) para que salga una sola vez aunque cambies de
+    navegador o abras Miraru en el móvil."""
+    return {"version": VERSION, "mostrar": db.get_config(_CLAVE_NOVEDADES) != VERSION}
+
+
+@app.post("/api/aviso-novedades/visto")
+def novedades_visto():
+    db.set_config(_CLAVE_NOVEDADES, VERSION)
+    return {"ok": True}
+
 
 # ── Copia en la nube (v2.15): no perder la lista al formatear el PC ──────────
 
