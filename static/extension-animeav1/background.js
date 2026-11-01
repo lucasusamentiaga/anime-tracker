@@ -7,7 +7,7 @@
 // AnimeAV1 contesta bien, se lo cuenta a Miraru en tu PC (127.0.0.1:8765).
 // Si Miraru está cerrado, lo guarda y lo manda en cuanto vuelva a abrirse.
 
-const URL_LISTA = 'https://animeav1.com/api/user/library*';
+const URL_LISTA = 'https://*.animeav1.com/api/user/library*';   // *. incluye animeav1.com
 const PUERTO_POR_DEFECTO = 8765;
 const pendientes = new Map();       // requestId → cuerpo, hasta saber si fue bien
 
@@ -29,15 +29,30 @@ function leerCuerpo(details) {
   } catch (_) { return null; }
 }
 
+// Chrome puede dormir la extensión entre que sale la petición y llega la
+// respuesta: lo pendiente se guarda también en storage.session.
+const clavePend = id => 'pend_' + id;
+
 chrome.webRequest.onBeforeRequest.addListener(details => {
   if (details.method !== 'POST') return;
   const cuerpo = leerCuerpo(details);
-  if (cuerpo) pendientes.set(details.requestId, {cuerpo, tabId: details.tabId});
+  if (!cuerpo) return;
+  const p = {cuerpo, tabId: details.tabId};
+  pendientes.set(details.requestId, p);
+  chrome.storage.session.set({[clavePend(details.requestId)]: p}).catch(() => {});
 }, {urls: [URL_LISTA]}, ['requestBody']);
 
+async function sacarPendiente(requestId) {
+  let p = pendientes.get(requestId);
+  pendientes.delete(requestId);
+  const k = clavePend(requestId);
+  if (!p) { try { p = (await chrome.storage.session.get(k))[k]; } catch (_) { /* nada */ } }
+  chrome.storage.session.remove(k).catch(() => {});
+  return p;
+}
+
 chrome.webRequest.onCompleted.addListener(async details => {
-  const p = pendientes.get(details.requestId);
-  pendientes.delete(details.requestId);
+  const p = await sacarPendiente(details.requestId);
   if (!p || details.statusCode >= 400) return;
   const ev = {mediaId: Number(p.cuerpo.mediaId)};
   if ('episode' in p.cuerpo) ev.episode = p.cuerpo.episode == null ? 0 : Number(p.cuerpo.episode);
@@ -45,71 +60,115 @@ chrome.webRequest.onCompleted.addListener(async details => {
   if (!('episode' in ev) && !('status' in ev)) return;   // solo nota o puntuación
   try {
     const tab = p.tabId >= 0 ? await chrome.tabs.get(p.tabId) : null;
-    const m = tab && tab.url ? tab.url.match(/animeav1\.com\/media\/([^/?#]+)/) : null;
+    const m = tab && tab.url ? tab.url.match(/animeav1\.com\/media\/([^/?#]+)(?:\/(\d+))?/) : null;
     if (m) ev.slug = decodeURIComponent(m[1]);
+    // En la página del episodio N, «Marcar como visto» manda N y «Marcar como no
+    // visto» manda el anterior. Así Miraru sabe si es marcar o desmarcar (y dos
+    // clics que llegan desordenados no bajan el progreso).
+    if (m && m[2] && 'episode' in ev) ev.accion = ev.episode >= Number(m[2]) ? 'marcar' : 'desmarcar';
     if (tab && tab.title) ev.titulo = tab.title.slice(0, 300);
   } catch (_) { /* la pestaña se cerró: Miraru lo resuelve por el id */ }
   await encolar(ev);
   await enviarCola();
 }, {urls: [URL_LISTA]});
 
-chrome.webRequest.onErrorOccurred.addListener(d => pendientes.delete(d.requestId), {urls: [URL_LISTA]});
+chrome.webRequest.onErrorOccurred.addListener(d => { sacarPendiente(d.requestId); }, {urls: [URL_LISTA]});
 
 // ── Cola: nada se pierde si Miraru está cerrado ─────────────────────────────
-async function encolar(ev) {
+// Cada evento lleva un id propio. Al enviar se relee la cola y solo se quitan
+// los enviados: si marcas otro episodio mientras se envía el anterior, no se
+// pierde (antes se sobrescribía la cola y ese segundo clic desaparecía).
+const MAX_INTENTOS = 60;            // ~1 h reintentando un fallo del servidor
+
+// Todos los cambios de la cola, de uno en uno: dos clics casi a la vez leían
+// la cola vacía a la vez y el segundo pisaba al primero (o al revés).
+let candado = Promise.resolve();
+function enOrden(fn) {
+  const r = candado.then(fn);
+  candado = r.catch(() => {});
+  return r;
+}
+
+function encolar(ev) { return enOrden(() => _encolar(ev)); }
+async function _encolar(ev) {
   const {cola = []} = await chrome.storage.local.get('cola');
+  ev.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  ev.cuando = Date.now();
+  ev.intentos = 0;
   // Del mismo anime solo importa lo último que hiciste.
   const nueva = cola.filter(e => e.mediaId !== ev.mediaId || ('status' in e) !== ('status' in ev));
-  nueva.push(Object.assign({cuando: Date.now()}, ev));
+  nueva.push(ev);
   await chrome.storage.local.set({cola: nueva.slice(-200)});
 }
 
-let enviando = false;
-async function enviarCola() {
-  if (enviando) return;
-  enviando = true;
-  try {
-    const {cola = []} = await chrome.storage.local.get('cola');
-    if (!cola.length) return;
-    const base = `http://127.0.0.1:${await puerto()}`;
-    const quedan = [];
-    for (let i = 0; i < cola.length; i++) {
-      const ev = cola[i];
-      let r;
-      try {
-        r = await fetch(base + '/api/animeav1/evento', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json', 'X-Miraru-Extension': '1'},
-          body: JSON.stringify(ev),
-        });
-      } catch (_) {
-        // Miraru cerrado: se reintenta luego (alarma cada minuto).
-        quedan.push(...cola.slice(i));
-        await marcar('!', '#dc2626', 'Miraru está cerrado: se apuntará cuando lo abras');
-        break;
-      }
-      if (r.ok) {
-        const d = await r.json().catch(() => ({}));
-        await chrome.storage.local.set({ultimo: {cuando: Date.now(), nombre: d.nombre || '',
-          episodio: d.episodios_vistos, accion: d.accion || ''}});
-        await marcar('✓', '#16a34a', `Apuntado en Miraru: ${d.nombre || ''}`);
-      } else if (r.status >= 500 || r.status === 502) {
-        quedan.push(ev);           // fallo pasajero: se reintenta
-      }
-      // 4xx (no encontrado, datos raros): se descarta, no tiene arreglo reintentando
-    }
-    await chrome.storage.local.set({cola: quedan});
-  } finally {
-    enviando = false;
-  }
+function quitarDeCola(ids, reintentar = []) { return enOrden(() => _quitarDeCola(ids, reintentar)); }
+async function _quitarDeCola(ids, reintentar) {
+  const {cola = []} = await chrome.storage.local.get('cola');
+  const r = new Set(reintentar);
+  await chrome.storage.local.set({cola: cola
+    .filter(e => !ids.has(e.id) || r.has(e.id))
+    .map(e => r.has(e.id) ? Object.assign(e, {intentos: (e.intentos || 0) + 1}) : e)
+    .filter(e => (e.intentos || 0) < MAX_INTENTOS)});
 }
 
+async function apuntarFallo(ev, motivo) {
+  const {fallos = []} = await chrome.storage.local.get('fallos');
+  fallos.unshift({cuando: Date.now(), titulo: ev.titulo || ev.slug || ('#' + ev.mediaId),
+                  episodio: ev.episode, motivo});
+  await chrome.storage.local.set({fallos: fallos.slice(0, 5)});
+}
+
+let enviando = null;
+function enviarCola() {
+  // Si ya se está enviando, se encadena otra vuelta (no se descarta la petición).
+  enviando = (enviando || Promise.resolve()).then(enviarUnaVez).catch(() => {});
+  return enviando;
+}
+
+async function enviarUnaVez() {
+  const {cola = []} = await chrome.storage.local.get('cola');
+  if (!cola.length) return;
+  const base = `http://127.0.0.1:${await puerto()}`;
+  const hechos = new Set(), reintentar = [];
+  for (const ev of cola) {
+    const {id, cuando, intentos, ...cuerpo} = ev;
+    let r;
+    try {
+      r = await fetch(base + '/api/animeav1/evento', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-Miraru-Extension': '1'},
+        body: JSON.stringify(cuerpo),
+      });
+    } catch (_) {
+      await marcar('!', '#dc2626', 'Miraru está cerrado: se apuntará cuando lo abras');
+      break;                       // Miraru cerrado: todo sigue en la cola
+    }
+    hechos.add(id);
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) {
+      await chrome.storage.local.set({ultimo: {cuando: Date.now(), nombre: d.nombre || '',
+        episodio: d.episodios_vistos, accion: d.accion || ''}});
+      await marcar('✓', '#16a34a', `Apuntado en Miraru: ${d.nombre || ''}`);
+    } else if (r.status >= 500) {
+      reintentar.push(id);         // fallo pasajero (AnimeAV1 o AniList no contestan)
+    } else {
+      // 4xx: no tiene arreglo reintentando. Se avisa en la ventana de la extensión.
+      await apuntarFallo(ev, d.detail || ('Error ' + r.status));
+      await marcar('?', '#d97706', 'No se pudo apuntar: ' + (d.detail || r.status));
+    }
+  }
+  if (hechos.size) await quitarDeCola(hechos, reintentar);
+}
+
+let ultimaMarca = 0;
 async function marcar(texto, color, titulo) {
+  const yo = ++ultimaMarca;
   try {
     await chrome.action.setBadgeBackgroundColor({color});
     await chrome.action.setBadgeText({text: texto});
     await chrome.action.setTitle({title: 'Miraru × AnimeAV1 — ' + titulo});
-    if (texto === '✓') setTimeout(() => chrome.action.setBadgeText({text: ''}), 4000);
+    // El ✓ se borra solo; un aviso posterior (! o ?) no lo borra este temporizador.
+    if (texto === '✓') setTimeout(() => { if (yo === ultimaMarca) chrome.action.setBadgeText({text: ''}); }, 4000);
   } catch (_) { /* nada */ }
 }
 

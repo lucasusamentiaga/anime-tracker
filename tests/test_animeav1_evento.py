@@ -100,8 +100,8 @@ def test_anime_nuevo_se_anade(cliente, db, monkeypatch):
         def buscar_por_mal(self, mal):
             return AnimeData(nombre="The Apothecary Diaries", capitulos=24, imagen="", genero=[],
                              sinopsis="", fuente="anilist", estado_anime="", anilist_id=161645)
-    import scrapers.anilist
-    monkeypatch.setattr(scrapers.anilist, "AniListScraper", AL)
+    from scrapers import SCRAPERS
+    monkeypatch.setitem(SCRAPERS, "anilist", AL())
     r = c.post("/api/animeav1/evento", headers=H, json={"mediaId": 5, "episode": 1, "slug": "kusuriya"})
     assert r.json()["accion"] == "añadido"
     a = db.obtener_anime("The Apothecary Diaries")
@@ -138,3 +138,75 @@ def test_extension_descargable_y_coherente(cliente):
     # La extensión manda la cabecera que exige el servidor y a la ruta correcta.
     assert "X-Miraru-Extension" in bg and "/api/animeav1/evento" in bg
     assert "https://animeav1.com/api/user/library" in bg
+
+
+def test_anime_nuevo_ya_terminado_entra_como_completado(cliente, db, monkeypatch):
+    c, _ = cliente
+    from scrapers import SCRAPERS
+    from scrapers import animeav1 as av1
+    monkeypatch.setattr(av1, "obtener_media", lambda slug, s=None: {"id": 6, "title": "Corto", "malId": 1})
+
+    class AL:
+        def buscar_por_mal(self, mal):
+            return AnimeData(nombre="Corto", capitulos=3, imagen="", genero=[], sinopsis="",
+                             fuente="anilist", estado_anime="")
+    monkeypatch.setitem(SCRAPERS, "anilist", AL())
+    c.post("/api/animeav1/evento", headers=H, json={"mediaId": 6, "episode": 3, "slug": "corto"})
+    assert db.obtener_anime("Corto")["estado_usuario"] == "completado"
+
+
+def test_contenido_adulto_no_entra_por_animeav1(cliente, db, monkeypatch):
+    """El AniList con filtro no lo da (es adulto) y la ficha de AnimeAV1 viene
+    marcada como `mature`: no se añade nada."""
+    c, _ = cliente
+    from scrapers import SCRAPERS
+    from scrapers import animeav1 as av1
+    monkeypatch.setattr(av1, "obtener_media", lambda slug, s=None: {
+        "id": 8, "title": "Algo H", "malId": 99, "mature": True, "genres": [{"name": "Hentai"}]})
+
+    class AL:
+        def buscar_por_mal(self, mal):
+            return None
+    monkeypatch.setitem(SCRAPERS, "anilist", AL())
+    r = c.post("/api/animeav1/evento", headers=H, json={"mediaId": 8, "episode": 1, "slug": "algo-h"})
+    assert r.status_code == 422
+    assert db.obtener_anime("Algo H") is None
+
+
+def test_animeav1_usa_el_anilist_con_filtro_de_adultos():
+    import inspect
+
+    import animeav1_sync
+    src = inspect.getsource(animeav1_sync)
+    assert "AniListScraper()" not in src.replace("AniListScraper() suelto", "")
+    from scrapers import SCRAPERS
+    assert animeav1_sync._anilist_protegido() is SCRAPERS["anilist"]
+    assert hasattr(SCRAPERS["anilist"].buscar_por_mal, "__wrapped__")
+
+
+@pytest.mark.parametrize("vistos,ep,accion,esperado", [
+    (6, 5, "marcar", 6),       # dos clics desordenados: el 5 llega tras el 6 → no baja
+    (4, 5, "marcar", 5),
+    (6, 5, "desmarcar", 5),    # «Marcar como no visto» en el 6
+    (8, 3, "desmarcar", 3),    # «desmarcar hasta el anterior» desde un episodio antiguo
+    (3, 5, "desmarcar", 3),    # desmarcar nunca sube
+    (6, 5, None, 5),           # extensión antigua: N-1 = desmarcar
+    (8, 3, None, 8),
+])
+def test_marcar_y_desmarcar(cliente, db, vistos, ep, accion, esperado):
+    c, _ = cliente
+    db.guardar_anime({"nombre": "Dandadan", "capitulos": "12", "episodios_vistos": vistos,
+                      "estado_usuario": "viendo"})
+    import animeav1_sync
+    animeav1_sync.recordar_id("Dandadan", 9)
+    cuerpo = {"mediaId": 9, "episode": ep}
+    if accion:
+        cuerpo["accion"] = accion
+    assert c.post("/api/animeav1/evento", headers=H, json=cuerpo).status_code == 200
+    assert db.obtener_anime("Dandadan")["episodios_vistos"] == esperado
+
+
+def test_accion_desconocida_se_rechaza(cliente):
+    c, _ = cliente
+    r = c.post("/api/animeav1/evento", headers=H, json={"mediaId": 9, "episode": 1, "accion": "borrar"})
+    assert r.status_code == 422

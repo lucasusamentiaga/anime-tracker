@@ -142,14 +142,26 @@ def _claves_titulos(e: dict) -> set:
 
 # ── Importar (AnimeAV1 → Miraru) ─────────────────────────────────────────────
 
+def _anilist_protegido():
+    """El AniList de SCRAPERS, que lleva el filtro de contenido para adultos.
+    Antes se creaba un AniListScraper() suelto, SIN filtro: importar de
+    AnimeAV1 podía meter fichas para adultos en la lista."""
+    from scrapers import SCRAPERS
+    return SCRAPERS["anilist"]
+
+
+def _es_adulta(m: Optional[dict]) -> bool:
+    from scrapers import adulto
+    return bool(m) and (bool(m.get("mature")) or adulto.es_adulto(m))
+
+
 def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep) -> dict:
     cookie = get_cookie()
     if not cookie:
         return {"added": 0, "updated": 0, "errors": 0, "error": "no conectado"}
     s = s or av1.sesion(cookie)
     if anilist is None:
-        from scrapers.anilist import AniListScraper
-        anilist = AniListScraper()
+        anilist = _anilist_protegido()
     entradas = _entradas(_leer_listas(s))
     progreso.total(len(entradas))
 
@@ -179,7 +191,7 @@ def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep) -> 
                     local = por_aid[al.anilist_id]
                 elif al:
                     nuevo_data = al
-                elif m:
+                elif m and not _es_adulta(m):
                     nuevo_data = av1.a_anime_data(m)
             if local is not None:
                 ids[local["nombre"]] = e["id"]
@@ -391,8 +403,7 @@ def resolver_evento(media_id: int, slug: str = "", titulo: str = "",
         local = next((por_clave[k] for k in _claves_titulos(e) if k in por_clave), None)
         if local is None and m.get("malId"):
             if anilist is None:
-                from scrapers.anilist import AniListScraper
-                anilist = AniListScraper()
+                anilist = _anilist_protegido()
             al = anilist.buscar_por_mal(int(m["malId"]))
             if al:
                 por_aid = {a["anilist_id"]: a for a in locales if a.get("anilist_id")}
@@ -403,6 +414,8 @@ def resolver_evento(media_id: int, slug: str = "", titulo: str = "",
             ids[local["nombre"]] = media_id
             _guardar_ids(ids)
             return {"local": local, "nuevo": None, "media": m}
+        if _es_adulta(m):
+            return {"local": None, "nuevo": None, "media": m, "adulto": True}
         return {"local": None, "nuevo": av1.a_anime_data(m), "media": m}
     return {"local": None, "nuevo": None, "media": None}
 
@@ -413,20 +426,28 @@ def recordar_id(nombre: str, media_id: int):
     _guardar_ids(ids)
 
 
-def cambios_por_evento(local: dict, episodio: Optional[int], estado: Optional[int]) -> dict:
+def cambios_por_evento(local: dict, episodio: Optional[int], estado: Optional[int],
+                       accion: Optional[str] = None) -> dict:
     """Lo que hay que cambiar en Miraru.
 
-    - Marcar un episodio más avanzado que el de Miraru → se copia.
-    - Desmarcar en AnimeAV1 manda el episodio anterior (N-1): si Miraru iba
-      justo por N, baja a N-1.
-    - Un episodio más atrasado (repasar uno antiguo, o AnimeAV1 desfasado
-      respecto a Miraru) no baja tu progreso."""
+    `accion` la deduce la extensión de la página donde pulsaste:
+    - «marcar»: solo sube (marcar un episodio antiguo, o dos clics que llegan
+      desordenados, nunca bajan tu progreso).
+    - «desmarcar»: baja hasta lo que diga AnimeAV1 (es lo que pediste).
+    Sin `accion` (versiones viejas de la extensión): sube si va por delante y
+    baja solo si es justo el anterior (N-1), que es como desmarca AnimeAV1."""
     cambios: dict = {}
     actual = local.get("estado_usuario") or "pendiente"
     if episodio is not None:
         ep = max(0, int(episodio))
         vistos = int(local.get("episodios_vistos") or 0)
-        if ep > vistos or ep == vistos - 1:
+        if accion == "marcar":
+            aplica = ep > vistos
+        elif accion == "desmarcar":
+            aplica = ep < vistos
+        else:
+            aplica = ep > vistos or ep == vistos - 1
+        if aplica:
             if ep != vistos:
                 cambios["episodios_vistos"] = ep
         else:

@@ -9,7 +9,7 @@ function hace(ms) {
 }
 
 async function pintar() {
-  const {puerto = 8765, ultimo, cola = []} = await chrome.storage.local.get(['puerto', 'ultimo', 'cola']);
+  const {puerto = 8765, ultimo, cola = [], fallos = []} = await chrome.storage.local.get(['puerto', 'ultimo', 'cola', 'fallos']);
   $('puerto').value = puerto;
   const base = `http://127.0.0.1:${puerto}`;
   $('abrir').href = base + '/app';
@@ -38,6 +38,13 @@ async function pintar() {
   }
   $('cola').textContent = cola.length ? `${cola.length} pendiente(s) de enviar a Miraru` : '';
   $('reintentar').hidden = !cola.length;
+  // El último fallo, solo si es más reciente que el último acierto.
+  const f = fallos[0];
+  if (f && (!ultimo || f.cuando > ultimo.cuando)) {
+    const t = (f.titulo || '').replace(/\s*-\s*AnimeAV1\s*$/i, '').replace(/\s+Episodio\s+\d+.*$/i, '');
+    $('fallo').textContent = `⚠ No se pudo apuntar «${t}»: ${f.motivo}`;
+    $('fallo').hidden = false;
+  }
 }
 
 $('puerto').addEventListener('change', async e => {

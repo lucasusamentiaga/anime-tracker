@@ -30,7 +30,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from html import escape as _esc
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import requests
 
@@ -4574,6 +4574,7 @@ class AnimeAV1EventoRequest(BaseModel):
     status: Optional[int] = Field(default=None, ge=-1, le=4)
     slug: str = Field("", max_length=200)
     titulo: str = Field("", max_length=300)
+    accion: Optional[Literal["marcar", "desmarcar"]] = None
 
 
 @app.post("/api/animeav1/evento")
@@ -4597,12 +4598,17 @@ async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
     if req.status == -1 and local is None:
         return {"ok": True, "accion": "nada"}
     if local is None and nuevo is None:
-        raise HTTPException(404, "No encontré ese anime")
+        if r.get("adulto"):
+            raise HTTPException(422, "Miraru no guarda contenido para adultos")
+        raise HTTPException(404, "No encontré ese anime en Miraru ni en AniList")
     if local is None:
         # No lo tenías en Miraru: se añade con lo que acabas de marcar.
         datos = dict(nuevo.__dict__)
-        datos.update({"tipo": "anime", "estado_usuario": "viendo",
-                      "episodios_vistos": int(req.episode or 0)})
+        ep = int(req.episode or 0)
+        total = str(datos.get("capitulos") or "").strip()
+        completo = total.isdigit() and int(total) > 0 and ep >= int(total)
+        datos.update({"tipo": "anime", "estado_usuario": "completado" if completo else "viendo",
+                      "episodios_vistos": ep})
         ok, msg = db.guardar_anime(datos)
         if not ok:
             raise HTTPException(409 if msg == "duplicado" else 500, msg)
@@ -4616,7 +4622,7 @@ async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
     if req.status == -1:
         # Quitado de tus listas en AnimeAV1: en Miraru no se borra nada.
         return {"ok": True, "accion": "nada", "nombre": nombre}
-    cambios = animeav1_sync.cambios_por_evento(local, req.episode, req.status)
+    cambios = animeav1_sync.cambios_por_evento(local, req.episode, req.status, req.accion)
     if cambios:
         # Por el mismo camino que editar a mano: registro de actividad (mapa,
         # racha), Google Sheets y AniList.

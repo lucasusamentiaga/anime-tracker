@@ -1588,6 +1588,12 @@ async function cargar() {
       '<div class="skel-card"></div>'.repeat(6) + '</div>';
   }
   try {
+    // Número de versión de la lista ANTES de leerla: así el vigilante de
+    // cambios (abajo) no vuelve a cargar lo que acabamos de traer.
+    try {
+      const rv = await fetch('/api/biblioteca/version', {cache: 'no-store'});
+      if (rv.ok) window._verBiblio = (await rv.json()).v;
+    } catch (_) {}
     const [rA, rF, rV] = await Promise.all([
       fetch('/api/animes/slim').catch(() => null),
       fetch('/api/franquicias').catch(() => null),
@@ -5224,23 +5230,23 @@ function celebrarNivel(nivel){
 // v2.15: la lista se refresca sola cuando cambia desde fuera (un episodio
 // marcado en AnimeAV1 con la extensión, el móvil, otra pestaña…). Solo mira
 // un número que cambia con cada cambio; si estás editando un anime, espera.
-let _verBiblio = null;
+// window._verBiblio lo fija cargar() con cada lectura de la lista.
 async function _vigilarCambios() {
   if (document.visibilityState !== 'visible') return;
   try {
     const r = await fetch('/api/biblioteca/version', {cache: 'no-store'});
     if (!r.ok) return;
     const {v} = await r.json();
-    if (_verBiblio === null || v === _verBiblio) { _verBiblio = v; return; }
-    const editando = [...document.querySelectorAll('.modal-bg.open')].some(m => m.id !== 'modal-anilist');
-    if (editando) return;                       // se aplicará al cerrarlo
-    _verBiblio = v;
+    if (window._verBiblio == null || v === window._verBiblio) { window._verBiblio = v; return; }
+    const editando = [...document.querySelectorAll('.modal-bg.open')].some(m => m.id !== 'modal-anilist')
+      || document.body.classList.contains('sel-mode')            // no perder la selección
+      || document.querySelector('.dragging, .drag-over');         // ni un arrastre a medias
+    if (editando) return;                       // se aplicará al terminar
     await cargar();
     if (typeof cargarContinuar === 'function') cargarContinuar();
     if (document.getElementById('modal-anilist')?.classList.contains('open')) _av1ExtEstado();
   } catch (_) {}
 }
-_vigilarCambios();                              // punto de partida: la lista recién cargada
 setInterval(_vigilarCambios, 4000);
 document.addEventListener('visibilitychange', _vigilarCambios);
 </script>
