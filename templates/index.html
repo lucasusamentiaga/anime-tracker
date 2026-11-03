@@ -345,9 +345,11 @@ header{
      quedaban 8 iconos en una esquina y el resto de la fila vacía). */
   .header-settings.fila{flex:1 1 100%;gap:6px;margin-top:4px}
   .header-settings.fila>*{flex:1 1 0;justify-content:center;min-width:0}
-  .header-settings.fila>.lang-select{flex:0 0 auto}
+  .header-settings.fila>.lang-select,.header-settings.fila>.msel{flex:0 0 auto}
 }
 #btn-copia.copia-mal{padding-right:14px}
+/* El buscador de la lista se salía de su hueco y quedaba debajo de «⚙ Filtros» en el móvil. */
+#f-nombre{width:100%;min-width:0;box-sizing:border-box}
 
 /* Lang selector — compact */
 .lang-select{
@@ -1288,14 +1290,6 @@ fetch('/api/version').then(r => r.json()).then(d => {
   </select>
   <button class="btn btn-ghost btn-sm" id="btn-favs-filter" onclick="toggleFavsFilter()" title="Solo favoritos">⭐</button>
   <button class="btn btn-ghost btn-sm" id="btn-que-veo" onclick="abrirQueVeo()" title="¿Qué veo esta noche?" style="white-space:nowrap">🎲 <span id="txt-que-veo">¿Qué veo?</span></button>
-  <!-- v2.1: vistas guardadas -->
-  <div style="position:relative;display:inline-block" id="views-wrap">
-    <button class="btn btn-ghost btn-sm" id="btn-views" onclick="toggleViewsMenu()" title="Vistas guardadas">🔖</button>
-    <div id="views-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;
-         background:var(--card);border:1px solid var(--border);border-radius:10px;
-         min-width:220px;max-height:300px;overflow-y:auto;z-index:30;
-         box-shadow:0 8px 24px rgba(0,0,0,.4);padding:6px"></div>
-  </div>
   <span class="count-label tb2-fija" id="count-label"></span>
 </div>
 
@@ -3902,13 +3896,38 @@ function _pintarLocales(sp, q) {
   sp.prepend(sec);
   return matches.length;
 }
+// El desplegable va pegado al buscador de arriba (antes salía debajo de la
+// segunda fila, sobre los filtros, y estrecho).
+function _anclarPreview(sp) {
+  const i = document.getElementById('inp-nombre');
+  if (!i || !sp) return;
+  if (sp.parentElement !== i.parentElement) i.insertAdjacentElement('afterend', sp);
+  const ancho = Math.min(Math.max(i.offsetWidth, 540), innerWidth - 24);
+  sp.style.top = (i.offsetTop + i.offsetHeight) + 'px';
+  sp.style.left = Math.max(0, Math.min(i.offsetLeft, innerWidth - ancho - 12)) + 'px';
+  sp.style.right = 'auto';
+  sp.style.width = ancho + 'px';
+  sp.style.minWidth = '0';
+}
+// Si lo encontrado en internet ya está en tu lista (y sale arriba en «En tu
+// lista»), no se repite abajo; se queda solo la saga, si la hay.
+function _quitarRepetido(sp) {
+  const item = sp.querySelector('.sp-item');
+  if (!item) return;
+  const k = _claveTxt(item.dataset.nombre);
+  const enLista = ANIMES.some(a => _claveTxt(a.nombre) === k) ||
+                  (item.querySelector('.sp-add')?.disabled && item.querySelector('.sp-add').textContent === _tr('Ya en tu lista'));
+  if (!enLista || !sp.querySelector('.sp-local')) return;
+  item.remove();
+  if (!sp.querySelector('.sp-item, .sp-saga')) sp.querySelector('.sp-online-h')?.remove();
+}
 function autocompletar(q) {
   clearTimeout(_acTimer);
   _acTimer = setTimeout(() => {
     const sp = document.getElementById('search-preview');
     if (!sp) return;
     const n = _pintarLocales(sp, q);
-    if (n) sp.style.display = 'block';
+    if (n) { _anclarPreview(sp); sp.style.display = 'block'; }
     else if (!sp.querySelector('.sp-item')) cerrarPreview();
   }, 120);
 }
@@ -3980,116 +3999,7 @@ async function cargarContinuar() {
   } catch(_) { wrap.style.display = 'none'; }
 }
 
-// v2.1: vistas guardadas (filtros nombrados, persistidos en localStorage)
-const _SAVED_VIEWS_KEY = 'saved_views_v1';
-
-function _currentFilters() {
-  return {
-    nombre: document.getElementById('f-nombre').value,
-    estado: document.getElementById('f-estado').value,
-    fuente: document.getElementById('f-fuente').value,
-    sort:   document.getElementById('f-sort').value,
-    lista:  document.getElementById('f-lista').value,
-    favs:   !!window._soloFavs,
-  };
-}
-function _applyFilters(f) {
-  document.getElementById('f-nombre').value = f.nombre || '';
-  document.getElementById('f-estado').value = f.estado || '';
-  document.getElementById('f-fuente').value = f.fuente || '';
-  document.getElementById('f-sort').value   = f.sort   || 'date';
-  document.getElementById('f-lista').value  = f.lista  || '';
-  window._soloFavs = !!f.favs;
-  const btn = document.getElementById('btn-favs-filter');
-  if (btn) btn.style.background = window._soloFavs ? 'rgba(251,191,36,.2)' : '';
-  render();
-}
-function _loadViews() {
-  try { return JSON.parse(localStorage.getItem(_SAVED_VIEWS_KEY) || '[]'); }
-  catch(_) { return []; }
-}
-function _saveViews(v) { try { localStorage.setItem(_SAVED_VIEWS_KEY, JSON.stringify(v)); } catch(_) {} }
-
-function toggleViewsMenu() {
-  const m = document.getElementById('views-menu');
-  if (!m) return;
-  if (m.style.display === 'block') { m.style.display = 'none'; return; }
-  renderViewsMenu();
-  m.style.display = 'block';
-}
-
-function renderViewsMenu() {
-  const m = document.getElementById('views-menu');
-  if (!m) return;
-  m.innerHTML = '';
-  const views = _loadViews();
-
-  if (views.length === 0) {
-    const empty = document.createElement('div');
-    empty.style.cssText = 'padding:10px 12px;color:var(--muted);font-size:12px;text-align:center';
-    empty.textContent = 'Sin vistas guardadas';
-    m.appendChild(empty);
-  } else {
-    views.forEach((v, i) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;cursor:pointer';
-      row.onmouseenter = () => row.style.background = 'var(--card2)';
-      row.onmouseleave = () => row.style.background = '';
-
-      const label = document.createElement('span');
-      label.style.cssText = 'flex:1;font-size:13px';
-      label.textContent = '🔖 ' + v.name;
-      label.onclick = () => { _applyFilters(v.filters); toggleViewsMenu(); };
-
-      const del = document.createElement('button');
-      del.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px';
-      del.title = 'Eliminar vista';
-      del.textContent = '🗑';
-      del.onclick = (e) => {
-        e.stopPropagation();
-        const fresh = _loadViews();
-        fresh.splice(i, 1);
-        _saveViews(fresh);
-        renderViewsMenu();
-      };
-
-      row.appendChild(label);
-      row.appendChild(del);
-      m.appendChild(row);
-    });
-  }
-
-  // Separador + acción "Guardar vista actual"
-  const sep = document.createElement('div');
-  sep.style.cssText = 'border-top:1px solid var(--border);margin:6px 0';
-  m.appendChild(sep);
-  const add = document.createElement('button');
-  add.style.cssText = 'width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px;font-size:12px;font-weight:600;cursor:pointer';
-  add.textContent = '+ Guardar vista actual';
-  add.onclick = async () => {
-    const name = ((await miraruPedir('Nombre de la vista:', '', {ok: 'Guardar'})) || '').trim().slice(0, 40);
-    if (!name) return;
-    const views = _loadViews();
-    if (views.some(v => v.name === name)) {
-      if (!(await miraruConfirmar('Ya existe una vista con ese nombre. ¿Sobrescribir?', {ok: 'Sobrescribir'}))) return;
-      const i = views.findIndex(v => v.name === name);
-      views[i] = {name, filters: _currentFilters()};
-    } else {
-      views.push({name, filters: _currentFilters()});
-    }
-    _saveViews(views);
-    toast('🔖 Vista "' + name + '" guardada');
-    renderViewsMenu();
-  };
-  m.appendChild(add);
-}
-
-// Cerrar menú al clicar fuera
-document.addEventListener('click', e => {
-  const w = document.getElementById('views-wrap');
-  const m = document.getElementById('views-menu');
-  if (m && w && !w.contains(e.target)) m.style.display = 'none';
-});
+// v2.16: «Vistas guardadas» (🔖) eliminado a petición de Lucas.
 
 // v2.1: indicador del estado del último sync con Sheets
 async function actualizarSyncIndicator() {
@@ -4753,6 +4663,8 @@ async function buscarPreview(q) {
       sp.prepend(hOn);
     }
     _pintarLocales(sp, q);
+    _quitarRepetido(sp);
+    _anclarPreview(sp);
     sp.style.display = 'block';
     // v2.13: la búsqueda solo daba la primera temporada. Ahora se busca toda
     // la saga en AniList y se ofrece añadirla de golpe.
@@ -4825,6 +4737,7 @@ async function _sagaPreview(q, sp) {
   if (sp.style.display === 'none' || (searchInput && searchInput.value.trim() !== q)) return;
   _corregirPrincipal(sp, d.entradas, d.fuente);
   _pintarSaga(sp, d, {alTerminar: () => { cerrarPreview(); if (searchInput) searchInput.value = ''; }});
+  _quitarRepetido(sp);
 }
 
 // Texto «6 temporadas · 87 episodios · 2 películas · ≈ 40 h».
@@ -5560,6 +5473,9 @@ async function copiaRecuperar(c) {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { toast(_tr(d.detail || 'Error'), 'err'); return; }
   toast('🎉 ' + _tr('Lista recuperada') + ': ' + (d.animes ?? '') + ' animes');
+  // Quien recupera su lista ya conoce Miraru: sin recorrido de bienvenida.
+  fetch('/api/recorrido/visto', {method: 'POST'}).catch(() => {});
+  window.miraruTour && window.miraruTour.terminar && document.body.classList.contains('mtour-on') && window.miraruTour.terminar();
   document.getElementById('copia-aviso').style.display = 'none';
   cerrarModal('modal-copia');
   await cargar();
@@ -5603,7 +5519,7 @@ function _ajustarCabecera() {
   const propia = innerWidth >= 1100 && st.getBoundingClientRect().top >= nav.getBoundingClientRect().bottom - 2;
   st.classList.toggle('fila', propia);
 }
-window.addEventListener('resize', () => requestAnimationFrame(_ajustarCabecera));
+window.addEventListener('resize', () => requestAnimationFrame(() => { _ajustarCabecera(); const sp = document.getElementById('search-preview'); if (sp && sp.style.display === 'block') _anclarPreview(sp); }));
 setTimeout(_ajustarCabecera, 50); setTimeout(_ajustarCabecera, 900);
 
 // Novedades de cada versión: /static/novedades.js (también sale en el menú).

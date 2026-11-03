@@ -14,7 +14,7 @@
     {sel: '#lista', ico: '📚', tit: 'Tu lista',
      txt: 'Aquí aparecen tus animes, con las sagas agrupadas en carpetas. Pulsa una portada para editarla o +1 para apuntar un episodio.', lado: 'arriba'},
     {sel: '#tb2', ico: '🎛️', tit: 'Busca, filtra y ordena',
-     txt: 'Encuentra algo en tu lista, filtra por estado o fuente y ordena como quieras. 🔖 guarda esa combinación para volver a ella.'},
+     txt: 'Encuentra algo en tu lista, filtra por estado o fuente y ordena como quieras.'},
     {sel: '#continuar-wrap', ico: '▶️', tit: 'Continuar viendo',
      txt: 'Lo que tienes a medias, con el siguiente episodio a un clic.'},
     {sel: '.header-nav', ico: '🧭', tit: 'Todo lo demás',
@@ -270,7 +270,11 @@
             if (++intentos < 60) setTimeout(esperar, 1500);
             return;
           }
-          empezar(false);
+          // Se vuelve a preguntar: mientras esperaba pudo recuperar su lista.
+          fetch('/api/recorrido', {cache: 'no-store'})
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d2) { if (d2 && d2.mostrar) empezar(false); })
+            .catch(function () {});
         })();
       })
       .catch(function () {});

@@ -1093,7 +1093,8 @@ async function exportarWrapped(btn) {
     ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W / 2, H - 40);
 
     const link = document.createElement('a');
-    link.download = `mi-año-en-anime-${d.year || ''}.png`;
+    // Nombre solo con ASCII: con «ñ» Chrome descartaba el nombre y bajaba un archivo «download» sin extensión.
+    link.download = `miraru-resumen-${d.year || "anime"}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch (e) {

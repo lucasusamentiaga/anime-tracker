@@ -262,5 +262,5 @@ def test_que_veo_traduce_la_razon():
     pats = [p for p, _ in i18n_ui.PATTERNS]
     assert r"^ya llevas (\d+) eps$" in pats and r"^(\d+) eps restantes$" in pats
     m = i18n_ui.ui_para("en")["map"]
-    for k in ("Compactar", "Sin vistas guardadas", "Color de acento", "Épico", "Marcar siguiente episodio visto"):
+    for k in ("Compactar", "Color de acento", "Épico", "Marcar siguiente episodio visto"):
         assert k in m, k

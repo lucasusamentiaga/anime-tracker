@@ -10,7 +10,10 @@
 
   var TITULOS = {
     'f-sort': 'Ordenar por', 'f-estado': 'Estado', 'f-fuente': 'Fuente', 'f-lista': 'Lista',
-    'f-tipo': 'Tipo', 'inp-tipo': 'Qué buscas', 'inp-fuente': 'Buscar en'
+    'f-tipo': 'Tipo', 'inp-tipo': 'Qué buscas', 'inp-fuente': 'Buscar en',
+    'edit-estado': 'Estado', 'edit-lista': 'Lista', 'lang-sel': 'Idioma', 'qv-animo': '¿Cómo te sientes?',
+    'bulk-estado': 'Cambiar estado', 'bulk-lista': 'Mover a la lista', 'sort-by': 'Ordenar por',
+    'filter-estado': 'Estado', 'sel-fuente': 'Fuente'
   };
 
   // Icono para las opciones que lo pierden al traducirse (el texto lo pone T()).
@@ -37,6 +40,12 @@
     '.msel-btn[aria-expanded=true]{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb,124,58,237),.18)}',
     '.msel.activo .msel-btn{background:rgba(var(--accent-rgb,124,58,237),.14);border-color:rgba(var(--accent-rgb,124,58,237),.6);color:var(--fg)}',
     '.msel-txt{overflow:hidden;text-overflow:ellipsis;min-width:0}',
+    /* Dentro de ventanas y formularios: a lo ancho, como un campo. */
+    '.msel.ancho{display:flex;width:100%}',
+    '.msel.ancho .msel-btn{width:100%;height:40px;justify-content:space-between;font-weight:500;font-size:14px}',
+    '.msel.mini .msel-btn{height:28px;padding:0 6px 0 8px;font-size:11px;border-radius:7px;gap:4px}',
+    '.msel.mini .msel-chev{width:11px;height:11px}',
+    '.msel-btn:disabled{opacity:.5;cursor:default}',
     '.msel-chev{flex-shrink:0;width:14px;height:14px;color:var(--muted);transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.msel-btn[aria-expanded=true] .msel-chev{transform:rotate(180deg);color:var(--light)}',
     '.msel-pan{position:fixed;z-index:10040;min-width:200px;max-width:min(340px,calc(100vw - 16px));max-height:min(360px,70vh);overflow-y:auto;',
@@ -47,7 +56,7 @@
     '.msel-tit{padding:8px 10px 6px;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}',
     '.msel-op{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:9px;cursor:pointer;',
     ' font:500 14px Inter,system-ui,sans-serif;color:var(--fg);transition:background .12s}',
-    '.msel-op .ico{width:22px;text-align:center;font-size:16px;flex-shrink:0}',
+    '.msel-op .ico{width:22px;text-align:center;font-size:16px;flex-shrink:0;font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif}',
     '.msel-op .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.msel-op .ok{width:16px;height:16px;flex-shrink:0;color:var(--light);opacity:0}',
     '.msel-op[aria-selected=true]{font-weight:700;color:var(--light)}',
@@ -80,6 +89,11 @@
     var caja = document.createElement('span');
     caja.className = 'msel';
     if (sel.style.maxWidth) caja.style.maxWidth = sel.style.maxWidth;
+    if (sel.style.flex) caja.style.flex = sel.style.flex;
+    if (sel.style.minWidth) caja.style.minWidth = sel.style.minWidth;
+    if (sel.classList.contains('lang-select')) caja.classList.add('mini');
+    else if (!sel.closest('.toolbar, .bulk-bar, #bulk-bar') && !sel.classList.contains('bulk-select') &&
+             !/^(sort-by|filter-estado)$/.test(sel.id)) caja.classList.add('ancho');
     if (sel.classList.contains('tb2-fija')) caja.classList.add('tb2-fija');
     sel.parentNode.insertBefore(caja, sel);
     caja.appendChild(sel);
@@ -103,6 +117,7 @@
       if (op && !partir(t)[0] && icono(sel, op)) t = icono(sel, op) + ' ' + t;
       btn.querySelector('.msel-txt').textContent = t;
       btn.setAttribute('aria-label', (etiqueta ? etiqueta + ': ' : '') + t);
+      btn.disabled = !!sel.disabled;
       // Filtro aplicado (no es la primera opción "todos") → se resalta.
       caja.classList.toggle('activo', /^f-(estado|fuente|lista|tipo)$/.test(sel.id) && sel.selectedIndex > 0);
     }
@@ -253,7 +268,9 @@
   }, true);
 
   function arrancar() {
-    var sels = document.querySelectorAll('.toolbar select');
+    // v2.16: todos los desplegables (barra de filtros, ventanas, idioma…),
+    // salvo los múltiples o los marcados con data-nativo.
+    var sels = document.querySelectorAll('select:not([multiple]):not([data-nativo])');
     Array.prototype.forEach.call(sels, mejorar);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);

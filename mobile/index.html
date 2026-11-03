@@ -28,7 +28,7 @@ input,select,textarea,button{font-family:inherit}
 /* ── Pantallas ── */
 .screen{position:fixed;inset:0;top:var(--safe-top);display:flex;flex-direction:column;
         background:var(--bg);transition:opacity .2s,transform .2s;will-change:opacity}
-.screen.hidden{opacity:0;pointer-events:none;transform:translateY(8px)}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(8px);visibility:hidden;transition:opacity .2s,transform .2s,visibility 0s .2s}
 
 /* ═══════════════════════════════════════════════════════
    PANTALLA CONEXIÓN
