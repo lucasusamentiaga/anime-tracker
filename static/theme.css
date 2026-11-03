@@ -34,6 +34,10 @@
 
 /* ── Tokens (oscuro, por defecto) ──────────────────────────────────────────── */
 :root{
+  /* Capas (v2.16): de abajo arriba. Las ventanas de la app usan 50-100. */
+  --z-aviso:1100;      /* novedades, Mi año en anime */
+  --z-recorrido:1200;  /* recorrido guiado */
+  --z-menu:1300;       /* desplegables (encima de cualquier ventana) */
   --bg:#0a0812;
   --bg-elev:#100d1c;
   --card:#181426;

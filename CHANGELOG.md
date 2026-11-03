@@ -7,14 +7,14 @@
 - **Ventana de novedades en cada actualización**, en el menú o en la app (donde abras primero),
   con lo que trae la versión y lo de las que te saltaste. Los scripts ya no se quedan una semana
   en la caché del navegador tras actualizar (por eso a algunos no les salía).
-- **Estadísticas renovadas**: 8 cifras (nuevas: «Viendo ahora» y «Días de anime»), las listas de
+- **Estadísticas renovadas**: 8 cifras en un solo panel (nuevas: «Viendo ahora» y «Episodios este año», que abre tu resumen), las listas de
   «Mejor valorados» y «Añadidos recientemente» ya no se salen de su tarjeta y **«Mi año en
   anime»** es ahora un resumen completo (meses, racha, lo que más viste, años anteriores) con
   imagen vertical para compartir.
 - **Compartir biblioteca** separa Anime de Series y películas, agrupa el anime en carpetas por
   franquicia (como la pantalla principal) y tiene buscador.
 - **Google Sheets siempre al día**: cualquier cambio (también lo que llega de AniList, AnimeAV1,
-  importaciones o fusiones) se sube solo a los pocos segundos.
+  importaciones o fusiones) se sube solo a los pocos segundos; si no hay internet, lo reintenta.
 - **Acceso móvil sin instalar nada**: escanea el QR (generado en tu PC) y Miraru se abre en el
   navegador del móvil pidiendo el PIN. Dice si falta reiniciar Miraru para que funcione.
 - **Búsqueda con un solo menú**: arriba «En tu lista» y debajo lo que se puede añadir de internet

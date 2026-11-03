@@ -6,6 +6,8 @@
   'use strict';
   if (window.miraruTour) return;
 
+  // sel: un selector o varios (el foco abarca todos los que se vean).
+  // Pocos pasos y cada uno con algo que hacer: el primer anime es lo que importa.
   var PASOS = [
     {sel: null, ico: '👋', tit: '¡Bienvenido a Miraru!',
      txt: 'Tu lista de anime, en tu PC y sin cuentas. Te enseño lo importante en un minuto.'},
@@ -21,37 +23,38 @@
      txt: 'Estadísticas (y tu «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y tus películas y series.'},
     {sel: '#btn-copia', ico: '☁️', tit: 'Tu lista, a salvo',
      txt: 'Miraru guarda una copia en tu OneDrive, Google Drive o Dropbox. Si formateas el PC, la recuperas con un clic.'},
-    {sel: '#btn-extension', ico: '🧩', tit: '¿Ves anime en AnimeAV1?',
-     txt: 'Con su extensión, cada episodio que marcas como visto allí se apunta solo aquí.'},
-    {sel: '#btn-anilist', ico: '🔗', tit: 'AniList',
-     txt: 'Si ya tienes tu lista en AniList, tráela entera de golpe (y mantenlas sincronizadas).'},
+    {sel: ['#btn-anilist', '#btn-extension'], ico: '🔗', tit: 'Trae tu lista y no apuntes a mano',
+     txt: '¿Tu lista está en AniList? Tráela entera de golpe. ¿Ves anime en AnimeAV1? Con su extensión cada episodio se apunta solo.'},
     {sel: 'a[href="/mobile"]', ico: '📱', tit: 'También en el móvil',
      txt: 'Activa el acceso móvil, escanea el QR y usa Miraru desde el sofá (misma WiFi).'},
-    {sel: '#miraru-fab', ico: '🎨', tit: 'Hazla tuya',
-     txt: 'Cambia el color, el tema y la densidad cuando quieras.', lado: 'arriba'},
+    // En el móvil todo lo anterior vive tras «☰».
+    {sel: '#btn-menu-movil', ico: '☰', tit: 'Más opciones',
+     txt: 'Aquí están la copia en la nube, AniList, AnimeAV1, el acceso móvil y los ajustes.'},
+    {sel: ['#miraru-ayuda', '#miraru-fab'], ico: '🎨', tit: 'Hazla tuya',
+     txt: 'Con 🎨 cambias el color, el tema y la densidad. Con «?» repites este recorrido cuando quieras.', lado: 'arriba'},
     {sel: null, ico: '🎉', tit: '¡Listo!',
-     txt: 'Empieza añadiendo un anime que estés viendo. Si quieres repetir este recorrido, pulsa el botón «?» de abajo a la derecha.', fin: true}
+     txt: 'Empieza añadiendo un anime que estés viendo.', fin: true}
   ];
 
   var CSS = [
-    '.mtour-capa{position:fixed;inset:0;z-index:10060;cursor:default}',
-    '.mtour-foco{position:fixed;z-index:10061;border-radius:14px;pointer-events:none;',
-    ' box-shadow:0 0 0 2px rgba(var(--accent-rgb,124,58,237),.95),0 0 0 9999px rgba(6,4,12,.74);',
-    ' transition:top .5s cubic-bezier(.16,1,.3,1),left .5s cubic-bezier(.16,1,.3,1),width .5s cubic-bezier(.16,1,.3,1),height .5s cubic-bezier(.16,1,.3,1),border-radius .5s}',
+    '.mtour-capa{position:fixed;inset:0;z-index:var(--z-recorrido,1200);cursor:default}',
+    // Se mueve con `translate` (lo hace la GPU); solo el tamaño cambia de ancho/alto.
+    '.mtour-foco{position:fixed;top:0;left:0;z-index:calc(var(--z-recorrido,1200) + 1);border-radius:14px;pointer-events:none;',
+    ' box-shadow:0 0 0 2px rgba(var(--accent-rgb,124,58,237),.95),0 0 0 100vmax rgba(6,4,12,.74);',
+    ' transition:translate .5s cubic-bezier(.16,1,.3,1),width .5s cubic-bezier(.16,1,.3,1),height .5s cubic-bezier(.16,1,.3,1),border-radius .5s}',
     '.mtour-foco::after{content:"";position:absolute;inset:-6px;border-radius:inherit;border:2px solid rgba(var(--accent-rgb,124,58,237),.55);',
     ' animation:mtour-latido 1.8s cubic-bezier(.22,1,.36,1) infinite}',
-    '.mtour-foco.centro{box-shadow:0 0 0 9999px rgba(6,4,12,.74)}',
+    '.mtour-foco.centro{box-shadow:0 0 0 100vmax rgba(6,4,12,.74)}',
     '.mtour-foco.centro::after{display:none}',
-    '.mtour-tarjeta{position:fixed;z-index:10062;width:min(360px,calc(100vw - 24px));padding:18px 18px 14px;border-radius:18px;',
-    ' background:var(--card,#181426);color:var(--fg,#edecf4);border:1px solid var(--border,#2b2542);',
-    ' box-shadow:0 24px 60px -16px rgba(0,0,0,.75);font-family:Inter,system-ui,sans-serif;',
-    ' transition:top .5s cubic-bezier(.16,1,.3,1),left .5s cubic-bezier(.16,1,.3,1),opacity .25s}',
+    '.mtour-tarjeta{position:fixed;top:0;left:0;z-index:calc(var(--z-recorrido,1200) + 2);width:min(360px,calc(100vw - 24px));padding:18px 18px 14px;border-radius:16px;',
+    ' background:var(--card,#181426);color:var(--fg,#edecf4);border:1px solid var(--border,#2b2542);font-family:Inter,system-ui,sans-serif;',
+    ' transition:translate .5s cubic-bezier(.16,1,.3,1),opacity .25s}',
     '.mtour-tarjeta.grande{width:min(420px,calc(100vw - 24px));padding:26px 24px 18px;text-align:center}',
     '.mtour-cab{display:flex;align-items:center;gap:12px}',
     '.mtour-tarjeta.grande .mtour-cab{flex-direction:column;gap:10px}',
     '.mtour-ico{width:42px;height:42px;flex-shrink:0;display:grid;place-items:center;font-size:22px;border-radius:12px;',
     ' background:rgba(var(--accent-rgb,124,58,237),.16);border:1px solid rgba(var(--accent-rgb,124,58,237),.32)}',
-    '.mtour-tarjeta.grande .mtour-ico{width:64px;height:64px;font-size:34px;border-radius:18px}',
+    '.mtour-tarjeta.grande .mtour-ico{width:64px;height:64px;font-size:34px;border-radius:16px}',
     '.mtour-tarjeta h3{margin:0;font:700 17px/1.25 "Space Grotesk",Inter,sans-serif;text-wrap:balance}',
     '.mtour-tarjeta.grande h3{font-size:23px}',
     '.mtour-tarjeta p{margin:10px 0 0;font-size:14px;line-height:1.55;color:var(--muted,#a49dc0);text-wrap:pretty}',
@@ -93,8 +96,25 @@
 
   var estado = null;
 
+  function nodos(p) {
+    if (!p.sel) return [];
+    return [].concat(p.sel).map(function (q) { return document.querySelector(q); }).filter(visible);
+  }
+
+  // Rectángulo que abarca todos los elementos del paso.
+  function rect(ns) {
+    var r = {top: Infinity, left: Infinity, right: -Infinity, bottom: -Infinity};
+    ns.forEach(function (n) {
+      var b = n.getBoundingClientRect();
+      r.top = Math.min(r.top, b.top); r.left = Math.min(r.left, b.left);
+      r.right = Math.max(r.right, b.right); r.bottom = Math.max(r.bottom, b.bottom);
+    });
+    r.width = r.right - r.left; r.height = r.bottom - r.top;
+    return r;
+  }
+
   function pasosValidos() {
-    return PASOS.filter(function (p) { return !p.sel || visible(document.querySelector(p.sel)); });
+    return PASOS.filter(function (p) { return !p.sel || nodos(p).length; });
   }
 
   function empezar(forzar) {
@@ -117,29 +137,31 @@
     document.addEventListener('keydown', tecla, true);
     window.addEventListener('resize', recolocar);
     window.addEventListener('scroll', recolocar, true);
+    // El primer paso aparece en su sitio (sin viajar desde la esquina).
+    foco.style.transition = tarjeta.style.transition = 'none';
     ir(0);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { foco.style.transition = tarjeta.style.transition = ''; }); });
   }
 
   function ir(i) {
     var e = estado; if (!e) return;
     e.i = Math.max(0, Math.min(i, e.pasos.length - 1));
     var p = e.pasos[e.i];
-    var n = p.sel ? document.querySelector(p.sel) : null;
-    if (n && !visible(n)) {        // desapareció (p. ej. «Continuar viendo» vacío): siguiente
+    var ns = nodos(p);
+    if (p.sel && !ns.length) {      // desapareció (p. ej. «Continuar viendo» vacío): siguiente
       e.pasos.splice(e.i, 1);
       return ir(e.i);
     }
-    if (n) {
-      var r = n.getBoundingClientRect();
+    pintarTarjeta(p);
+    if (ns.length) {
+      var r = rect(ns);
       if (r.top < 70 || r.bottom > innerHeight - 40) {
-        n.scrollIntoView({block: 'center', behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth'});
-        setTimeout(function () { pintar(p, n); }, 380);
-        pintarTarjeta(p);
+        ns[0].scrollIntoView({block: 'center', behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth'});
+        setTimeout(function () { pintar(p, nodos(p)); }, 380);
         return;
       }
     }
-    pintarTarjeta(p);
-    pintar(p, n);
+    pintar(p, ns);
   }
 
   function pintarTarjeta(p) {
@@ -180,23 +202,23 @@
     setTimeout(function () { try { principal.focus({preventScroll: true}); } catch (_) {} }, 30);
   }
 
-  function pintar(p, n) {
+  function pintar(p, ns) {
     var e = estado; if (!e) return;
     var f = e.foco, tj = e.tarjeta;
-    if (!n) {
+    if (!ns || !ns.length) {
       f.classList.add('centro');
-      f.style.top = innerHeight / 2 + 'px'; f.style.left = innerWidth / 2 + 'px';
+      f.style.translate = (innerWidth / 2) + 'px ' + (innerHeight / 2) + 'px';
       f.style.width = '0px'; f.style.height = '0px';
       var tw = tj.offsetWidth, th = tj.offsetHeight;
-      tj.style.left = Math.max(12, (innerWidth - tw) / 2) + 'px';
-      tj.style.top = Math.max(12, (innerHeight - th) / 2) + 'px';
+      tj.style.translate = Math.max(12, (innerWidth - tw) / 2) + 'px ' + Math.max(12, (innerHeight - th) / 2) + 'px';
       return;
     }
     f.classList.remove('centro');
-    var r = n.getBoundingClientRect(), pad = 8;
+    var r = rect(ns), pad = 8;
     var top = Math.max(4, r.top - pad), left = Math.max(4, r.left - pad);
-    var w = Math.min(innerWidth - 8, r.width + pad * 2), h = Math.min(innerHeight - 8, r.height + pad * 2);
-    f.style.top = top + 'px'; f.style.left = left + 'px'; f.style.width = w + 'px'; f.style.height = h + 'px';
+    var w = Math.min(innerWidth - 8 - left, r.width + pad * 2), h = Math.min(innerHeight - 8 - top, r.height + pad * 2);
+    f.style.translate = left + 'px ' + top + 'px';
+    f.style.width = w + 'px'; f.style.height = h + 'px';
     f.style.borderRadius = (h < 60 ? 12 : 16) + 'px';
     // Tarjeta: debajo si cabe; si no, encima; si tampoco, al lado.
     var tw2 = tj.offsetWidth, th2 = tj.offsetHeight, gap = 14;
@@ -209,7 +231,7 @@
       y = Math.min(Math.max(12, r.top), innerHeight - th2 - 12);
       x = (r.left > innerWidth / 2) ? Math.max(12, left - tw2 - gap) : Math.min(innerWidth - tw2 - 12, left + w + gap);
     }
-    tj.style.left = x + 'px'; tj.style.top = y + 'px';
+    tj.style.translate = x + 'px ' + y + 'px';
   }
 
   var raf = 0;
@@ -218,7 +240,7 @@
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(function () {
       var p = estado.pasos[estado.i];
-      pintar(p, p.sel ? document.querySelector(p.sel) : null);
+      pintar(p, nodos(p));
     });
   }
 

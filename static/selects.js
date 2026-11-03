@@ -48,12 +48,12 @@
     '.msel-btn:disabled{opacity:.5;cursor:default}',
     '.msel-chev{flex-shrink:0;width:14px;height:14px;color:var(--muted);transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.msel-btn[aria-expanded=true] .msel-chev{transform:rotate(180deg);color:var(--light)}',
-    '.msel-pan{position:fixed;z-index:10040;min-width:200px;max-width:min(340px,calc(100vw - 16px));max-height:min(360px,70vh);overflow-y:auto;',
+    '.msel-pan{position:fixed;z-index:var(--z-menu,1300);min-width:200px;max-width:min(340px,calc(100vw - 16px));max-height:min(360px,70vh);overflow-y:auto;',
     ' padding:6px;border-radius:14px;background:var(--card);border:1px solid var(--border);',
-    ' box-shadow:0 18px 50px -12px rgba(0,0,0,.65),0 0 0 1px rgba(var(--accent-rgb,124,58,237),.08);',
+    ' box-shadow:0 8px 8px -6px rgba(0,0,0,.45);',
     ' transform-origin:var(--origen,top left);animation:msel-in .18s cubic-bezier(.22,1,.36,1) both;overscroll-behavior:contain}',
     '.msel-pan.arriba{--origen:bottom left}',
-    '.msel-tit{padding:8px 10px 6px;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}',
+    '.msel-tit{padding:8px 10px 6px;font:600 12.5px Inter,system-ui,sans-serif;color:var(--muted)}',
     '.msel-op{display:flex;align-items:center;gap:10px;min-height:38px;padding:0 10px;border-radius:9px;cursor:pointer;',
     ' font:500 14px Inter,system-ui,sans-serif;color:var(--fg);transition:background .12s}',
     '.msel-op .ico{width:22px;text-align:center;font-size:16px;flex-shrink:0;font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif}',
@@ -67,7 +67,7 @@
     '.msel-pan.arriba{animation-name:msel-in-up}',
     '@keyframes msel-in-up{from{opacity:0;transform:translateY(4px) scale(.97)}}',
     '@media (prefers-reduced-motion:reduce){.msel-pan{animation:none}.msel-chev{transition:none}}',
-    '[data-theme=light] .msel-pan{box-shadow:0 18px 40px -14px rgba(30,20,60,.3)}'
+    '[data-theme=light] .msel-pan{box-shadow:0 8px 8px -6px rgba(30,20,60,.18)}'
   ].join('\n');
 
   var CHEV = '<svg class="msel-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>';

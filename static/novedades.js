@@ -8,28 +8,34 @@
   window.__miraruNovedades = true;
 
   var CSS = [
-    '.mnv-bg{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:16px;',
+    '.mnv-bg{position:fixed;inset:0;z-index:var(--z-aviso,1100);display:grid;place-items:center;padding:16px;',
     ' background:rgba(6,4,12,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);',
     ' animation:mnv-fade .32s cubic-bezier(.22,1,.36,1) both}',
     '.mnv{position:relative;width:min(540px,100%);max-height:min(86vh,760px);display:flex;flex-direction:column;',
     ' background:var(--card,#181426);color:var(--fg,#edecf4);border:1px solid var(--border,#2b2542);',
-    ' border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);overflow:hidden;',
+    ' border-radius:16px;overflow:hidden;',
     ' font-family:Inter,system-ui,sans-serif;animation:mnv-in .5s cubic-bezier(.16,1,.3,1) both}',
-    '.mnv-cab{position:relative;padding:26px 26px 18px;overflow:hidden}',
+    '.mnv-cab{position:relative;padding:26px 26px 18px;overflow:hidden;flex-shrink:0}',
     '.mnv-cab::before{content:"";position:absolute;inset:-60% -20% auto;height:220px;',
     ' background:radial-gradient(closest-side,rgba(var(--accent-rgb,124,58,237),.38),transparent);pointer-events:none}',
     '.mnv-cab>*{position:relative}',
-    '.mnv-eti{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em;',
-    ' text-transform:uppercase;color:var(--light,#c4b1ff)}',
+    '.mnv-eti{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--light,#c4b1ff)}',
     '.mnv-ver{padding:3px 9px;border-radius:999px;background:rgba(var(--accent-rgb,124,58,237),.22);',
     ' border:1px solid rgba(var(--accent-rgb,124,58,237),.45);color:var(--fg,#edecf4);letter-spacing:0;text-transform:none;',
     ' font-variant-numeric:tabular-nums}',
     '.mnv h2{margin:10px 0 0;font:700 25px/1.18 "Space Grotesk",Inter,sans-serif;letter-spacing:-.01em;text-wrap:balance}',
     '.mnv-sub{margin:8px 0 0;font-size:14px;line-height:1.5;color:var(--muted,#a49dc0);text-wrap:pretty}',
-    '.mnv-cuerpo{overflow-y:auto;padding:4px 26px 8px;overscroll-behavior:contain}',
-    '.mnv-sep{display:flex;align-items:center;gap:10px;margin:18px 0 6px;font-size:12px;font-weight:700;',
-    ' color:var(--muted,#a49dc0);letter-spacing:.04em;text-transform:uppercase}',
-    '.mnv-sep::after{content:"";flex:1;height:1px;background:var(--border,#2b2542)}',
+    '.mnv-cuerpo{min-height:0;overflow-y:auto;padding:4px 26px 8px;overscroll-behavior:contain}',
+    // Versiones que te saltaste: plegadas (lo nuevo de verdad va primero y entero).
+    '.mnv-antes{margin:14px 0 4px;border-top:1px solid var(--border,#2b2542);padding-top:10px}',
+    '.mnv-antes summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;',
+    ' font-size:14px;font-weight:600;color:var(--muted,#a49dc0)}',
+    '.mnv-antes summary::-webkit-details-marker{display:none}',
+    '.mnv-antes summary::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;',
+    ' transform:rotate(-45deg);transition:transform .2s cubic-bezier(.22,1,.36,1)}',
+    '.mnv-antes[open] summary::before{transform:rotate(45deg)}',
+    '.mnv-antes summary:hover{color:var(--fg,#edecf4);background:rgba(255,255,255,.035)}',
+    '.mnv-antes summary:focus-visible{outline:2px solid var(--light,#c4b1ff);outline-offset:2px}',
     '.mnv-lista{list-style:none;margin:0;padding:0;display:grid;gap:4px}',
     '.mnv-p{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:10px 8px;border-radius:14px;',
     ' animation:mnv-sube .55s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(120ms + var(--i,0) * 55ms);',
@@ -44,11 +50,11 @@
     ' background:rgba(var(--accent-rgb,124,58,237),.12);border:1px solid rgba(var(--accent-rgb,124,58,237),.3);',
     ' transition:background .2s,transform .2s cubic-bezier(.22,1,.36,1)}',
     '.mnv-acc:hover{background:rgba(var(--accent-rgb,124,58,237),.24);transform:translateX(2px)}',
-    '.mnv-pie{display:flex;align-items:center;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--border-soft,#1e1930)}',
+    '.mnv-pie{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--border-soft,#1e1930)}',
     '.mnv-todo{margin-right:auto;font-size:13px;color:var(--muted,#a49dc0);text-decoration:none}',
     '.mnv-todo:hover{color:var(--fg,#edecf4);text-decoration:underline}',
     '.mnv-ok{border:0;cursor:pointer;padding:11px 22px;border-radius:12px;font:700 14.5px Inter,system-ui,sans-serif;',
-    ' color:#fff;background:var(--accent,#7c3aed);box-shadow:0 8px 24px -8px rgba(var(--accent-rgb,124,58,237),.8);',
+    ' color:#fff;background:var(--accent,#7c3aed);box-shadow:0 4px 8px -4px rgba(var(--accent-rgb,124,58,237),.7);',
     ' transition:transform .2s cubic-bezier(.22,1,.36,1),filter .2s}',
     '.mnv-ok:hover{filter:brightness(1.1);transform:translateY(-1px)}',
     '.mnv-ok:focus-visible,.mnv-acc:focus-visible,.mnv-x:focus-visible{outline:2px solid var(--light,#c4b1ff);outline-offset:2px}',
@@ -96,14 +102,24 @@
     eti.appendChild(el('span', 'mnv-ver', 'v' + vs[0].version.replace(/\.0$/, '')));
     var h = el('h2', null, vs[0].titulo); h.id = 'mnv-tit';
     var sub = el('p', 'mnv-sub', vs.length > 1
-      ? 'Miraru se ha actualizado. Esto es lo nuevo, y lo que trajeron las versiones que te saltaste.'
+      ? 'Miraru se ha actualizado. Esto es lo nuevo (y abajo, lo de las versiones que te saltaste):'
       : 'Miraru se ha actualizado. Esto es lo nuevo:');
     cab.append(eti, h, sub);
 
     var cuerpo = el('div', 'mnv-cuerpo');
     var i = 0;
+    var plegadas = null;
     vs.forEach(function (v, k) {
-      if (k > 0) cuerpo.appendChild(el('div', 'mnv-sep', 'Versión ' + v.version.replace(/\.0$/, '') + ' · ' + v.titulo));
+      var destino = cuerpo;
+      if (k > 0) {
+        if (!plegadas) {
+          plegadas = el('details', 'mnv-antes');
+          var n = vs.slice(1).reduce(function (s, x) { return s + (x.puntos || []).length; }, 0);
+          plegadas.appendChild(el('summary', null, (vs.length > 2 ? 'Lo que trajeron las versiones que te saltaste' : 'Lo que trajo la versión ' + v.version.replace(/\.0$/, '')) + ' (' + n + ')'));
+          cuerpo.appendChild(plegadas);
+        }
+        destino = plegadas;
+      }
       var ul = el('ul', 'mnv-lista');
       (v.puntos || []).forEach(function (p) {
         var li = el('li', 'mnv-p'); li.style.setProperty('--i', String(Math.min(i++, 10)));
@@ -127,7 +143,7 @@
         }
         li.append(ico, tx); ul.appendChild(li);
       });
-      cuerpo.appendChild(ul);
+      destino.appendChild(ul);
     });
 
     var pie = el('div', 'mnv-pie');

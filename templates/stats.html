@@ -29,9 +29,17 @@ header h1{
 @media (prefers-reduced-motion:reduce){header h1{animation:none}}
 .back-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
 main{padding:20px;max-width:900px;margin:0 auto}
-/* v2.16: 8 tarjetas en 4×2 (antes 6 en 4+2, quedaba cojo). */
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
-@media (max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+/* v2.16: 8 cifras en 4×2 (antes 6 en 4+2, quedaba cojo), en un solo panel
+   con divisiones finas en vez de 8 tarjetas sueltas. */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-bottom:20px;
+  background:var(--border);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+@media (max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#kpis .kpi{border:0;border-radius:0;background:var(--card);box-shadow:none}
+#kpis .kpi:hover{background:var(--card2);border:0;box-shadow:none}
+.kpi-btn{font:inherit;color:inherit;cursor:pointer;width:100%;text-align:center}
+.kpi-btn .label{color:var(--light)}
+.kpi-btn:focus-visible{outline:2px solid var(--light);outline-offset:-2px}
+[data-theme=light] #kpis .kpi{background:#fff}
 /* v2.14.1: dos columnas que en el móvil se salían de la pantalla. */
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media (max-width:640px){.grid-2{grid-template-columns:minmax(0,1fr)}}
@@ -39,7 +47,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .kpi .value{font-size:28px;font-weight:700;color:var(--light)}
 .kpi .label{font-size:12px;color:var(--muted);margin-top:4px}
 .section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
-.section h2{font-size:14px;font-weight:600;color:var(--light);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+.section h2{font-size:16px;font-weight:700;color:var(--fg);margin-bottom:14px;letter-spacing:0;text-wrap:balance}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .bar-label{font-size:12px;color:var(--fg);width:100px;flex-shrink:0;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
 .bar-track{flex:1;background:var(--border);border-radius:4px;height:14px;overflow:hidden}
@@ -120,7 +128,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 [data-theme=light] body{background:var(--bg);color:var(--fg)}
 [data-theme=light] .kpi{background:#fff;border-color:#d4d0ec}
 [data-theme=light] .section{background:#fff;border-color:#d4d0ec}
-[data-theme=light] .section h2{color:#4f46e5}
+[data-theme=light] .section h2{color:#1e1e2e}
 [data-theme=light] .bar-label{color:#1e1e2e}
 [data-theme=light] .bar-count{color:#64648c}
 [data-theme=light] .bar-track{background:#e5e4f0}
@@ -154,28 +162,27 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .wrap-abrir{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;
   box-shadow:0 6px 18px -8px rgba(var(--accent-rgb,124,58,237),.9);transition:transform .2s cubic-bezier(.22,1,.36,1),filter .2s}
 .wrap-abrir:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.wrap-fondo{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:16px;background:rgba(6,4,12,.66);
+.wrap-fondo{position:fixed;inset:0;z-index:var(--z-aviso,1100);display:grid;place-items:center;padding:16px;background:rgba(6,4,12,.66);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:wrapFade .3s cubic-bezier(.22,1,.36,1) both}
 .wrap-caja{position:relative;width:min(760px,100%);max-height:min(90vh,900px);display:flex;flex-direction:column;overflow:hidden;
-  background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
   animation:wrapIn .5s cubic-bezier(.16,1,.3,1) both}
 .wrap-cargando{height:260px;display:grid;place-items:center}
 .wrap-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(var(--accent-rgb,124,58,237),.25);border-top-color:var(--accent);animation:wrapGira .8s linear infinite}
 .wrap-x{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:21px;cursor:pointer}
 .wrap-x:hover{background:rgba(255,255,255,.06);color:var(--fg)}
-.wrap-cab{position:relative;padding:24px 26px 14px;overflow:hidden}
+.wrap-cab{position:relative;padding:24px 26px 14px;overflow:hidden;flex-shrink:0}
 .wrap-cab::before{content:"";position:absolute;inset:-70% -10% auto;height:260px;pointer-events:none;
   background:radial-gradient(closest-side,rgba(var(--accent-rgb,124,58,237),.4),transparent)}
 .wrap-cab>*{position:relative}
-.wrap-eti{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--light)}
-.wrap-cab h2{margin:6px 0 12px;font:700 30px/1.1 "Space Grotesk",Inter,sans-serif;color:var(--fg);text-transform:none;letter-spacing:-.01em}
+.wrap-cab h2{margin:0 0 12px;font:700 30px/1.1 "Space Grotesk",Inter,sans-serif;color:var(--fg);text-transform:none;letter-spacing:-.01em}
 .wrap-anos{display:flex;gap:6px;flex-wrap:wrap}
 .wrap-ano{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font:600 13px Inter,sans-serif;cursor:pointer;font-variant-numeric:tabular-nums;transition:all .2s}
 .wrap-ano:hover{color:var(--fg);border-color:rgba(var(--accent-rgb,124,58,237),.6)}
 .wrap-ano.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.wrap-cuerpo{overflow-y:auto;padding:6px 26px 10px;overscroll-behavior:contain}
-.wrap-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.wrap-cifra{padding:14px 10px;border-radius:16px;background:var(--card2);border:1px solid var(--border);text-align:center;
+.wrap-cuerpo{min-height:0;overflow-y:auto;padding:6px 26px 10px;overscroll-behavior:contain}
+.wrap-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.wrap-cifra{padding:14px 10px;background:var(--card2);text-align:center;
   animation:wrapSube .55s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(80ms + var(--i,0)*60ms)}
 .wrap-cifra .ico{font-size:20px}
 .wrap-cifra strong{display:block;font:700 28px/1.15 "Space Grotesk",Inter,sans-serif;color:var(--fg);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -183,7 +190,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .wrap-frase{margin:16px 2px 4px;font-size:14.5px;line-height:1.6;color:var(--muted);text-wrap:pretty}
 .wrap-frase b{color:var(--fg)}
 .wrap-bloque{margin-top:16px;padding:16px;border-radius:16px;background:var(--card2);border:1px solid var(--border);min-width:0}
-.wrap-bloque h3{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:.05em}
+.wrap-bloque h3{margin:0 0 12px;font-size:15px;font-weight:700;color:var(--fg);text-transform:none;letter-spacing:0}
 .wrap-meses{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:150px}
 .wrap-mes{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
 .wrap-mes i{display:block;width:100%;max-width:30px;height:calc(var(--h,0)*100px + 3px);border-radius:7px 7px 3px 3px;
@@ -210,7 +217,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .wrap-vacio{text-align:center;padding:36px 10px}
 .wrap-vacio .ico{font-size:40px}.wrap-vacio strong{display:block;font-size:17px;margin:8px 0 4px}
 .wrap-vacio p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto}
-.wrap-pie{display:flex;justify-content:flex-end;gap:10px;padding:14px 26px 20px;border-top:1px solid var(--border)}
+.wrap-pie{flex-shrink:0;display:flex;justify-content:flex-end;gap:10px;padding:14px 26px 20px;border-top:1px solid var(--border)}
 .wrap-btn{border:0;cursor:pointer;padding:10px 18px;border-radius:11px;font:700 14px Inter,sans-serif;color:#fff;background:var(--accent);transition:filter .2s,transform .2s cubic-bezier(.22,1,.36,1)}
 .wrap-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
 .wrap-btn.sec{background:transparent;color:var(--fg);border:1px solid var(--border)}
@@ -281,11 +288,11 @@ main{padding:20px;max-width:900px;margin:0 auto}
       <div class="value" id="k-watching">–</div>
       <div class="label" id="lbl-watching">Viendo ahora</div>
     </div>
-    <div class="kpi" title="Las horas vistas pasadas a días enteros (24 h)">
-      <div class="kpi-icon">🗓️</div>
-      <div class="value" id="k-days">–</div>
-      <div class="label" id="lbl-days">Días de anime</div>
-    </div>
+    <button type="button" class="kpi kpi-btn" onclick="abrirWrapped()" title="Abre tu «Mi año en anime»">
+      <div class="kpi-icon">✨</div>
+      <div class="value" id="k-year">–</div>
+      <div class="label" id="lbl-year">Episodios este año</div>
+    </button>
   </div>
 
   <!-- v2.2: heatmap de actividad estilo GitHub contributions -->
@@ -574,8 +581,12 @@ async function loadStats() {
   document.getElementById('k-completed').textContent = completados;
   const bs = d.by_state || {};
   document.getElementById('k-watching').textContent = (bs.viendo || 0) + (bs.watching || 0);
-  const dias = (d.total_hours || 0) / 24;
-  document.getElementById('k-days').textContent = dias >= 10 ? Math.round(dias) : dias.toFixed(1).replace('.', ',');
+  // Episodios de este año: el mismo dato que «Mi año en anime» (se guarda para
+  // que la ventana se abra al instante).
+  fetch('/api/stats/wrapped?year=' + new Date().getFullYear(), {cache: 'no-store'})
+    .then(r => r.ok ? r.json() : null)
+    .then(w => { if (!w) return; _wrapDatos = w; document.getElementById('k-year').textContent = (w.total_episodios || 0).toLocaleString('es-ES'); })
+    .catch(() => {});
 
   // Estado — donut chart
   const stateKeys = {
@@ -883,6 +894,11 @@ async function abrirWrapped(year) {
   _pintarWrapped(fondo, d);
 }
 
+if (location.hash === '#mi-ano') {
+  history.replaceState(null, '', location.pathname);
+  setTimeout(() => abrirWrapped(), 400);
+}
+
 function cerrarWrapped() {
   const f = document.getElementById('wrap-fondo');
   if (f) f.remove();
@@ -896,7 +912,6 @@ function _pintarWrapped(fondo, d) {
 
   // Cabecera + selector de año
   const cab = _wEl('div', 'wrap-cab');
-  cab.append(_wEl('div', 'wrap-eti', 'Miraru · resumen'));
   const h = _wEl('h2', null, 'Mi año en anime'); h.id = 'wrap-tit';
   cab.append(h);
   const anos = (d.anos && d.anos.length) ? d.anos.slice() : [d.year];

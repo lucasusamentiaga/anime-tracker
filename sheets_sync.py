@@ -294,23 +294,30 @@ def huella(animes: list[dict]) -> str:
     return hashlib.sha1(json.dumps(filas, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
 
 
-def vigilar(get_cfg, get_gen, listar, on_result, espera: float = 20.0, cada: float = 5.0):
+def vigilar(get_cfg, get_gen, listar, on_result, espera: float = 20.0, cada: float = 5.0,
+            maximo: float = 120.0, reintento: float = 300.0):
     """Hilo de fondo. get_cfg() → (sid, cred) o None; get_gen() → nº que sube con
-    cada cambio de la lista; listar() → animes; on_result(ok, msg)."""
+    cada cambio de la lista; listar() → animes; on_result(ok, msg).
+
+    Sube cuando la lista lleva `espera` s quieta (una importación de 400 animes
+    = UNA subida), pero nunca tarda más de `maximo` s si no paras de tocar
+    cosas. Si falla (sin internet, credenciales…), lo reintenta cada
+    `reintento` s en vez de esperar al siguiente cambio."""
     if _vig["hilo"] and _vig["hilo"].is_alive():
         return
 
     def _bucle():
-        gen_visto, cambio_en = None, 0.0
+        gen_visto, ultimo_cambio, primer_cambio, reintentar_en = None, 0.0, 0.0, 0.0
         while not _vig["parar"]:
             try:
+                ahora = time.time()
                 g = get_gen()
                 if g != gen_visto:
-                    gen_visto, cambio_en = g, time.time()
-                # Espera a que la lista lleve `espera` s sin cambiar (p. ej. una
-                # importación de 400 animes): así es UNA subida, no 400.
-                if cambio_en and time.time() - cambio_en >= espera:
-                    cambio_en = 0.0
+                    gen_visto, ultimo_cambio = g, ahora
+                    primer_cambio = primer_cambio or ahora
+                listo = primer_cambio and (ahora - ultimo_cambio >= espera or ahora - primer_cambio >= maximo)
+                if listo or (reintentar_en and ahora >= reintentar_en):
+                    primer_cambio, reintentar_en = 0.0, 0.0
                     cfg = get_cfg()
                     if cfg:
                         animes = listar()
@@ -319,8 +326,11 @@ def vigilar(get_cfg, get_gen, listar, on_result, espera: float = 20.0, cada: flo
                             ok, msg = sincronizar_todo(animes, cfg[0], cfg[1])
                             if ok:
                                 _vig["huella"] = h
+                            else:
+                                reintentar_en = time.time() + reintento
                             on_result(ok, msg)
             except Exception as e:  # noqa: BLE001 — el hilo no puede morir
+                reintentar_en = time.time() + reintento
                 try:
                     on_result(False, str(e)[:200])
                 except Exception:  # noqa: BLE001

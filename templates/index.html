@@ -732,7 +732,7 @@ body.sel-mode .ac .salir{display:none}
 
 /* ── v2.16: «En tu lista» dentro del mismo desplegable de búsqueda ── */
 .sp-local{padding:6px 0 4px;border-bottom:1px solid var(--border)}
-.sp-local h4{margin:0;padding:6px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.sp-local h4{margin:0;padding:6px 12px 4px;font-size:12.5px;font-weight:600;color:var(--muted)}
 .sp-lrow{display:flex;align-items:center;gap:10px;width:100%;padding:6px 12px;border:0;background:transparent;color:var(--fg);
   font:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .sp-lrow:hover,.sp-lrow:focus-visible{background:rgba(var(--accent-rgb),.1);outline:none}
@@ -740,7 +740,7 @@ body.sel-mode .ac .salir{display:none}
 .sp-lrow .n{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-lrow .e{font-size:11px;color:var(--muted);flex-shrink:0}
 .sp-lrow .ir{font-size:11px;color:var(--light);font-weight:600;flex-shrink:0}
-.sp-online-h{margin:0;padding:10px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.sp-online-h{margin:0;padding:10px 12px 2px;font-size:12.5px;font-weight:600;color:var(--muted)}
 /* Twitter/X floating button */
 </style>
 <!-- Sistema visual unificado (theme.css) -->
@@ -5566,7 +5566,18 @@ async function _av1ExtEstado() {
   } catch (_) {}
 }
 
-function abrirExtension() { abrirModalEl('modal-extension'); _av1ExtEstado(); }
+// Mientras la ventana está abierta, el estado se mira cada 3 s: en cuanto
+// marcas tu primer episodio en AnimeAV1 se pone en verde sin recargar.
+let _extTimer = 0;
+function abrirExtension() {
+  abrirModalEl('modal-extension');
+  _av1ExtEstado();
+  clearInterval(_extTimer);
+  _extTimer = setInterval(() => {
+    if (!document.getElementById('modal-extension')?.classList.contains('open')) { clearInterval(_extTimer); return; }
+    _av1ExtEstado();
+  }, 3000);
+}
 
 async function _av1CopiarExtensiones() {
   try { await navigator.clipboard.writeText('chrome://extensions'); toast(_tr('Copiado: pégalo en la barra de direcciones')); }

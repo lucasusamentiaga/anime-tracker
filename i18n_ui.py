@@ -23,6 +23,36 @@ LANGS = ("en", "fr", "de")
 
 UI: dict[str, tuple[str, str, str]] = {
     # ── v2.16: recorrido, novedades, menús, estadísticas, móvil ──────────────
+    'Trae tu lista y no apuntes a mano': ('Bring your list and stop logging by hand', 'Importe ta liste et arrête de tout noter à la main', 'Hol deine Liste und trag nichts mehr von Hand ein'),
+    '¿Tu lista está en AniList? Tráela entera de golpe. ¿Ves anime en AnimeAV1? Con su extensión cada episodio se apunta solo.': ('Is your list on AniList? Bring it all over at once. Watch anime on AnimeAV1? With its extension every episode is logged automatically.', "Ta liste est sur AniList ? Importe-la d'un coup. Tu regardes sur AnimeAV1 ? Avec son extension, chaque épisode est noté tout seul.", 'Ist deine Liste auf AniList? Hol sie auf einmal. Schaust du auf AnimeAV1? Mit der Erweiterung wird jede Folge automatisch eingetragen.'),
+    'Aquí están la copia en la nube, AniList, AnimeAV1, el acceso móvil y los ajustes.': ('Cloud backup, AniList, AnimeAV1, mobile access and settings are here.', "La sauvegarde cloud, AniList, AnimeAV1, l'accès mobile et les réglages sont ici.", 'Hier findest du Cloud-Sicherung, AniList, AnimeAV1, Handy-Zugriff und Einstellungen.'),
+    'Con 🎨 cambias el color, el tema y la densidad. Con «?» repites este recorrido cuando quieras.': ('With 🎨 you change the color, theme and density. With “?” you can repeat this tour any time.', 'Avec 🎨 tu changes la couleur, le thème et la densité. Avec « ? » tu refais cette visite quand tu veux.', 'Mit 🎨 änderst du Farbe, Design und Dichte. Mit „?“ wiederholst du diese Tour jederzeit.'),
+    'Empieza añadiendo un anime que estés viendo.': ("Start by adding an anime you're watching.", 'Commence par ajouter un anime que tu regardes.', 'Füge zuerst einen Anime hinzu, den du gerade schaust.'),
+    'Episodios este año': ('Episodes this year', 'Épisodes cette année', 'Folgen dieses Jahr'),
+    'Abre tu «Mi año en anime»': ('Opens your “My year in anime”', 'Ouvre ton « Mon année anime »', 'Öffnet dein „Mein Anime-Jahr“'),
+    'Miraru se ha actualizado. Esto es lo nuevo (y abajo, lo de las versiones que te saltaste):': ("Miraru has been updated. Here's what's new (and below, what the versions you skipped brought):", 'Miraru a été mis à jour. Voici les nouveautés (et en dessous, celles des versions que tu as sautées) :', 'Miraru wurde aktualisiert. Das ist neu (und darunter, was die übersprungenen Versionen brachten):'),
+    'Más rápida, más clara y con recorrido guiado': ('Faster, clearer and with a guided tour', 'Plus rapide, plus claire et avec une visite guidée', 'Schneller, klarer und mit geführter Tour'),
+    'Te enseñamos cada parte de Miraru paso a paso. Repítelo cuando quieras con el botón «?» de abajo a la derecha.': ('We show you every part of Miraru step by step. Repeat it any time with the “?” button at the bottom right.', 'On te montre chaque partie de Miraru pas à pas. Refais-la quand tu veux avec le bouton « ? » en bas à droite.', 'Wir zeigen dir Schritt für Schritt jeden Teil von Miraru. Wiederhole es jederzeit mit „?“ unten rechts.'),
+    'Verlo ahora': ('See it now', 'Voir maintenant', 'Jetzt ansehen'),
+    'Tu «Mi año en anime»': ('Your “My year in anime”', 'Ton « Mon année anime »', 'Dein „Mein Anime-Jahr“'),
+    'Meses, rachas, lo que más viste y una imagen para compartir. Y las estadísticas, con dos cifras nuevas.': ('Months, streaks, what you watched most and an image to share. Plus two new figures in your stats.', 'Mois, séries, ce que tu as le plus regardé et une image à partager. Et deux nouveaux chiffres dans tes stats.', 'Monate, Serien, was du am meisten geschaut hast und ein Bild zum Teilen. Dazu zwei neue Zahlen in den Statistiken.'),
+    'Ver mi año': ('See my year', 'Voir mon année', 'Mein Jahr ansehen'),
+    'En el móvil, sin instalar nada': ('On your phone, nothing to install', 'Sur mobile, sans rien installer', 'Auf dem Handy, ohne Installation'),
+    'Escanea un QR y Miraru se abre en el navegador de tu móvil (misma WiFi).': ("Scan a QR code and Miraru opens in your phone's browser (same Wi-Fi).", "Scanne un QR et Miraru s'ouvre dans le navigateur de ton mobile (même Wi-Fi).", 'Scanne einen QR-Code und Miraru öffnet sich im Handy-Browser (gleiches WLAN).'),
+    'Activarlo': ('Turn it on', "L'activer", 'Aktivieren'),
+    'Compartir por carpetas': ('Share in folders', 'Partage en dossiers', 'Teilen in Ordnern'),
+    'Tu biblioteca compartida separa anime de series y películas, con cada saga en su carpeta.': ('Your shared library separates anime from series and movies, with each saga in its folder.', 'Ta bibliothèque partagée sépare les animes des séries et films, chaque saga dans son dossier.', 'Deine geteilte Bibliothek trennt Anime von Serien und Filmen, jede Saga in ihrem Ordner.'),
+    'Más cómoda': ('More comfortable', 'Plus confortable', 'Bequemer'),
+    'Un solo menú al buscar, desplegables más claros y la lista ya no salta arriba sola.': ('A single menu when searching, clearer dropdowns and the list no longer jumps to the top by itself.', 'Un seul menu en recherchant, des menus plus clairs et la liste ne remonte plus toute seule.', 'Ein einziges Menü bei der Suche, klarere Auswahlmenüs und die Liste springt nicht mehr nach oben.'),
+    'Google Sheets al día': ('Google Sheets up to date', 'Google Sheets à jour', 'Google Sheets aktuell'),
+    'Cualquier cambio llega a tu hoja de cálculo sola, también lo que viene de AniList o AnimeAV1.': ('Every change reaches your spreadsheet by itself, including what comes from AniList or AnimeAV1.', "Chaque changement arrive tout seul dans ta feuille, y compris ce qui vient d'AniList ou d'AnimeAV1.", 'Jede Änderung landet von selbst in deiner Tabelle, auch was von AniList oder AnimeAV1 kommt.'),
+    'Copia en la nube automática': ('Automatic cloud backup', 'Sauvegarde cloud automatique', 'Automatische Cloud-Sicherung'),
+    'Ver mi copia': ('See my backup', 'Voir ma copie', 'Meine Kopie ansehen'),
+    'Conecta AnimeAV1': ('Connect AnimeAV1', 'Connecte AnimeAV1', 'AnimeAV1 verbinden'),
+    'Con la extensión para Chrome, cada episodio que marcas como visto en AnimeAV1 se apunta solo en Miraru.': ('With the Chrome extension, every episode you mark as watched on AnimeAV1 is logged in Miraru automatically.', "Avec l'extension Chrome, chaque épisode marqué comme vu sur AnimeAV1 est noté dans Miraru tout seul.", 'Mit der Chrome-Erweiterung wird jede auf AnimeAV1 als gesehen markierte Folge automatisch in Miraru eingetragen.'),
+    'Cómo se instala': ('How to install it', "Comment l'installer", 'So wird sie installiert'),
+    'Aviso de actualizaciones': ('Update alerts', 'Alertes de mise à jour', 'Update-Hinweise'),
+    'Cuando salga una versión nueva te avisaremos con lo que trae.': ("When a new version comes out we'll tell you what it brings.", "Quand une nouvelle version sortira, on te dira ce qu'elle apporte.", 'Wenn eine neue Version erscheint, sagen wir dir, was sie bringt.'),
     '¡Bienvenido a Miraru!': ('Welcome to Miraru!', 'Bienvenue sur Miraru !', 'Willkommen bei Miraru!'),
     'Tu lista de anime, en tu PC y sin cuentas. Te enseño lo importante en un minuto.': ('Your anime list, on your PC and with no accounts. Let me show you the essentials in a minute.', "Ta liste d'anime, sur ton PC et sans compte. Je te montre l'essentiel en une minute.", 'Deine Anime-Liste, auf deinem PC und ohne Konto. Ich zeige dir das Wichtigste in einer Minute.'),
     'Añade tu primer anime': ('Add your first anime', 'Ajoute ton premier anime', 'Füge deinen ersten Anime hinzu'),
@@ -950,6 +980,9 @@ UI: dict[str, tuple[str, str, str]] = {
 
 # Textos con números u otras partes variables. Se prueban en orden.
 PATTERNS: list[tuple[str, tuple[str, str, str]]] = [
+    (r"^Lo que trajo la versión ([\d.]+) \((\d+)\)$", ("What version $1 brought ($2)", "Ce qu'a apporté la version $1 ($2)", "Was Version $1 brachte ($2)")),
+    (r"^Lo que trajeron las versiones que te saltaste \((\d+)\)$", ("What the versions you skipped brought ($1)", "Ce qu'ont apporté les versions sautées ($1)", "Was die übersprungenen Versionen brachten ($1)")),
+
     # v2.14.1: «¿Qué veo esta noche?» explicaba la elección solo en español.
     (r"^Ya está activada en (.+)$", ("Already on in $1", "Déjà activée dans $1", "Bereits aktiv in $1")),
     (r"^Tu lista está a salvo en (.+)$", ("Your list is safe in $1", "Votre liste est à l'abri dans $1", "Deine Liste ist sicher in $1")),
