@@ -227,6 +227,7 @@ def build_app(onefile: bool = False):
         (str(ROOT / "static"),       "static"),
         (str(ROOT / "scrapers"),     "scrapers"),
         (str(ROOT / "routers"),      "routers"),   # APIRouter por dominio
+        (str(ROOT / "mobile" / "index.html"), "mobile"),   # /m: Miraru en el navegador del móvil
         # .py fuente — necesarios para importlib en launcher.py
     ] + [(str(p), ".") for p in modulos_propios()]
     datas_args = []

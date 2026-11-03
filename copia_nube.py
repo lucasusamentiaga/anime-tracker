@@ -128,6 +128,17 @@ def detectar_nubes() -> list[dict]:
     for ruta in _carpetas_dropbox(home):
         poner("Dropbox", ruta)
     poner("iCloud Drive", home / "iCloudDrive")
+    # v2.16: más nubes con app de escritorio (crean una carpeta que sincroniza sola).
+    for nombre, rutas in (("MEGA", [home / "MEGA", home / "Documents" / "MEGA"]),
+                          ("Proton Drive", [home / "Proton Drive"] + sorted(home.glob("Proton Drive*"))),
+                          ("Box", [home / "Box"]),
+                          ("Nextcloud", [home / "Nextcloud"]),
+                          ("Sync.com", [home / "Sync"])):
+        for r in rutas:
+            poner(nombre, r)
+    for raiz in _unidades_locales():                   # pCloud monta P: como unidad
+        if _etiqueta_volumen(raiz).lower() == "pcloud drive":
+            poner("pCloud", raiz)
     for n in out:
         if n["servicio"] == "Google Drive":
             # Google Drive para escritorio solo monta su unidad (o su carpeta

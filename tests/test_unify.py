@@ -71,7 +71,19 @@ def test_share_html_contiene_titulos_y_es_html():
     assert out.lstrip().startswith("<!DOCTYPE html>")
     assert "Frieren" in out and "Inception" in out
     assert "Lucas" in out
-    assert "ANIME" in out and "PELÍCULA" in out
+    assert "Anime" in out and "Películas" in out          # dos pestañas (v2.16)
+
+
+def test_share_html_carpetas_por_franquicia():
+    fr = [{"nombre": "Shingeki no Kyojin", "animes": [
+              {"nombre": "Shingeki no Kyojin", "estado_usuario": "completado"},
+              {"nombre": "Shingeki no Kyojin Season 2", "estado_usuario": "viendo"}]},
+          {"nombre": "Frieren", "animes": [{"nombre": "Frieren", "estado_usuario": "viendo"}]}]
+    animes = [a for f in fr for a in f["animes"]]
+    out = share_page.render_share_html(animes, [{"titulo": "Dark", "tipo": "serie"}], franquicias=fr)
+    assert out.count('class="card carpeta"') == 1         # solo la saga de 2 es carpeta
+    assert "📁 2" in out and "Season 2" in out
+    assert '<h2 class="sec">Series' in out and '<h2 class="sec">Películas' not in out
 
 
 def test_share_html_escapa_contenido_malicioso():

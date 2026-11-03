@@ -29,7 +29,9 @@ header h1{
 @media (prefers-reduced-motion:reduce){header h1{animation:none}}
 .back-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 14px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
 main{padding:20px;max-width:900px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+/* v2.16: 8 tarjetas en 4×2 (antes 6 en 4+2, quedaba cojo). */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
+@media (max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
 /* v2.14.1: dos columnas que en el móvil se salían de la pantalla. */
 .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 @media (max-width:640px){.grid-2{grid-template-columns:minmax(0,1fr)}}
@@ -43,7 +45,12 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .bar-track{flex:1;background:var(--border);border-radius:4px;height:14px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
 .bar-count{font-size:11px;color:var(--muted);width:30px;text-align:right;flex-shrink:0}
-.anime-list{display:grid;gap:8px}
+/* v2.16: minmax(0,1fr) — sin él, un título largo ensanchaba la columna y las
+   filas se salían de la tarjeta por la derecha. */
+.anime-list{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.anime-row{min-width:0}
+.anime-row .rk{width:22px;flex-shrink:0;text-align:center;font:700 13px "Space Grotesk",Inter,sans-serif;color:var(--muted);font-variant-numeric:tabular-nums}
+.anime-row .when{font-size:11px;color:var(--muted);flex-shrink:0;white-space:nowrap}
 .anime-row{display:flex;gap:10px;align-items:center;padding:8px;background:#12121a;border-radius:8px}
 .anime-row img{width:36px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0}
 .anime-row .info{flex:1;min-width:0}
@@ -59,12 +66,8 @@ main{padding:20px;max-width:900px;margin:0 auto}
 }
 .kpi:hover{border-color:rgba(124,58,237,.35);box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .kpi-icon{font-size:22px;opacity:0.7;margin-bottom:6px}
-.kpi .value{
-  font-size:32px;font-weight:800;
-  background:linear-gradient(135deg, var(--accent), var(--light));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
+.kpi .value{font-size:30px;font-weight:800;color:var(--light);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Donut chart for state distribution */
 .donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
@@ -106,17 +109,6 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .empty-state .icon{font-size:32px;margin-bottom:8px;opacity:.5}
 
 /* Twitter/X floating button */
-#tw-btn{
-  position:fixed;bottom:20px;right:20px;z-index:50;
-  background:#000;color:#fff;border:none;border-radius:50%;
-  width:40px;height:40px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 12px rgba(0,0,0,.4);
-  transition:opacity .18s ease,box-shadow .18s ease;text-decoration:none;
-  opacity:0.85;
-}
-#tw-btn:hover{opacity:1;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-#tw-btn svg{flex-shrink:0}
 [data-theme=light]{
   --bg:#f8f7fc;--card:#fff;--border:#d4d0ec;--fg:#1e1e2e;--muted:#64648c;
   --light:#4f46e5;--accent:#4f46e5;--card2:#f0eef8;
@@ -157,6 +149,86 @@ main{padding:20px;max-width:900px;margin:0 auto}
   border:6px solid transparent;border-top-color:var(--border);
 }
 @media(prefers-reduced-motion:reduce){.logro-tip{transition:none}}
+
+/* ── v2.16: Mi año en anime ── */
+.wrap-abrir{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 18px -8px rgba(var(--accent-rgb,124,58,237),.9);transition:transform .2s cubic-bezier(.22,1,.36,1),filter .2s}
+.wrap-abrir:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.wrap-fondo{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:16px;background:rgba(6,4,12,.66);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:wrapFade .3s cubic-bezier(.22,1,.36,1) both}
+.wrap-caja{position:relative;width:min(760px,100%);max-height:min(90vh,900px);display:flex;flex-direction:column;overflow:hidden;
+  background:var(--card);border:1px solid var(--border);border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
+  animation:wrapIn .5s cubic-bezier(.16,1,.3,1) both}
+.wrap-cargando{height:260px;display:grid;place-items:center}
+.wrap-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(var(--accent-rgb,124,58,237),.25);border-top-color:var(--accent);animation:wrapGira .8s linear infinite}
+.wrap-x{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:21px;cursor:pointer}
+.wrap-x:hover{background:rgba(255,255,255,.06);color:var(--fg)}
+.wrap-cab{position:relative;padding:24px 26px 14px;overflow:hidden}
+.wrap-cab::before{content:"";position:absolute;inset:-70% -10% auto;height:260px;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(var(--accent-rgb,124,58,237),.4),transparent)}
+.wrap-cab>*{position:relative}
+.wrap-eti{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--light)}
+.wrap-cab h2{margin:6px 0 12px;font:700 30px/1.1 "Space Grotesk",Inter,sans-serif;color:var(--fg);text-transform:none;letter-spacing:-.01em}
+.wrap-anos{display:flex;gap:6px;flex-wrap:wrap}
+.wrap-ano{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font:600 13px Inter,sans-serif;cursor:pointer;font-variant-numeric:tabular-nums;transition:all .2s}
+.wrap-ano:hover{color:var(--fg);border-color:rgba(var(--accent-rgb,124,58,237),.6)}
+.wrap-ano.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.wrap-cuerpo{overflow-y:auto;padding:6px 26px 10px;overscroll-behavior:contain}
+.wrap-cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.wrap-cifra{padding:14px 10px;border-radius:16px;background:var(--card2);border:1px solid var(--border);text-align:center;
+  animation:wrapSube .55s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(80ms + var(--i,0)*60ms)}
+.wrap-cifra .ico{font-size:20px}
+.wrap-cifra strong{display:block;font:700 28px/1.15 "Space Grotesk",Inter,sans-serif;color:var(--fg);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.wrap-cifra small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.wrap-frase{margin:16px 2px 4px;font-size:14.5px;line-height:1.6;color:var(--muted);text-wrap:pretty}
+.wrap-frase b{color:var(--fg)}
+.wrap-bloque{margin-top:16px;padding:16px;border-radius:16px;background:var(--card2);border:1px solid var(--border);min-width:0}
+.wrap-bloque h3{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:.05em}
+.wrap-meses{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:150px}
+.wrap-mes{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;min-width:0}
+.wrap-mes i{display:block;width:100%;max-width:30px;height:calc(var(--h,0)*100px + 3px);border-radius:7px 7px 3px 3px;
+  background:rgba(var(--accent-rgb,124,58,237),.45);transform-origin:bottom;animation:wrapCrece .7s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(200ms + var(--i,0)*35ms)}
+.wrap-mes.top i{background:var(--accent)}
+.wrap-mes .n{font-size:11px;font-weight:700;color:var(--fg);min-height:14px;font-variant-numeric:tabular-nums}
+.wrap-mes .m{font-size:11px;color:var(--muted)}
+.wrap-dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.wrap-dos .wrap-bloque{margin-top:12px}
+.wrap-top{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.wrap-top li{display:grid;grid-template-columns:20px 34px minmax(0,1fr);gap:10px;align-items:center}
+.wrap-top .pos{font:700 15px "Space Grotesk",Inter,sans-serif;color:var(--light);text-align:center}
+.wrap-top img{width:34px;height:46px;border-radius:6px;object-fit:cover;background:var(--card)}
+.wrap-top strong{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrap-top small{font-size:12px;color:var(--muted)}
+.wrap-gen{display:grid;grid-template-columns:minmax(0,96px) minmax(0,1fr) 26px;gap:10px;align-items:center;margin-bottom:9px;font-size:13px}
+.wrap-gen .g{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrap-gen .pista{height:10px;border-radius:99px;background:rgba(var(--accent-rgb,124,58,237),.15);overflow:hidden}
+.wrap-gen .pista i{display:block;height:100%;width:100%;border-radius:99px;background:var(--accent);transform:scaleX(var(--w,0));transform-origin:left;
+  animation:wrapAncho .8s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(250ms + var(--i,0)*60ms)}
+.wrap-gen .c{text-align:right;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.wrap-nota{margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--muted)}
+.wrap-nota b{color:var(--fg)}
+.wrap-vacio{text-align:center;padding:36px 10px}
+.wrap-vacio .ico{font-size:40px}.wrap-vacio strong{display:block;font-size:17px;margin:8px 0 4px}
+.wrap-vacio p{color:var(--muted);font-size:14px;max-width:380px;margin:0 auto}
+.wrap-pie{display:flex;justify-content:flex-end;gap:10px;padding:14px 26px 20px;border-top:1px solid var(--border)}
+.wrap-btn{border:0;cursor:pointer;padding:10px 18px;border-radius:11px;font:700 14px Inter,sans-serif;color:#fff;background:var(--accent);transition:filter .2s,transform .2s cubic-bezier(.22,1,.36,1)}
+.wrap-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.wrap-btn.sec{background:transparent;color:var(--fg);border:1px solid var(--border)}
+.wrap-btn:focus-visible,.wrap-ano:focus-visible,.wrap-x:focus-visible{outline:2px solid var(--light);outline-offset:2px}
+@keyframes wrapFade{from{opacity:0}}
+@keyframes wrapIn{from{opacity:0;transform:translateY(14px) scale(.98)}}
+@keyframes wrapSube{from{opacity:0;transform:translateY(8px)}}
+@keyframes wrapCrece{from{transform:scaleY(0)}}
+@keyframes wrapAncho{from{transform:scaleX(0)}}
+@keyframes wrapGira{to{transform:rotate(360deg)}}
+@media (max-width:640px){
+  .wrap-cifras{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wrap-dos{grid-template-columns:minmax(0,1fr)}
+  .wrap-cab,.wrap-cuerpo{padding-left:16px;padding-right:16px}.wrap-pie{padding:12px 16px 16px}
+  .wrap-cab h2{font-size:24px}.wrap-meses{gap:3px;height:120px}.wrap-mes .m{font-size:9.5px}.wrap-mes .n{font-size:9.5px}
+}
+@media (prefers-reduced-motion:reduce){.wrap-fondo,.wrap-caja,.wrap-cifra,.wrap-mes i,.wrap-gen .pista i{animation:none}}
+[data-theme=light] .wrap-caja{background:#fff}
 </style>
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
@@ -204,6 +276,16 @@ main{padding:20px;max-width:900px;margin:0 auto}
       <div class="value" id="k-completed">–</div>
       <div class="label" id="lbl-completed">Completados</div>
     </div>
+    <div class="kpi">
+      <div class="kpi-icon">👀</div>
+      <div class="value" id="k-watching">–</div>
+      <div class="label" id="lbl-watching">Viendo ahora</div>
+    </div>
+    <div class="kpi" title="Las horas vistas pasadas a días enteros (24 h)">
+      <div class="kpi-icon">🗓️</div>
+      <div class="value" id="k-days">–</div>
+      <div class="label" id="lbl-days">Días de anime</div>
+    </div>
   </div>
 
   <!-- v2.2: heatmap de actividad estilo GitHub contributions -->
@@ -215,7 +297,7 @@ main{padding:20px;max-width:900px;margin:0 auto}
         <span>Máx: <strong id="streak-max" style="color:var(--light)">–</strong></span>
         <span>Eps últ. año: <strong id="heatmap-total" style="color:var(--light)">–</strong></span>
         <!-- v2.3: exportar tarjeta del año como imagen -->
-        <button onclick="exportarWrapped()" style="background:var(--grad-accent);color:#fff;border:none;border-radius:8px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer" title="Descargar mi resumen anual como imagen PNG">📸 Mi año en anime</button>
+        <button onclick="abrirWrapped()" class="wrap-abrir" title="Tu resumen del año: episodios, meses, lo que más viste…">✨ Mi año en anime</button>
       </div>
     </div>
     <div id="heatmap" style="overflow-x:auto"></div>
@@ -322,7 +404,17 @@ function makeBar(label, value, max, color) {
   </div>`;
 }
 
-function makeAnimeRow(a, showScore=false) {
+function _haceCuanto(f) {
+  const t = Date.parse(String(f).replace(' ', 'T'));
+  if (isNaN(t)) return '';
+  const d = Math.floor((Date.now() - t) / 86400000);
+  if (d <= 0) return 'hoy';
+  if (d === 1) return 'ayer';
+  if (d < 30) return 'hace ' + d + ' d';
+  if (d < 365) return 'hace ' + Math.round(d / 30) + ' m';
+  return 'hace ' + Math.round(d / 365) + ' a';
+}
+function makeAnimeRow(a, showScore=false, opts={}) {
   // DOM-safe: no innerHTML with user data
   const row = document.createElement('div');
   row.className = 'anime-row';
@@ -342,11 +434,27 @@ function makeAnimeRow(a, showScore=false) {
   name.textContent = a.nombre || '';
   const meta = document.createElement('div');
   meta.className = 'meta';
-  meta.textContent = a.fuente || '';
+  const partes = [];
+  const caps = String(a.capitulos || '').trim();
+  if (/^\d+\+?$/.test(caps)) partes.push(caps + ' eps');
+  else if (/pel/i.test(caps)) partes.push('Película');
+  const gen = String(a.genero || '').split(',')[0].trim();
+  if (gen) partes.push(gen);
+  meta.textContent = partes.join(' · ') || (a.fuente || '');
   info.appendChild(name);
   info.appendChild(meta);
   row.appendChild(info);
 
+  if (opts.rank) {
+    const rk = document.createElement('span');
+    rk.className = 'rk'; rk.textContent = opts.rank;
+    row.insertBefore(rk, row.firstChild);
+  }
+  if (opts.when && a.creado_en) {
+    const w = document.createElement('span');
+    w.className = 'when'; w.textContent = _haceCuanto(a.creado_en);
+    row.appendChild(w);
+  }
   if (showScore && a.puntuacion) {
     const sc = document.createElement('span');
     sc.className = 'score-badge';
@@ -464,6 +572,10 @@ async function loadStats() {
   // Completados
   const completados = (d.by_state || {}).completado || (d.by_state || {}).completed || 0;
   document.getElementById('k-completed').textContent = completados;
+  const bs = d.by_state || {};
+  document.getElementById('k-watching').textContent = (bs.viendo || 0) + (bs.watching || 0);
+  const dias = (d.total_hours || 0) / 24;
+  document.getElementById('k-days').textContent = dias >= 10 ? Math.round(dias) : dias.toFixed(1).replace('.', ',');
 
   // Estado — donut chart
   const stateKeys = {
@@ -515,7 +627,7 @@ async function loadStats() {
   const listTop = document.getElementById('list-top');
   listTop.innerHTML = '';
   if (d.top_rated && d.top_rated.length) {
-    d.top_rated.forEach(a => listTop.appendChild(makeAnimeRow(a, true)));
+    d.top_rated.forEach((a, i) => listTop.appendChild(makeAnimeRow(a, true, {rank: i + 1})));
   } else {
     const p = document.createElement('p');
     p.style.cssText = 'color:var(--muted);font-size:13px';
@@ -527,7 +639,7 @@ async function loadStats() {
   const listRecent = document.getElementById('list-recent');
   listRecent.innerHTML = '';
   if (d.recently_added && d.recently_added.length) {
-    d.recently_added.forEach(a => listRecent.appendChild(makeAnimeRow(a)));
+    d.recently_added.forEach(a => listRecent.appendChild(makeAnimeRow(a, false, {when: true})));
   } else {
     const p = document.createElement('p');
     p.style.cssText = 'color:var(--muted);font-size:13px';
@@ -730,126 +842,261 @@ async function loadHeatmap() {
 }
 loadHeatmap();
 
-// v2.3: exportar "Mi año en anime" como imagen PNG via Canvas
-// — sin libs externas. Datos vienen de /api/stats/wrapped (ya existe).
-async function exportarWrapped() {
-  const btn = event && event.target;
+// ── v2.16: «Mi año en anime» ────────────────────────────────────────────────
+// Antes era solo un botón que descargaba una imagen. Ahora abre tu resumen del
+// año en grande (con selector de año) y desde ahí se descarga la imagen.
+const _MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const _MESES_L = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+let _wrapDatos = null;
+
+function _wEl(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function _wNum(n) { return Number(n || 0).toLocaleString('es-ES', {maximumFractionDigits: 1}); }
+
+async function abrirWrapped(year) {
+  let fondo = document.getElementById('wrap-fondo');
+  if (!fondo) {
+    fondo = _wEl('div', 'wrap-fondo'); fondo.id = 'wrap-fondo';
+    fondo.addEventListener('click', e => { if (e.target === fondo) cerrarWrapped(); });
+    document.body.appendChild(fondo);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('wrap-fondo')) cerrarWrapped(); });
+  }
+  fondo.innerHTML = '<div class="wrap-caja wrap-cargando" role="dialog" aria-modal="true" aria-label="Mi año en anime"><div class="wrap-spin"></div></div>';
+  document.body.style.overflow = 'hidden';
+  const yr = year || new Date().getFullYear();
+  let d;
+  try {
+    const r = await fetch('/api/stats/wrapped?year=' + yr, {cache: 'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    d = await r.json();
+  } catch (e) {
+    fondo.innerHTML = '';
+    cerrarWrapped();
+    miraruAviso('No se pudo cargar tu año: ' + (e.message || 'error'));
+    return;
+  }
+  _wrapDatos = d;
+  _pintarWrapped(fondo, d);
+}
+
+function cerrarWrapped() {
+  const f = document.getElementById('wrap-fondo');
+  if (f) f.remove();
+  document.body.style.overflow = '';
+}
+
+function _pintarWrapped(fondo, d) {
+  const caja = _wEl('div', 'wrap-caja');
+  caja.setAttribute('role', 'dialog'); caja.setAttribute('aria-modal', 'true'); caja.setAttribute('aria-labelledby', 'wrap-tit');
+  const x = _wEl('button', 'wrap-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Cerrar'); x.onclick = cerrarWrapped;
+
+  // Cabecera + selector de año
+  const cab = _wEl('div', 'wrap-cab');
+  cab.append(_wEl('div', 'wrap-eti', 'Miraru · resumen'));
+  const h = _wEl('h2', null, 'Mi año en anime'); h.id = 'wrap-tit';
+  cab.append(h);
+  const anos = (d.anos && d.anos.length) ? d.anos.slice() : [d.year];
+  if (!anos.includes(d.year)) anos.unshift(d.year);
+  const sel = _wEl('div', 'wrap-anos'); sel.setAttribute('role', 'tablist');
+  anos.slice(0, 6).forEach(a => {
+    const b = _wEl('button', 'wrap-ano' + (a === d.year ? ' on' : ''), String(a));
+    b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', a === d.year ? 'true' : 'false');
+    b.onclick = () => abrirWrapped(a);
+    sel.append(b);
+  });
+  cab.append(sel);
+
+  const cuerpo = _wEl('div', 'wrap-cuerpo');
+  if (!d.total_episodios) {
+    const v = _wEl('div', 'wrap-vacio');
+    v.append(_wEl('div', 'ico', '🌙'), _wEl('strong', null, 'Aún no hay episodios en ' + d.year),
+             _wEl('p', null, 'Cada vez que marques un episodio con +1 se apunta aquí. Vuelve cuando lleves unos cuantos.'));
+    cuerpo.append(v);
+  } else {
+    // Cifras grandes
+    const cif = _wEl('div', 'wrap-cifras');
+    const horas = Number(d.horas_estimadas || 0);
+    [['▶️', _wNum(d.total_episodios), 'episodios'],
+     ['⏱️', horas >= 48 ? _wNum(horas / 24) + ' d' : _wNum(horas) + ' h', horas >= 48 ? 'de anime (' + _wNum(horas) + ' h)' : 'de anime'],
+     ['📺', _wNum(d.animes_vistos), 'animes distintos'],
+     ['🏁', _wNum(d.completados), 'completados']].forEach(([i, n, l], k) => {
+      const c = _wEl('div', 'wrap-cifra'); c.style.setProperty('--i', k);
+      c.append(_wEl('span', 'ico', i), _wEl('strong', null, n), _wEl('small', null, l));
+      cif.append(c);
+    });
+    cuerpo.append(cif);
+
+    // Frase resumen
+    const frases = [];
+    if (d.mes_top != null) frases.push('Tu mes más fuerte fue <b>' + _MESES_L[d.mes_top] + '</b>, con ' + d.por_mes[d.mes_top] + ' episodios.');
+    if (d.racha_max > 1) frases.push('Tu mejor racha: <b>' + d.racha_max + ' días seguidos</b> viendo anime.');
+    if (d.dias_activos) frases.push('Viste anime <b>' + d.dias_activos + ' días</b> del año.');
+    if (frases.length) {
+      const p = _wEl('p', 'wrap-frase');
+      // Solo números y nombres de meses fijos: seguro.
+      p.innerHTML = frases.join(' ');
+      cuerpo.append(p);
+    }
+
+    // Episodios por mes
+    const mes = _wEl('section', 'wrap-bloque');
+    mes.append(_wEl('h3', null, 'Episodios por mes'));
+    const graf = _wEl('div', 'wrap-meses');
+    const max = Math.max(1, ...(d.por_mes || []));
+    (d.por_mes || []).forEach((n, i) => {
+      const col = _wEl('div', 'wrap-mes' + (i === d.mes_top ? ' top' : ''));
+      col.title = _MESES_L[i] + ': ' + n + ' episodios';
+      const barra = _wEl('i'); barra.style.setProperty('--h', (n / max).toFixed(3)); barra.style.setProperty('--i', i);
+      col.append(_wEl('span', 'n', n ? String(n) : ''), barra, _wEl('span', 'm', _MESES[i]));
+      graf.append(col);
+    });
+    mes.append(graf);
+    cuerpo.append(mes);
+
+    const dos = _wEl('div', 'wrap-dos');
+    // Lo que más viste
+    if ((d.mas_vistos || []).length) {
+      const b = _wEl('section', 'wrap-bloque');
+      b.append(_wEl('h3', null, 'Lo que más viste'));
+      const ol = _wEl('ol', 'wrap-top');
+      d.mas_vistos.forEach((a, i) => {
+        const li = _wEl('li');
+        li.append(_wEl('span', 'pos', String(i + 1)));
+        const img = _wEl('img'); img.alt = ''; img.loading = 'lazy';
+        if (a.imagen) img.src = _thumbUrl(a.imagen); else img.style.visibility = 'hidden';
+        img.onerror = () => { img.style.visibility = 'hidden'; };
+        const t = _wEl('div', 't');
+        t.append(_wEl('strong', null, a.nombre), _wEl('small', null, a.episodios + ' episodios' + (a.puntuacion ? ' · ⭐ ' + a.puntuacion : '')));
+        li.append(img, t);
+        ol.append(li);
+      });
+      b.append(ol);
+      dos.append(b);
+    }
+    // Géneros
+    if ((d.top_generos || []).length) {
+      const b = _wEl('section', 'wrap-bloque');
+      b.append(_wEl('h3', null, 'Tus géneros'));
+      const mg = Math.max(1, ...d.top_generos.map(g => g.count));
+      d.top_generos.forEach((g, i) => {
+        const f = _wEl('div', 'wrap-gen');
+        const barra = _wEl('i'); barra.style.setProperty('--w', (g.count / mg).toFixed(3)); barra.style.setProperty('--i', i);
+        f.append(_wEl('span', 'g', g.genero), _wEl('span', 'pista'), _wEl('span', 'c', String(g.count)));
+        f.querySelector('.pista').append(barra);
+        b.append(f);
+      });
+      if (d.primero) {
+        const extra = _wEl('p', 'wrap-nota');
+        extra.append('Empezaste el año con ', _wEl('b', null, d.primero));
+        if (d.ultimo && d.ultimo !== d.primero) extra.append(' y lo último fue ', _wEl('b', null, d.ultimo));
+        extra.append('.');
+        b.append(extra);
+      }
+      dos.append(b);
+    }
+    cuerpo.append(dos);
+  }
+
+  const pie = _wEl('div', 'wrap-pie');
+  const cerrar = _wEl('button', 'wrap-btn sec', 'Cerrar'); cerrar.type = 'button'; cerrar.onclick = cerrarWrapped;
+  pie.append(cerrar);
+  if (d.total_episodios) {
+    const dl = _wEl('button', 'wrap-btn', '📸 Descargar imagen'); dl.type = 'button';
+    dl.onclick = () => exportarWrapped(dl);
+    pie.append(dl);
+  }
+  caja.append(x, cab, cuerpo, pie);
+  fondo.innerHTML = '';
+  fondo.append(caja);
+  setTimeout(() => { try { (caja.querySelector('.wrap-btn:not(.sec)') || cerrar).focus({preventScroll: true}); } catch (_) {} }, 50);
+}
+
+// Imagen para compartir (1080×1350, formato de publicación vertical).
+async function exportarWrapped(btn) {
   if (btn) btn.disabled = true;
   try {
-    // v2.3: el wrapped ahora filtra por año actual (usa ep_log)
-    const yr = new Date().getFullYear();
-    const r = await fetch('/api/stats/wrapped?year=' + yr);
-    if (!r.ok) throw new Error('No data');
-    const d = await r.json();
-
-    const W = 1080, H = 1080;
+    const d = _wrapDatos || await (await fetch('/api/stats/wrapped?year=' + new Date().getFullYear())).json();
+    try { await document.fonts.ready; } catch (_) {}
+    const W = 1080, H = 1350;
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
-
-    // Fondo: gradiente morado oscuro
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#1e1a30');
-    bg.addColorStop(1, '#0a0814');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // Halo decorativo — con el color de acento elegido por el usuario
-    const ACC = (getComputedStyle(document.documentElement)
-                  .getPropertyValue('--accent-rgb').trim()) || '124,58,237';
-    const halo = ctx.createRadialGradient(W/2, 200, 0, W/2, 200, 500);
-    halo.addColorStop(0, `rgba(${ACC},.35)`);
-    halo.addColorStop(1, `rgba(${ACC},0)`);
-    ctx.fillStyle = halo;
-    ctx.fillRect(0, 0, W, 600);
-
-    // Título (la tarjeta compartible seguía con la marca antigua)
-    ctx.fillStyle = `rgba(${ACC},1)`;
-    ctx.font = '700 28px "Segoe UI", system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('MIRARU', W/2, 100);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = '800 64px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('Mi año en anime', W/2, 200);
-
-    const year = new Date().getFullYear();
-    ctx.fillStyle = 'rgba(255,255,255,.5)';
-    ctx.font = '400 22px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText(String(year), W/2, 240);
-
-    // Stats principales
-    const bigStat = (x, y, value, label) => {
-      ctx.fillStyle = `rgba(${ACC},1)`;
-      ctx.font = '800 86px "Segoe UI", system-ui, sans-serif';
-      ctx.fillText(String(value), x, y);
-      ctx.fillStyle = 'rgba(255,255,255,.65)';
-      ctx.font = '500 18px "Segoe UI", system-ui, sans-serif';
-      ctx.fillText(label, x, y + 36);
+    const ACC = (getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim()) || '124,58,237';
+    const F = (peso, tam) => `${peso} ${tam}px Inter, "Segoe UI", system-ui, sans-serif`;
+    const G = (peso, tam) => `${peso} ${tam}px "Space Grotesk", Inter, "Segoe UI", sans-serif`;
+    const recorta = (txt, ancho) => {
+      let t = String(txt);
+      if (ctx.measureText(t).width <= ancho) return t;
+      while (t.length > 1 && ctx.measureText(t + '…').width > ancho) t = t.slice(0, -1);
+      return t + '…';
     };
-    bigStat(W*0.20, 380, d.total_animes    || 0, 'Animes');
-    bigStat(W*0.50, 380, d.total_episodios || 0, 'Episodios');
-    // v2.3: horas con 1 decimal explícito (antes mostraba "0" feo cuando era 0.0)
-    const horas = Number(d.horas_estimadas || 0);
-    bigStat(W*0.80, 380, horas.toFixed(1).replace('.0', ''), 'Horas');
 
-    // Top géneros (barras)
-    const tg = d.top_generos || [];
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 26px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('Tus géneros favoritos', 80, 540);
-    const maxCount = Math.max(1, ...tg.map(g => g.count));
-    tg.slice(0, 5).forEach((g, i) => {
-      const y = 580 + i * 50;
-      ctx.fillStyle = 'rgba(255,255,255,.85)';
-      ctx.font = '600 18px "Segoe UI", system-ui, sans-serif';
-      ctx.fillText(g.genero, 80, y + 22);
-      // Barra
-      const barX = 280, barW = W - 280 - 80, h = 22;
-      ctx.fillStyle = `rgba(${ACC},.2)`;
-      ctx.fillRect(barX, y + 4, barW, h);
-      const fill = barW * (g.count / maxCount);
-      const grad = ctx.createLinearGradient(barX, 0, barX + fill, 0);
-      grad.addColorStop(0, `rgba(${ACC},.75)`);
-      grad.addColorStop(1, `rgba(${ACC},1)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(barX, y + 4, fill, h);
-      ctx.fillStyle = '#fff';
-      ctx.font = '700 16px "Segoe UI", system-ui, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(String(g.count), W - 88, y + 22);
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#1b1530'); bg.addColorStop(1, '#09070f');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    const halo = ctx.createRadialGradient(W / 2, 120, 0, W / 2, 120, 620);
+    halo.addColorStop(0, `rgba(${ACC},.42)`); halo.addColorStop(1, `rgba(${ACC},0)`);
+    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, 760);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = F(700, 26); ctx.fillText('MIRARU', W / 2, 92);
+    ctx.fillStyle = '#fff'; ctx.font = G(700, 72); ctx.fillText('Mi año en anime', W / 2, 182);
+    ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = G(600, 34); ctx.fillText(String(d.year || ''), W / 2, 232);
+
+    // 4 cifras
+    const horas = Number(d.horas_estimadas || 0);
+    const cif = [[_wNum(d.total_episodios), 'episodios'], [horas >= 48 ? _wNum(horas / 24) + ' d' : _wNum(horas) + ' h', 'de anime'],
+                 [_wNum(d.animes_vistos), 'animes'], [_wNum(d.completados), 'completados']];
+    cif.forEach(([n, l], i) => {
+      const cx = 80 + i * 230 + 110, y = 300;
+      ctx.fillStyle = 'rgba(255,255,255,.06)';
+      ctx.beginPath(); ctx.roundRect(cx - 105, y, 210, 150, 22); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = G(700, 54); ctx.fillText(n, cx, y + 84);
+      ctx.fillStyle = 'rgba(255,255,255,.62)'; ctx.font = F(500, 22); ctx.fillText(l, cx, y + 122);
+    });
+
+    // Barras por mes
+    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = G(700, 30);
+    ctx.fillText('Episodios por mes', 80, 530);
+    const pm = d.por_mes || [], mx = Math.max(1, ...pm), base = 740, alto = 170, ancho = 920 / 12;
+    pm.forEach((n, i) => {
+      const x = 80 + i * ancho, h = Math.max(n ? 6 : 2, (n / mx) * alto);
+      ctx.fillStyle = i === d.mes_top ? `rgba(${ACC},1)` : `rgba(${ACC},.45)`;
+      ctx.beginPath(); ctx.roundRect(x + 10, base - h, ancho - 20, h, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = F(500, 18); ctx.textAlign = 'center';
+      ctx.fillText(_MESES[i], x + ancho / 2, base + 30);
+      if (n && i === d.mes_top) { ctx.fillStyle = '#fff'; ctx.font = F(700, 20); ctx.fillText(String(n), x + ancho / 2, base - h - 12); }
       ctx.textAlign = 'left';
     });
 
-    // Top 5 mejor valorados
-    const tv = d.mejor_valorados || [];
-    ctx.fillStyle = '#fff';
-    ctx.font = '700 26px "Segoe UI", system-ui, sans-serif';
-    ctx.fillText('Mejor valorados', 80, 880);
-    tv.slice(0, 3).forEach((a, i) => {
-      const y = 920 + i * 36;
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '700 18px "Segoe UI", system-ui, sans-serif';
-      ctx.fillText('★ ' + (a.puntuacion || 0).toFixed(1), 80, y);
-      ctx.fillStyle = '#fff';
-      ctx.font = '500 18px "Segoe UI", system-ui, sans-serif';
-      const name = a.nombre.length > 50 ? a.nombre.slice(0, 47) + '…' : a.nombre;
-      ctx.fillText(name, 180, y);
+    // Lo que más viste
+    ctx.fillStyle = '#fff'; ctx.font = G(700, 30); ctx.fillText('Lo que más viste', 80, 850);
+    (d.mas_vistos || []).slice(0, 5).forEach((a, i) => {
+      const y = 900 + i * 62;
+      ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = G(700, 30); ctx.fillText(String(i + 1), 80, y + 10);
+      ctx.fillStyle = '#fff'; ctx.font = F(600, 26); ctx.fillText(recorta(a.nombre, 640), 130, y + 8);
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = F(500, 22); ctx.textAlign = 'right';
+      ctx.fillText(a.episodios + ' eps', W - 80, y + 8); ctx.textAlign = 'left';
     });
 
-    // Pie
-    ctx.fillStyle = 'rgba(255,255,255,.3)';
-    ctx.font = '400 14px "Segoe UI", system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W/2, H - 40);
+    // Pie: género top + racha
+    const gen = (d.top_generos || [])[0];
+    const pie = [gen ? 'Género favorito: ' + gen.genero : '', d.racha_max > 1 ? 'Mejor racha: ' + d.racha_max + ' días' : '']
+      .filter(Boolean).join('   ·   ');
+    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = F(600, 24);
+    ctx.fillText(pie, W / 2, 1255);
+    ctx.fillStyle = 'rgba(255,255,255,.32)'; ctx.font = F(400, 18);
+    ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W / 2, H - 40);
 
-    // Descargar
     const link = document.createElement('a');
-    link.download = `mi-año-en-anime-${year}.png`;
+    link.download = `mi-año-en-anime-${d.year || ''}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-  } catch(e) {
+  } catch (e) {
     miraruAviso('No se pudo generar la imagen: ' + (e.message || 'error'));
   } finally {
     if (btn) btn.disabled = false;
@@ -927,24 +1174,5 @@ async function exportarWrapped() {
 })();
 </script>
 
-<!-- Twitter/X button -->
-<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-</svg>
-</a>
-
-<!-- Instagram button -->
-<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
-   style="position:fixed;bottom:20px;right:68px;z-index:50;
-   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
-   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
-   display:flex;align-items:center;justify-content:center;
-   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
-   text-decoration:none;opacity:0.85">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-  </svg>
-</a>
 </body>
 </html>

@@ -83,7 +83,17 @@ async def export_share():
     """Página HTML autocontenida con toda tu biblioteca, lista para compartir
     (enviarla o subirla a GitHub Pages → URL pública)."""
     perfil = {"nombre_usuario": db.get_config("nombre_usuario") or ""}
-    html_doc = share_page.render_share_html(db.listar_animes(), db.listar_media(), perfil)
+    animes = db.listar_animes()
+    # Carpetas por franquicia, igual que en la pantalla principal (v2.16).
+    try:
+        import json
+
+        import franquicias as fq
+        rel = json.loads(db.get_config("anilist_relaciones") or "{}")
+        grupos = fq.agrupar_franquicias(animes, rel if isinstance(rel, dict) else {})
+    except Exception:  # noqa: BLE001 — sin carpetas, pero la página sale
+        grupos = None
+    html_doc = share_page.render_share_html(animes, db.listar_media(), perfil, franquicias=grupos)
     return HTMLResponse(
         html_doc,
         headers={"Content-Disposition": "attachment; filename=miraru.html"},

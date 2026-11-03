@@ -25,7 +25,7 @@ def test_sin_servidor_responde_503_y_no_200():
 
 
 def test_la_pagina_no_borra_lo_que_tenia_y_avisa():
-    cargar = INDEX[INDEX.index("async function cargar()"):]
+    cargar = INDEX[INDEX.index("async function cargar("):]
     cargar = cargar[:cargar.index("\n}\n")]
     assert "Array.isArray(dF.franquicias)" in cargar
     assert "_esSinServidor(rA)" in cargar and "_vigilarServidor()" in cargar

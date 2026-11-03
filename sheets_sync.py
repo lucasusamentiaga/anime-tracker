@@ -271,3 +271,67 @@ def delete_anime_row(nombre: str, spreadsheet_id: str, credentials_path: str) ->
         return True, "ok"
     except Exception as e:
         return False, str(e)[:300]
+
+
+# ── v2.16: sincronización automática completa ───────────────────────────────
+# Antes cada cambio intentaba tocar SOLO su fila (añadir, actualizar, borrar).
+# Fallaba en silencio en muchos casos: lo que llegaba de AniList o AnimeAV1,
+# importaciones, cambios de nombre, fusiones, metadatos… nunca se enviaban, y
+# una fila que no existía («no encontrado en Sheets») se quedaba sin escribir.
+# Ahora un vigilante mira si la lista ha cambiado y, cuando lleva unos
+# segundos quieta, reescribe la hoja entera (una sola llamada, ~1 s).
+import hashlib
+import json
+import threading
+import time
+
+_vig = {"hilo": None, "huella": None, "parar": False}
+
+
+def huella(animes: list[dict]) -> str:
+    """Resumen de lo que acabaría en la hoja: si no cambia, no se envía nada."""
+    filas = [_row(a) for a in animes]
+    return hashlib.sha1(json.dumps(filas, ensure_ascii=False, default=str).encode("utf-8")).hexdigest()
+
+
+def vigilar(get_cfg, get_gen, listar, on_result, espera: float = 20.0, cada: float = 5.0):
+    """Hilo de fondo. get_cfg() → (sid, cred) o None; get_gen() → nº que sube con
+    cada cambio de la lista; listar() → animes; on_result(ok, msg)."""
+    if _vig["hilo"] and _vig["hilo"].is_alive():
+        return
+
+    def _bucle():
+        gen_visto, cambio_en = None, 0.0
+        while not _vig["parar"]:
+            try:
+                g = get_gen()
+                if g != gen_visto:
+                    gen_visto, cambio_en = g, time.time()
+                # Espera a que la lista lleve `espera` s sin cambiar (p. ej. una
+                # importación de 400 animes): así es UNA subida, no 400.
+                if cambio_en and time.time() - cambio_en >= espera:
+                    cambio_en = 0.0
+                    cfg = get_cfg()
+                    if cfg:
+                        animes = listar()
+                        h = huella(animes)
+                        if h != _vig["huella"]:
+                            ok, msg = sincronizar_todo(animes, cfg[0], cfg[1])
+                            if ok:
+                                _vig["huella"] = h
+                            on_result(ok, msg)
+            except Exception as e:  # noqa: BLE001 — el hilo no puede morir
+                try:
+                    on_result(False, str(e)[:200])
+                except Exception:  # noqa: BLE001
+                    pass
+            time.sleep(cada)
+
+    _vig["parar"] = False
+    _vig["hilo"] = threading.Thread(target=_bucle, name="sheets-vigilante", daemon=True)
+    _vig["hilo"].start()
+
+
+def olvidar_huella():
+    """Tras un sync manual o un cambio de hoja: que el próximo cambio se envíe."""
+    _vig["huella"] = None

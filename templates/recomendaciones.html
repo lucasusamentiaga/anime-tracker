@@ -99,7 +99,7 @@ function toast(msg) {
 }
 
 // Botón "+ Añadir a mi lista" reutilizable
-function mkAdd(nombre) {
+function mkAdd(nombre, alAnadir) {
   const b = document.createElement('button');
   b.className = 'add-btn';
   b.textContent = '+ Añadir a mi lista';
@@ -116,8 +116,10 @@ function mkAdd(nombre) {
         b.style.background = 'var(--success)';
         if (r.ok) toast('✓ ' + nombre + ' añadido');
         // Desvanecer la card tras un momento
-        const card = b.closest('.rc');
+        const card = b.closest('.rc, .hero-ea');
         if (card) setTimeout(() => { card.style.transition = 'opacity .4s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 400); }, 800);
+        // v2.16: y traer una sugerencia nueva en su lugar (antes el hueco se quedaba vacío).
+        if (alAnadir) setTimeout(alAnadir, 1250);
       } else {
         const d = await r.json();
         b.textContent = d.detail || 'Error'; b.style.background = 'var(--muted)';
@@ -147,9 +149,14 @@ function pintarAviso(texto) {
 // Recomendaciones para principiantes: hero "empieza por aquí" + grid de puerta de entrada
 async function cargarPrincipiante() {
   try {
-    const r = await fetch('/api/recomendaciones/principiante');
+    const r = await fetch('/api/recomendaciones/principiante', {cache: 'no-store'});
     if (!r.ok) return;
     const d = await r.json();
+    // Al recargar (tras añadir uno) se pinta de cero.
+    const heroZ = document.getElementById('beginner-hero');
+    if (heroZ) { heroZ.innerHTML = ''; delete heroZ.dataset.avisoPuesto; }
+    const gridZ = document.getElementById('beginner-grid');
+    if (gridZ) gridZ.innerHTML = '';
     pintarAviso(d.aviso);
     const ea = d.empieza_aqui;
     // Si ya tienes todos los "puerta de entrada" en tu lista, no mostrar la sección vacía.
@@ -158,6 +165,7 @@ async function cargarPrincipiante() {
     const hero = document.getElementById('beginner-hero');
     if (hero && ea) {
       const wrap = document.createElement('div');
+      wrap.className = 'hero-ea';
       wrap.style.cssText = 'display:flex;gap:14px;background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 8px 28px rgba(124,58,237,.18)';
       const img = document.createElement('img');
       ponerPortada(img, ea.imagen);
@@ -174,7 +182,7 @@ async function cargarPrincipiante() {
       m.textContent = [ea.episodios ? ea.episodios + ' eps' : '', ea.puntuacion_global ? '⭐ ' + ea.puntuacion_global : ''].filter(Boolean).join(' · ');
       m.style.cssText = 'font-size:11px;color:var(--light);margin-bottom:8px';
       info.appendChild(badge); info.appendChild(t); info.appendChild(why); info.appendChild(m);
-      info.appendChild(mkAdd(ea.titulo));
+      info.appendChild(mkAdd(ea.titulo, cargarPrincipiante));
       wrap.appendChild(img); wrap.appendChild(info); hero.appendChild(wrap);
     }
     const grid = document.getElementById('beginner-grid');
@@ -187,7 +195,7 @@ async function cargarPrincipiante() {
       const name = document.createElement('div'); name.className = 'name'; name.textContent = a.titulo;
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.textContent = [a.episodios ? a.episodios + ' eps' : '', a.puntuacion_global ? '⭐ ' + a.puntuacion_global : ''].filter(Boolean).join(' · ');
-      info.appendChild(name); info.appendChild(meta); info.appendChild(mkAdd(a.titulo));
+      info.appendChild(name); info.appendChild(meta); info.appendChild(mkAdd(a.titulo, cargarPrincipiante));
       card.appendChild(thumb); card.appendChild(info); grid.appendChild(card);
     });
   } catch(_) {}
@@ -320,26 +328,5 @@ window.addEventListener('pageshow', (e) => {
 });
 </script>
 
-<!-- Twitter/X button -->
-<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter"
-   style="position:fixed;bottom:20px;right:20px;z-index:50;
-   background:#000;color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
-   display:flex;align-items:center;justify-content:center;
-   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-  </svg>
-</a>
-<!-- Instagram button -->
-<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
-   style="position:fixed;bottom:20px;right:68px;z-index:50;
-   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
-   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
-   display:flex;align-items:center;justify-content:center;
-   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s;text-decoration:none;opacity:0.85">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-  </svg>
-</a>
 </body>
 </html>

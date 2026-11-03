@@ -1,7 +1,33 @@
 # Changelog
 
-## Sin publicar
+## v2.16.0 — Recorrido guiado, estadísticas renovadas y Miraru en el navegador del móvil
 
+- **Recorrido guiado** para quien abre Miraru por primera vez: un foco va iluminando cada parte
+  de la app y explica para qué sirve. Se puede saltar, volver atrás y repetir con el botón «?».
+- **Ventana de novedades en cada actualización**, en el menú o en la app (donde abras primero),
+  con lo que trae la versión y lo de las que te saltaste. Los scripts ya no se quedan una semana
+  en la caché del navegador tras actualizar (por eso a algunos no les salía).
+- **Estadísticas renovadas**: 8 cifras (nuevas: «Viendo ahora» y «Días de anime»), las listas de
+  «Mejor valorados» y «Añadidos recientemente» ya no se salen de su tarjeta y **«Mi año en
+  anime»** es ahora un resumen completo (meses, racha, lo que más viste, años anteriores) con
+  imagen vertical para compartir.
+- **Compartir biblioteca** separa Anime de Series y películas, agrupa el anime en carpetas por
+  franquicia (como la pantalla principal) y tiene buscador.
+- **Google Sheets siempre al día**: cualquier cambio (también lo que llega de AniList, AnimeAV1,
+  importaciones o fusiones) se sube solo a los pocos segundos.
+- **Acceso móvil sin instalar nada**: escanea el QR (generado en tu PC) y Miraru se abre en el
+  navegador del móvil pidiendo el PIN. Dice si falta reiniciar Miraru para que funcione.
+- **Búsqueda con un solo menú**: arriba «En tu lista» y debajo lo que se puede añadir de internet
+  (antes salían dos desplegables uno encima del otro).
+- **Menús de filtros y orden más visuales**, con iconos, teclado completo y marca del elegido.
+- **Extensión de AnimeAV1 con su propio botón** 🧩 en la cabecera y una guía de 3 pasos.
+- **La lista ya no salta arriba** mientras la recorres cuando algo cambia en segundo plano.
+- «Continuar viendo» no deja pasar del último episodio: al llegar dice «Al día» (también en el móvil).
+- «Empieza por aquí» trae una sugerencia nueva al añadir una.
+- Botones de GitHub, Instagram y X juntos (con el de apariencia 🎨) en todas las pantallas; la
+  cabecera aprovecha toda la fila.
+- Sin menú del botón derecho del navegador, salvo en campos de texto o con texto seleccionado.
+- Copia en la nube: también MEGA, Proton Drive, pCloud, Box, Nextcloud y Sync.com.
 - **Google Drive, de verdad**: Miraru encuentra la unidad de Google Drive para escritorio
   (G: u otra letra) con «Mi unidad» en cualquier idioma, el modo espejo y la app antigua;
   Dropbox también se encuentra aunque esté en otra carpeta. Si hay Google Drive y OneDrive

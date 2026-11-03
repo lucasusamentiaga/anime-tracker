@@ -67,14 +67,11 @@
 [data-theme=light] .toast-inner.ok{background:#ecfdf5;color:#059669;border-color:#a7f3d0}
 [data-theme=light] .toast-inner.err{background:#fef2f2;color:#dc2626;border-color:#fca5a5}
 [data-theme=light] .toast-inner.warn{background:#fffbeb;color:#d97706;border-color:#fde047}
-[data-theme=light] #autocomplete-drop{background:#fff !important;border-color:#d4d0ec !important;box-shadow:0 6px 16px rgba(0,0,0,.1) !important}
-[data-theme=light] #autocomplete-drop div:hover{background:#eef2ff !important;color:#4338ca}
 [data-theme=light] .dmenu-item{color:#1e1e2e;border-color:#f0eef8}
 [data-theme=light] .dmenu-item:hover{background:rgba(79,70,229,.06);color:#4338ca}
 [data-theme=light] #export-menu{background:#fff !important;border-color:#d4d0ec !important}
 [data-theme=light] .count-label{color:#64648c}
 [data-theme=light] #empty-msg{color:#64648c}
-[data-theme=light] #tw-btn{background:#4f46e5;box-shadow:0 2px 10px rgba(79,70,229,.3)}
 
 /* v2.2: foco visual de teclado (J/K) */
 .ac.kbd-focus{outline:2px solid var(--accent);outline-offset:2px;box-shadow:0 0 0 4px rgba(124,58,237,.25)}
@@ -139,26 +136,7 @@ body.sel-mode .ac.selected{opacity:1}
 .copia-aviso p{margin:0;color:var(--muted);font-size:13px}
 .copia-aviso .acc{display:flex;gap:8px;flex-wrap:wrap}
 #btn-copia{position:relative}
-.modal.nov{max-width:470px;text-align:left;overflow:hidden}
-.nov-hero{display:flex;align-items:center;justify-content:center;gap:18px;margin:-6px -6px 14px;padding:22px 0 18px;border-radius:14px;
-  background:radial-gradient(260px 120px at 50% 0,rgba(var(--accent-rgb),.35),transparent 70%),var(--card2)}
-.nov-pc,.nov-nube{font-size:46px;line-height:1;position:relative}
-.nov-nube{animation:novFlota 3s ease-in-out infinite}
-.nov-lista{position:absolute;font-size:20px;right:-8px;bottom:-4px}
-.nov-flecha{display:flex;gap:6px}
-.nov-flecha i{width:9px;height:9px;border-radius:50%;background:var(--accent2);opacity:.25;animation:novPunto 1.2s infinite}
-.nov-flecha i:nth-child(2){animation-delay:.2s}.nov-flecha i:nth-child(3){animation-delay:.4s}
-@keyframes novPunto{40%{opacity:1;transform:scale(1.25)}}
-@keyframes novFlota{50%{transform:translateY(-5px)}}
-@media (prefers-reduced-motion:reduce){.nov-nube,.nov-flecha i{animation:none;opacity:1}}
 .nov-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px}
-.modal.nov h3{font-size:21px;margin:8px 0 4px}
-.nov-intro{color:var(--muted);font-size:13.5px;margin:0 0 12px;line-height:1.55}
-.nov-puntos{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:10px}
-.nov-puntos li{display:flex;gap:12px;align-items:flex-start}
-.nov-puntos li>span{font-size:20px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--card2);flex-shrink:0}
-.nov-puntos strong{display:block;font-size:13.5px}
-.nov-puntos small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
 .upd-lista{margin:6px 0 12px;padding-left:20px;font-size:13px;line-height:1.7}
 #btn-copia.copia-mal::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 2px var(--bg)}
 .av1-ext{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08);border-radius:12px;padding:12px 14px}
@@ -175,6 +153,32 @@ body.sel-mode .ac.selected{opacity:1}
 .btn.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .btn.btn-g:hover{color:var(--fg);border-color:var(--muted)}
 .av1-ext-pasos .gris{color:var(--muted);font-size:11.5px}
+.av1-acceso{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;margin:2px 0 6px;padding:12px 14px;border-radius:12px;
+  border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.10);color:var(--fg);font:inherit;transition:background .2s}
+.av1-acceso:hover{background:rgba(var(--accent-rgb),.2)}
+.av1-acceso .ico{font-size:22px}.av1-acceso span:nth-child(2){flex:1}
+.av1-acceso strong{display:block;font-size:14px}.av1-acceso small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.modal.ext{max-width:500px;position:relative;text-align:left}
+.ext-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:20px;cursor:pointer}
+.ext-x:hover{background:rgba(255,255,255,.06);color:var(--fg)}
+.ext-hero{display:flex;align-items:center;justify-content:center;gap:16px;padding:18px 0 14px;margin:-4px -4px 12px;border-radius:14px;
+  background:radial-gradient(240px 110px at 50% 0,rgba(var(--accent-rgb),.32),transparent),var(--card2)}
+.ext-hero img{width:48px;height:48px}
+.ext-av1{width:48px;height:48px;display:grid;place-items:center;border-radius:13px;background:#111;border:1px solid #333;color:#fff;font:800 14px "Space Grotesk",Inter,sans-serif}
+.ext-ola{display:flex;gap:6px}.ext-ola i{width:8px;height:8px;border-radius:50%;background:var(--accent2);opacity:.25;animation:extOla 1.2s cubic-bezier(.22,1,.36,1) infinite}
+.ext-ola i:nth-child(2){animation-delay:.18s}.ext-ola i:nth-child(3){animation-delay:.36s}
+@keyframes extOla{40%{opacity:1;transform:scale(1.3)}}
+.modal.ext h3{font-size:21px;margin:0 0 6px;text-wrap:balance}
+.ext-sub{color:var(--muted);font-size:13.5px;line-height:1.55;margin:0 0 14px}
+.ext-pasos{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px}
+.ext-pasos li{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid var(--border-soft,var(--border))}
+.ext-pasos .n{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:var(--accent);color:#fff;font-weight:800;font-size:14px}
+.ext-pasos strong{display:block;font-size:14px}
+.ext-pasos small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5;margin:2px 0 8px}
+.ext-pasos li:last-child small{margin-bottom:0}
+.ext-pasos .btn{display:inline-flex;text-decoration:none}
+.ext-pasos a.btn-p{color:#fff}
+@media (prefers-reduced-motion:reduce){.ext-ola i{animation:none;opacity:1}}
 .av1-ext-estado{font-size:12px;color:var(--muted);border-top:1px dashed var(--border);padding-top:8px}
 .av1-ext-estado.ok{color:var(--fg)}
 .sync-estado{display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
@@ -328,6 +332,22 @@ header{
 
 /* Utils & settings clusters */
 .header-utils,.header-settings{display:flex;gap:2px;align-items:center;flex-wrap:wrap;min-width:0;max-width:100%}
+/* La fila de acciones ocupa todo el ancho y los ajustes van a la derecha; en
+   pantallas anchas los iconos llevan su nombre (antes sobraba media fila). */
+@media (min-width:1100px){
+  .header-actions{flex:1 1 100%}
+  .header-settings{margin-left:auto}
+}
+.header-settings .lbl{display:none}
+@media (min-width:1100px){
+  .header-settings .lbl{display:inline;margin-left:5px;font-weight:600}
+  /* v2.16: cuando los ajustes caen a su propia fila, la llenan entera (antes
+     quedaban 8 iconos en una esquina y el resto de la fila vacía). */
+  .header-settings.fila{flex:1 1 100%;gap:6px;margin-top:4px}
+  .header-settings.fila>*{flex:1 1 0;justify-content:center;min-width:0}
+  .header-settings.fila>.lang-select{flex:0 0 auto}
+}
+#btn-copia.copia-mal{padding-right:14px}
 
 /* Lang selector — compact */
 .lang-select{
@@ -347,8 +367,7 @@ header{
   header:not(.menu-abierto) .header-sep{display:none!important}
   .toolbar{padding:8px 12px}
   #tb2:not(.filtros-abiertos) > :not(.tb2-fija){display:none!important}
-  #tw-btn,#ig-btn{display:none!important}
-  #to-top{right:16px!important}
+  #to-top{right:14px!important;bottom:64px!important}
   /* La cabecera fija ocupaba un tercio de la pantalla al bajar y tapaba lo de
      debajo (un toque en «+1» abría «Pelis»). En el móvil se desplaza con la página. */
   header{position:relative!important}
@@ -709,39 +728,25 @@ body.sel-mode .ac .salir{display:none}
 .lang-select:focus-visible{outline:2px solid var(--accent);outline-offset:1px;box-shadow:none}
 .lang-select:focus:not(:focus-visible){outline:none}
 
-/* ── Autocomplete dropdown ── */
-#autocomplete-drop{
-  background:var(--card) !important;
-  border:1px solid var(--border) !important;
-  border-radius:10px !important;
-  box-shadow:0 8px 24px rgba(0,0,0,.4),0 0 0 1px rgba(124,58,237,.1) !important;
-  overflow:hidden;
-}
-#autocomplete-drop div{
-  padding:9px 13px;font-size:13px;border-bottom:1px solid var(--border);
-  cursor:pointer;transition:background .1s;
-}
-#autocomplete-drop div:last-child{border-bottom:none}
-#autocomplete-drop div:hover{background:rgba(124,58,237,.1) !important;color:var(--light)}
-
+/* ── v2.16: «En tu lista» dentro del mismo desplegable de búsqueda ── */
+.sp-local{padding:6px 0 4px;border-bottom:1px solid var(--border)}
+.sp-local h4{margin:0;padding:6px 12px 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.sp-lrow{display:flex;align-items:center;gap:10px;width:100%;padding:6px 12px;border:0;background:transparent;color:var(--fg);
+  font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.sp-lrow:hover,.sp-lrow:focus-visible{background:rgba(var(--accent-rgb),.1);outline:none}
+.sp-lrow img,.sp-lrow .ph{width:26px;height:36px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--card2)}
+.sp-lrow .n{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-lrow .e{font-size:11px;color:var(--muted);flex-shrink:0}
+.sp-lrow .ir{font-size:11px;color:var(--light);font-weight:600;flex-shrink:0}
+.sp-online-h{margin:0;padding:10px 12px 2px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 /* Twitter/X floating button */
-#tw-btn{
-  position:fixed;bottom:20px;right:20px;z-index:50;
-  background:#000;color:#fff;border:none;border-radius:50%;
-  width:40px;height:40px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 12px rgba(0,0,0,.4);
-  transition:opacity .18s ease,box-shadow .18s ease;text-decoration:none;
-  opacity:0.85;
-}
-#tw-btn:hover{opacity:1;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-#tw-btn svg{flex-shrink:0}
-#ig-btn:hover{opacity:1;box-shadow:0 4px 16px rgba(220,39,67,.4)}
-#ig-btn svg{flex-shrink:0}
 </style>
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
+<script src="/static/novedades.js?v=2.16.0" defer></script>
+<script src="/static/selects.js?v=2.16.0" defer></script>
+<script src="/static/tour.js?v=2.16.0" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -963,27 +968,21 @@ fetch('/api/version').then(r => r.json()).then(d => {
   </div>
 </div>
 
-<!-- Modal: novedades de la versión (se enseña una vez) -->
-<div class="modal-bg" id="modal-novedades" onclick="if(event.target===this)cerrarNovedades()">
-  <div class="modal nov" role="dialog" aria-modal="true" aria-labelledby="nov-titulo">
-    <div class="nov-hero" aria-hidden="true">
-      <div class="nov-pc">💻<span class="nov-lista">📋</span></div>
-      <div class="nov-flecha"><i></i><i></i><i></i></div>
-      <div class="nov-nube">☁️</div>
-    </div>
-    <span class="nov-tag">Nuevo en Miraru</span>
-    <h3 id="nov-titulo">Tu lista, a salvo en tu nube</h3>
-    <p class="nov-intro">Si formateas el ordenador, lo restableces de fábrica o te compras otro, tu lista ya no se pierde.</p>
-    <ul class="nov-puntos">
-      <li><span>🔄</span><div><strong>Se guarda sola</strong><small>Miraru deja una copia en tu Google Drive, OneDrive o Dropbox un minuto después de cada cambio. No tienes que hacer nada.</small></div></li>
-      <li><span>🖱️</span><div><strong>Se recupera con un clic</strong><small>Al instalar Miraru en un PC nuevo, te dirá «Hemos encontrado tu lista» y la traerá entera: episodios, notas, puntuaciones e historial.</small></div></li>
-      <li><span>🔒</span><div><strong>Solo en tu nube</strong><small>La copia va a tu propia cuenta, nunca a servidores de Miraru, y no lleva contraseñas ni sesiones.</small></div></li>
-    </ul>
-    <div id="nov-estado" class="copia-estado"></div>
-    <div class="modal-actions">
-      <button class="btn btn-g" type="button" onclick="cerrarNovedades()">Entendido</button>
-      <button class="btn btn-p" type="button" onclick="cerrarNovedades(); abrirCopia()">☁ Ver mi copia</button>
-    </div>
+<!-- Modal: extensión AnimeAV1 (v2.16: con su propio botón) -->
+<div class="modal-bg" id="modal-extension" onclick="if(event.target===this)cerrarModal('modal-extension')">
+  <div class="modal ext" role="dialog" aria-modal="true" aria-labelledby="ext-tit">
+    <button class="ext-x" type="button" aria-label="Cerrar" onclick="cerrarModal('modal-extension')">×</button>
+    <div class="ext-hero" aria-hidden="true"><span class="ext-av1">AV1</span><span class="ext-ola"><i></i><i></i><i></i></span><img src="/static/logo.svg" alt=""></div>
+    <h3 id="ext-tit">Conecta AnimeAV1 con Miraru</h3>
+    <p class="ext-sub">Cuando pulses <strong>«Marcar como visto» 👁</strong> en un episodio de AnimeAV1, se apunta en Miraru en ese mismo momento. Si no tenías el anime, se añade solo.</p>
+    <ol class="ext-pasos">
+      <li><span class="n">1</span><div><strong>Descárgala</strong><small>Y descomprime el .zip (clic derecho → «Extraer todo»).</small>
+        <a class="btn btn-p btn-sm" href="/api/animeav1/extension.zip" download>⬇ Descargar extensión</a></div></li>
+      <li><span class="n">2</span><div><strong>Abre las extensiones del navegador</strong><small>Pega esto en la barra de direcciones de Chrome o Edge y activa «Modo de desarrollador».</small>
+        <button class="btn btn-g btn-sm" type="button" onclick="_av1CopiarExtensiones()">📋 Copiar chrome://extensions</button></div></li>
+      <li><span class="n">3</span><div><strong>Cárgala</strong><small>Pulsa «Cargar descomprimida» y elige la carpeta <b>miraru-animeav1</b>. Se abrirá una guía que se pone en verde sola.</small></div></li>
+    </ol>
+    <div id="av1-ext-estado" class="av1-ext-estado">⏳ Todavía no ha llegado nada de la extensión. Cuando marques tu primer episodio, aparecerá aquí.</div>
   </div>
 </div>
 
@@ -991,7 +990,8 @@ fetch('/api/version').then(r => r.json()).then(d => {
 <div class="modal-bg" id="modal-copia" onclick="if(event.target===this)cerrarModal('modal-copia')">
   <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto">
     <h3>☁ Copia en la nube</h3>
-    <p class="sync-ayuda">Si formateas el ordenador o lo restableces de fábrica, tu lista se borra con él. Miraru guarda una copia en tu nube (OneDrive, Google Drive, Dropbox…) y, al instalarlo de nuevo, te ofrece recuperarla con un clic.</p>
+    <p class="sync-ayuda">Si formateas el ordenador o lo restableces de fábrica, tu lista se borra con él. Miraru guarda una copia en tu nube (OneDrive, Google Drive, Dropbox, MEGA, iCloud…) y, al instalarlo de nuevo, te ofrece recuperarla con un clic.</p>
+    <p class="sync-nota" style="margin:-4px 0 12px">Miraru usa la carpeta que la app de tu nube crea en el PC. Si usas Google Drive o Dropbox solo desde el navegador, instala su app para ordenador (abajo) y aparecerá aquí sola.</p>
     <div id="copia-estado" class="copia-estado"></div>
     <div id="copia-acciones" class="modal-actions" style="justify-content:flex-start;margin:0 0 12px"></div>
     <h4 class="sync-servicio" style="margin-top:6px">¿Dónde se guarda?</h4>
@@ -1069,17 +1069,11 @@ fetch('/api/version').then(r => r.json()).then(d => {
 
     <!-- v2.12: AnimeAV1 en el mismo panel -->
     <h4 class="sync-servicio" style="border-top:1px solid var(--border);padding-top:16px;margin-top:18px">AnimeAV1</h4>
-    <!-- v2.15: al instante con la extensión del navegador -->
-    <div class="av1-ext">
-      <div class="av1-ext-cab">⚡ <strong>Al instante</strong> <span class="av1-ext-tag">recomendado</span></div>
-      <p class="sync-ayuda" style="margin-bottom:8px">Cuando pulses <strong>«Marcar como visto» 👁</strong> en un episodio de AnimeAV1, se apunta en Miraru en ese mismo momento. Si no tenías el anime, se añade solo. Funciona con la sesión que ya tienes abierta en el navegador: no hace falta la cookie.</p>
-      <ol class="av1-ext-pasos">
-        <li><a class="btn btn-p btn-sm" href="/api/animeav1/extension.zip" download>⬇ Descargar la extensión</a> y descomprímela <span class="gris">(clic derecho en el .zip → «Extraer todo»)</span>.</li>
-        <li>En Chrome o Edge abre <button class="btn btn-g btn-sm" type="button" onclick="_av1CopiarExtensiones()">📋 chrome://extensions</button> <span class="gris">(pégalo en la barra de direcciones)</span> y activa <strong>«Modo de desarrollador»</strong>.</li>
-        <li>Pulsa <strong>«Cargar descomprimida»</strong> y elige la carpeta <strong>miraru-animeav1</strong>.</li>
-      </ol>
-      <div id="av1-ext-estado" class="av1-ext-estado">Todavía no ha llegado nada de la extensión.</div>
-    </div>
+    <button type="button" class="av1-acceso" onclick="cerrarModal('modal-anilist'); abrirExtension()">
+      <span class="ico" aria-hidden="true">🧩</span>
+      <span><strong>Al instante, con la extensión</strong><small>Marcas un episodio en AnimeAV1 y se apunta solo en Miraru.</small></span>
+      <span aria-hidden="true">→</span>
+    </button>
     <p class="sync-ayuda" style="margin-top:14px"><strong>Importar o subir toda la lista</strong> (opcional):</p>
     <div id="av1-disconnected">
       <p class="sync-ayuda">Trae tus listas de AnimeAV1 (viendo, completados, por ver…) y manda allí tus cambios. AnimeAV1 no deja conectar apps con usuario y contraseña, así que Miraru usa la sesión de tu navegador. Solo hay que hacerlo una vez:</p>
@@ -1207,14 +1201,14 @@ fetch('/api/version').then(r => r.json()).then(d => {
         <option value="fr">FR</option>
         <option value="de">DE</option>
       </select>
-      <button class="btn btn-ghost btn-sm" id="btn-appearance" onclick="abrirApariencia()" title="Apariencia">🎨</button>
       <button class="btn btn-ghost btn-sm" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema"><span id="nav-theme">🌙</span></button>
-      <a href="/mobile" class="btn btn-ghost btn-sm" title="Acceso móvil">📱</a>
-      <button class="btn btn-ghost btn-sm" onclick="abrirAniList()" title="Sincronizar con AniList y AnimeAV1" id="btn-anilist">🔗</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirCopia()" title="Copia en la nube" id="btn-copia">☁</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirWatchFolder()" title="Auto-detección episodios" id="btn-watchfolder">📂</button>
-      <a href="/setup" class="btn btn-ghost btn-sm" title="Configuración">⚙</a>
-      <a href="/" class="btn btn-ghost btn-sm" title="Menú inicio">⌂</a>
+      <a href="/mobile" class="btn btn-ghost btn-sm" title="Acceso móvil">📱<span class="lbl">Móvil</span></a>
+      <button class="btn btn-ghost btn-sm" onclick="abrirAniList()" title="Sincronizar con AniList y AnimeAV1" id="btn-anilist">🔗<span class="lbl">AniList</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirExtension()" title="Extensión de AnimeAV1: apunta solo cada episodio que marcas" id="btn-extension">🧩<span class="lbl">AnimeAV1</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirCopia()" title="Copia en la nube" id="btn-copia">☁<span class="lbl">Copia</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirWatchFolder()" title="Auto-detección episodios" id="btn-watchfolder">📂<span class="lbl">Carpeta</span></button>
+      <a href="/setup" class="btn btn-ghost btn-sm" title="Configuración">⚙<span class="lbl">Ajustes</span></a>
+      <a href="/" class="btn btn-ghost btn-sm" title="Menú inicio">⌂<span class="lbl">Inicio</span></a>
     </div>
   </div>
 </header>
@@ -1224,10 +1218,8 @@ fetch('/api/version').then(r => r.json()).then(d => {
   <input id="inp-nombre" type="text" placeholder="Nombre del anime o pega una URL…"
          autocomplete="off"
          oninput="autocompletar(this.value); detectarURL(this.value)"
-         onkeydown="if(event.key==='Enter'){cerrarAutocomplete();previsualizarAnime()}"
-         onblur="setTimeout(cerrarAutocomplete,200)">
+         onkeydown="if(event.key==='Enter'){cerrarAutocomplete();previsualizarAnime()}">
   <span id="url-badge" style="display:none;align-self:center;background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.4);color:var(--light);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600">🔗 URL detectada</span>
-  <div id="autocomplete-drop" style="position:absolute;z-index:99;background:var(--card);border:1px solid var(--border);border-radius:8px;min-width:200px;max-height:200px;overflow-y:auto;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)"></div>
   <select id="inp-tipo" style="max-width:110px" onchange="onTipoBusquedaChange()">
     <option value="anime">🎬 Anime</option>
     <option value="manga">📖 Manga</option>
@@ -1674,7 +1666,7 @@ async function seguirTrabajo(tid, titulo) {
 }
 
 // ── Cargar datos ──────────────────────────────────────────────────────────────
-async function cargar() {
+async function cargar(opts = {}) {
   // Show skeleton if no animes loaded yet
   const lista = document.getElementById('lista');
   if (lista && ANIMES.length === 0) {
@@ -1704,15 +1696,30 @@ async function cargar() {
       return;
     }
     if (!rA.ok) throw new Error('HTTP ' + rA.status);
-    const dA = await rA.json();
+    const txtA = await rA.text();
+    const txtF = (rF && rF.ok) ? await rF.text() : null;
+    // Refresco automático (el vigilante de cambios): si no ha cambiado nada
+    // visible, no se repinta. Repintar sin motivo era lo que te subía arriba.
+    if (opts.quieto && txtA === window._ultA && (txtF == null || txtF === window._ultF)) return;
+    window._ultA = txtA; if (txtF != null) window._ultF = txtF;
+    const dA = JSON.parse(txtA);
     if (Array.isArray(dA.animes)) ANIMES = dA.animes;
-    if (rF && rF.ok) {
-      const dF = await rF.json();
+    if (txtF != null) {
+      const dF = JSON.parse(txtF);
       if (Array.isArray(dF.franquicias)) FRANQUICIAS = dF.franquicias;
     }
     poblarFiltroFuente();
     actualizarStats();
-    render();
+    if (opts.quieto && lista) {
+      // Se queda donde estabas: misma altura mientras se repinta y mismo scroll.
+      const y = window.scrollY;
+      lista.style.minHeight = lista.offsetHeight + 'px';
+      render();
+      if (Math.abs(window.scrollY - y) > 1) window.scrollTo({top: y, behavior: 'instant'});
+      requestAnimationFrame(() => { lista.style.minHeight = ''; if (Math.abs(window.scrollY - y) > 1) window.scrollTo({top: y, behavior: 'instant'}); });
+    } else {
+      render();
+    }
   } catch(e) {
     console.error('cargar:', e);
     toast('Error cargando lista: ' + e.message, 'err');
@@ -3846,7 +3853,6 @@ function abrirModalEl(id) { document.getElementById(id).classList.add('open'); }
 function cerrarModal(id)   { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (document.getElementById('modal-novedades')?.classList.contains('open')) cerrarNovedades();
     cerrarModal('modal-edit');
     cerrarModal('modal-preview');
     cerrarModal('modal-queveo');
@@ -3863,36 +3869,50 @@ let _acTimer = null;
 // OJO: no llamarla autocomplete(): en un oninput="…" en línea, el nombre se
 // resuelve primero como propiedad del <input> (su atributo autocomplete="off",
 // un string) → "autocomplete is not a function" y las sugerencias no salían.
+//
+// v2.16: antes salían DOS menús a la vez (este, con tu lista, y el de la
+// búsqueda en internet, uno encima del otro). Ahora es uno solo: arriba «En
+// tu lista» (lo que ya tienes, para abrirlo) y debajo el resultado de internet
+// con la saga (para añadir).
+const _EST_CORTO = {viendo: 'Viendo', watching: 'Viendo', completado: 'Completado', completed: 'Completado',
+                    pendiente: 'Pendiente', pausa: 'En pausa', abandonado: 'Abandonado'};
+function _pintarLocales(sp, q) {
+  sp.querySelector('.sp-local')?.remove();
+  const ql = (q || '').trim().toLowerCase();
+  if (ql.length < 2) return 0;
+  const matches = ANIMES.filter(a => a.nombre.toLowerCase().includes(ql))
+    .sort((a, b) => a.nombre.toLowerCase().indexOf(ql) - b.nombre.toLowerCase().indexOf(ql)).slice(0, 4);
+  if (!matches.length) return 0;
+  const sec = document.createElement('div'); sec.className = 'sp-local';
+  const h = document.createElement('h4'); h.textContent = _tr('En tu lista'); sec.appendChild(h);
+  matches.forEach(a => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sp-lrow';
+    let img;
+    if (a.imagen) { img = document.createElement('img'); img.alt = ''; img.loading = 'lazy'; img.src = _thumbUrl(a.imagen);
+                    img.onerror = () => { img.style.visibility = 'hidden'; }; }
+    else { img = document.createElement('span'); img.className = 'ph'; }
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = a.nombre; n.setAttribute('data-no-i18n', '');
+    const e = document.createElement('span'); e.className = 'e'; e.textContent = _tr(_EST_CORTO[a.estado_usuario] || '');
+    const ir = document.createElement('span'); ir.className = 'ir'; ir.textContent = _tr('Abrir') + ' →';
+    b.append(img, n, e, ir);
+    b.onmousedown = ev => ev.preventDefault();           // que no se pierda el foco y se cierre antes del clic
+    b.onclick = () => { cerrarPreview(); const i = document.getElementById('inp-nombre'); if (i) i.value = ''; abrirModal(encodeURIComponent(a.nombre)); };
+    sec.appendChild(b);
+  });
+  sp.prepend(sec);
+  return matches.length;
+}
 function autocompletar(q) {
-  const drop = document.getElementById('autocomplete-drop');
-  if (!drop) return;
   clearTimeout(_acTimer);
-  q = (q || '').trim();
-  if (q.length < 2) { drop.style.display = 'none'; return; }
   _acTimer = setTimeout(() => {
-    const ql = q.toLowerCase();
-    const matches = ANIMES.filter(a => a.nombre.toLowerCase().includes(ql)).slice(0, 8);
-    if (!matches.length) { drop.style.display = 'none'; return; }
-    drop.innerHTML = '';
-    matches.forEach(a => {
-      const item = document.createElement('div');
-      item.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)';
-      item.textContent = a.nombre;
-      item.onmousedown = () => {
-        document.getElementById('inp-nombre').value = a.nombre;
-        cerrarAutocomplete();
-      };
-      item.onmouseenter = () => item.style.background = 'var(--card2)';
-      item.onmouseleave = () => item.style.background = '';
-      drop.appendChild(item);
-    });
-    drop.style.display = 'block';
-  }, 150);
+    const sp = document.getElementById('search-preview');
+    if (!sp) return;
+    const n = _pintarLocales(sp, q);
+    if (n) sp.style.display = 'block';
+    else if (!sp.querySelector('.sp-item')) cerrarPreview();
+  }, 120);
 }
-function cerrarAutocomplete() {
-  const d = document.getElementById('autocomplete-drop');
-  if (d) d.style.display = 'none';
-}
+function cerrarAutocomplete() { /* v2.16: ya no hay desplegable aparte */ }
 
 // v2.2: "Continuar viendo" — strip horizontal con los animes en curso
 // ordenados por última actividad (ep_log). Botón +1 inline.
@@ -3929,14 +3949,18 @@ async function cargarContinuar() {
       name.textContent = a.nombre;
       const next = document.createElement('div');
       next.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px';
-      const total = parseInt(a.capitulos) || '?';
-      next.textContent = `Ep ${(a.episodios_vistos || 0) + 1}` + (total !== '?' ? ` / ${total}` : '');
+      const total = parseInt(a.capitulos) || 0;
+      const vistos = a.episodios_vistos || 0;
+      const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
+      next.textContent = alDia ? `✓ ${_tr('Al día')} · ${vistos} / ${total}`
+                               : `Ep ${vistos + 1}` + (total ? ` / ${total}` : '');
       info.appendChild(name);
       info.appendChild(next);
 
       const plus = document.createElement('button');
       plus.textContent = '+1';
       plus.title = 'Marcar siguiente episodio visto';
+      plus.hidden = alDia;
       plus.style.cssText = 'background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0';
       plus.onclick = async (e) => {
         e.stopPropagation();
@@ -4122,7 +4146,7 @@ async function comprobarActualizacion() {
     // se reintenta cada 2 s durante un rato en vez de perderlo.
     let intentos = 0;
     const probar = () => {
-      if (!document.querySelector('.modal-bg.open')) { _avisoActualizacion(d, false); return; }
+      if (!document.querySelector('.modal-bg.open, .mnv-bg, .mtour-on')) { _avisoActualizacion(d, false); return; }
       if (++intentos < 90) setTimeout(probar, 2000);
     };
     setTimeout(probar, 3500);
@@ -4484,6 +4508,8 @@ function _paletteCommands() {
     {icon: '✨', label: 'Recomendaciones', run: () => location.href = '/recomendaciones'},
     {icon: '📥', label: 'Importar',      run: () => location.href = '/import'},
     {icon: '☁', label: 'Copia en la nube', run: () => abrirCopia()},
+    {icon: '🧩', label: 'Extensión de AnimeAV1', run: () => abrirExtension()},
+    {icon: '🧭', label: 'Recorrido por la app', run: () => window.miraruTour && window.miraruTour.empezar(true)},
     {icon: '🏠', label: 'Inicio',        run: () => location.href = '/'},
     {icon: '🔄', label: T('sync') || 'Sincronizar', run: () => sincronizar()},
     {icon: '🎲', label: T('random') || 'Anime aleatorio', run: () => animeAleatorio()},
@@ -4722,6 +4748,11 @@ async function buscarPreview(q) {
       item.appendChild(addBtn);
       sp.appendChild(item);
     });
+    if (sp.querySelector('.sp-item')) {
+      const hOn = document.createElement('h4'); hOn.className = 'sp-online-h'; hOn.textContent = _tr('Añadir desde internet');
+      sp.prepend(hOn);
+    }
+    _pintarLocales(sp, q);
     sp.style.display = 'block';
     // v2.13: la búsqueda solo daba la primera temporada. Ahora se busca toda
     // la saga en AniList y se ofrece añadirla de golpe.
@@ -5236,12 +5267,6 @@ function selectAllVisible() {
   <button class="bulk-close" onclick="exitSelMode()" title="Cancelar selección">&times;</button>
 </div>
 
-<!-- Twitter/X button -->
-<a id="tw-btn" href="https://x.com/T0ff3_x" target="_blank" rel="noopener" title="@T0ff3_x en X/Twitter">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-</svg>
-</a>
 <script>
 // PWA Service Worker
 // Alcance "/" (servido desde /sw.js con Service-Worker-Allowed). El registro
@@ -5254,22 +5279,9 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- Instagram button -->
-<a id="ig-btn" href="https://www.instagram.com/lucasuazz_/" target="_blank" rel="noopener" title="@lucasuazz_ en Instagram"
-   style="position:fixed;bottom:20px;right:68px;z-index:50;
-   background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
-   color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;
-   display:flex;align-items:center;justify-content:center;
-   box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s;
-   text-decoration:none;opacity:0.85">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-  </svg>
-</a>
-
 <!-- v2.4: volver arriba — aparece tras desplazarse en listas largas -->
 <button id="to-top" type="button" title="Volver arriba"
-        style="position:fixed;bottom:20px;right:116px;z-index:50;display:none;width:40px;height:40px;
+        style="position:fixed;bottom:20px;right:262px;z-index:50;display:none;width:40px;height:40px;
         border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:18px;cursor:pointer;
         box-shadow:0 2px 12px rgba(0,0,0,.4);transition:transform .2s,opacity .2s;opacity:.85">↑</button>
 <script>
@@ -5364,7 +5376,7 @@ async function _vigilarCambios() {
       || document.body.classList.contains('sel-mode')            // no perder la selección
       || document.querySelector('.dragging, .drag-over');         // ni un arrastre a medias
     if (editando) return;                       // se aplicará al terminar
-    await cargar();
+    await cargar({quieto: true});
     if (typeof cargarContinuar === 'function') cargarContinuar();
     if (document.getElementById('modal-anilist')?.classList.contains('open')) _av1ExtEstado();
   } catch (_) {}
@@ -5583,44 +5595,29 @@ async function _ofrecerRecuperar() {
 }
 setTimeout(_ofrecerRecuperar, 600);
 
-// v2.15: aviso de novedades, una vez por versión (lo recuerda el servidor).
-async function _mostrarNovedades() {
-  try {
-    const r = await fetch('/api/aviso-novedades', {cache: 'no-store'});
-    if (!r.ok || !(await r.json()).mostrar) return;
-    // Si arriba ya está la tarjeta de «Hemos encontrado tu lista», esa manda.
-    if (document.getElementById('copia-aviso')?.style.display === 'flex') { _novedadVista(); return; }
-    if (document.querySelector('.modal-bg.open')) return;          // otro aviso abierto: la próxima vez
-    const d = await _copiaDatos();
-    const est = document.getElementById('nov-estado');
-    est.className = 'copia-estado';
-    est.innerHTML = '';
-    const ico = document.createElement('span'); ico.className = 'ico';
-    const t = document.createElement('div');
-    const b = document.createElement('strong');
-    const sm = document.createElement('small');
-    if (d && d.activa && !d.apagada && d.sincroniza !== false) {
-      est.classList.add('ok'); ico.textContent = '✅';
-      b.textContent = _tr('Ya está activada en ' + d.servicio);
-      sm.textContent = _tr('Tu lista se está guardando ahí. No tienes que hacer nada más.');
-    } else if (d && d.sincroniza === false) {
-      est.classList.add('aviso'); ico.textContent = '⚠️';
-      b.textContent = _tr('Falta un paso: inicia sesión en OneDrive');
-      sm.textContent = _tr('Pulsa la tecla Windows, escribe OneDrive, ábrelo y entra con tu cuenta de Microsoft. Sin eso la copia no sube a la nube.');
-    } else {
-      est.classList.add('aviso'); ico.textContent = '⚠️';
-      b.textContent = _tr('No hay ninguna nube en este PC');
-      sm.textContent = _tr('Instala OneDrive (viene con Windows), Google Drive o Dropbox y Miraru la usará sola.');
-    }
-    t.append(b, sm); est.append(ico, t);
-    const verCopia = document.querySelector('#modal-novedades .btn-p');
-    if (verCopia) verCopia.textContent = (d && d.activa && d.sincroniza !== false) ? _tr('☁ Ver mi copia') : _tr('☁ Activarla');
-    abrirModalEl('modal-novedades');
-  } catch (_) {}
+// v2.16: ¿los ajustes de la cabecera han caído a su propia fila? → la llenan.
+function _ajustarCabecera() {
+  const st = document.querySelector('.header-settings'), nav = document.querySelector('.header-nav');
+  if (!st || !nav) return;
+  st.classList.remove('fila');
+  const propia = innerWidth >= 1100 && st.getBoundingClientRect().top >= nav.getBoundingClientRect().bottom - 2;
+  st.classList.toggle('fila', propia);
 }
-function _novedadVista() { fetch('/api/aviso-novedades/visto', {method: 'POST'}).catch(() => {}); }
-function cerrarNovedades() { cerrarModal('modal-novedades'); _novedadVista(); }
-setTimeout(_mostrarNovedades, 1800);
+window.addEventListener('resize', () => requestAnimationFrame(_ajustarCabecera));
+setTimeout(_ajustarCabecera, 50); setTimeout(_ajustarCabecera, 900);
+
+// Novedades de cada versión: /static/novedades.js (también sale en el menú).
+// Enlaces directos (desde Novedades, el menú o el recorrido): /app#copia, /app#animeav1…
+function _abrirPorHash() {
+  const h = location.hash.slice(1);
+  const acciones = {copia: () => abrirCopia(), animeav1: () => abrirExtension(), extension: () => abrirExtension(),
+                    anilist: () => abrirAniList(), recorrido: () => window.miraruTour && window.miraruTour.empezar(true)};
+  if (!acciones[h]) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  setTimeout(acciones[h], 300);
+}
+window.addEventListener('hashchange', _abrirPorHash);
+setTimeout(_abrirPorHash, 700);
 
 // El botón ☁ avisa (punto naranja) si la lista NO está protegida.
 async function _marcarBotonCopia() {
@@ -5652,6 +5649,8 @@ async function _av1ExtEstado() {
       (u.episodio != null ? ' · ' + _tr('episodio') + ' ' + u.episodio : '') + ' · ' + cuando);
   } catch (_) {}
 }
+
+function abrirExtension() { abrirModalEl('modal-extension'); _av1ExtEstado(); }
 
 async function _av1CopiarExtensiones() {
   try { await navigator.clipboard.writeText('chrome://extensions'); toast(_tr('Copiado: pégalo en la barra de direcciones')); }

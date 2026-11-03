@@ -81,8 +81,25 @@ def test_aviso_de_novedades_una_vez_por_version(db, monkeypatch):
     import main
     importlib.reload(main)
     c = TestClient(main.app, client=("127.0.0.1", 1))
-    assert c.get("/api/aviso-novedades").json()["mostrar"] is True
+    db.guardar_anime({"nombre": "Frieren", "lista": "Viendo", "capitulos_vistos": 1})
+    d = c.get("/api/aviso-novedades").json()
+    assert d["mostrar"] is True and d["versiones"][0]["version"] == main.VERSION
     c.post("/api/aviso-novedades/visto")
     assert c.get("/api/aviso-novedades").json()["mostrar"] is False
-    monkeypatch.setattr(main, "VERSION", "99.0.0")
-    assert c.get("/api/aviso-novedades").json()["mostrar"] is True
+
+
+def test_novedades_usuario_nuevo_no_las_ve(db):
+    import main
+    importlib.reload(main)
+    c = TestClient(main.app, client=("127.0.0.1", 1))
+    assert c.get("/api/aviso-novedades").json()["mostrar"] is False   # lista vacía = recién instalado
+
+
+def test_novedades_de_versiones_saltadas():
+    import novedades
+    vs = [n["version"] for n in novedades.pendientes("2.14.1", "2.16.0")]
+    assert vs == ["2.16.0", "2.15.0"]
+    assert novedades.pendientes("2.16.0", "2.16.0") == []
+    assert [n["version"] for n in novedades.pendientes("2.15.0", "2.16.0")] == ["2.16.0"]
+    import core
+    assert any(n["version"] == core.VERSION for n in novedades.NOVEDADES), "falta la tarjeta de novedades de esta versión"

@@ -71,6 +71,7 @@ body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-seri
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
+<script src="/static/novedades.js?v=2.16.0" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -408,13 +409,17 @@ async function loadContinue() {
       name.textContent = a.nombre;
       const next = document.createElement('div');
       next.style.cssText = 'font-size:10px;color:#a78bfa';
-      const total = parseInt(a.capitulos) || '?';
-      next.textContent = 'Ep ' + ((a.episodios_vistos || 0) + 1) + (total !== '?' ? ' / ' + total : '');
+      const total = parseInt(a.capitulos) || 0;
+      const vistos = a.episodios_vistos || 0;
+      const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
+      next.textContent = alDia ? '✓ Al día · ' + vistos + ' / ' + total
+                               : 'Ep ' + (vistos + 1) + (total ? ' / ' + total : '');
       info.appendChild(name);
       info.appendChild(next);
 
       const plus = document.createElement('button');
       plus.textContent = '+1';
+      plus.hidden = alDia;
       plus.style.cssText = 'background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0';
       plus.onclick = async (e) => {
         e.stopPropagation();

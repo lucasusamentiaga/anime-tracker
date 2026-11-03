@@ -88,7 +88,7 @@ input,select,textarea,button{font-family:inherit}
 .tab-item{flex:1;padding:10px 0 8px;text-align:center;cursor:pointer;
           border-top:2px solid transparent;transition:all .15s}
 .tab-item.on{color:var(--light);border-top-color:var(--accent)}
-.tab-item .ti{font-size:20px;display:block;margin-bottom:2px}
+.tab-item .tic{font-size:20px;display:block;margin-bottom:2px}
 .tab-item .tl{font-size:10px;color:var(--muted)}
 .tab-item.on .tl{color:var(--light)}
 
@@ -245,7 +245,7 @@ input,select,textarea,button{font-family:inherit}
   <div class="c-title">Miraru</div>
   <div class="c-sub">Conéctate al servidor de tu PC<br>en la misma red WiFi</div>
 
-  <div class="form-g">
+  <div class="form-g" id="fg-ip">
     <label>IP del PC (ejemplo: 192.168.1.5:8765)</label>
     <input type="text" id="inp-ip" placeholder="192.168.1.5:8765"
            inputmode="url" autocomplete="off" spellcheck="false"
@@ -319,9 +319,9 @@ input,select,textarea,button{font-family:inherit}
   </div>
 
   <div class="tab-bar">
-    <div class="tab-item on"  onclick="switchTab('lista')">  <span class="ti">📋</span><span class="tl">Lista</span></div>
-    <div class="tab-item"     onclick="switchTab('stats')">  <span class="ti">📊</span><span class="tl">Stats</span></div>
-    <div class="tab-item"     onclick="switchTab('perfil')"> <span class="ti">👤</span><span class="tl">Perfil</span></div>
+    <div class="tab-item on"  onclick="switchTab('lista')">  <span class="tic">📋</span><span class="tl">Lista</span></div>
+    <div class="tab-item"     onclick="switchTab('stats')">  <span class="tic">📊</span><span class="tl">Stats</span></div>
+    <div class="tab-item"     onclick="switchTab('perfil')"> <span class="tic">👤</span><span class="tl">Perfil</span></div>
   </div>
 
 </div>
@@ -596,7 +596,8 @@ function renderLista() {
 
     card.appendChild(img); card.appendChild(body);
 
-    if(cap>0){
+    // v2.16: sin +1 cuando ya has visto todos los episodios (antes dejaba 27/26).
+    if(cap>0 && vis<cap){
       const p1=document.createElement('button');
       p1.className='p1-btn'; p1.textContent='+1';
       p1.addEventListener('click',e=>{e.stopPropagation();plus1(enc,a);});
@@ -908,6 +909,19 @@ function _setupPullToRefresh() {
 setTimeout(_setupPullToRefresh, 500);
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+// v2.16: abierta desde el propio PC (http://IP:8765/m, escaneando el QR):
+// la dirección ya es esta, solo hace falta el PIN.
+const MISMO_ORIGEN = /^https?:$/.test(location.protocol) && location.pathname.replace(/\/+$/, '') === '/m';
+if (MISMO_ORIGEN) {
+  $('inp-ip').value = location.host;
+  $('fg-ip').style.display = 'none';
+  if (CFG.host && CFG.host !== location.host) { CFG = {}; try { localStorage.removeItem(SK); } catch(_){} }
+  const sub = document.querySelector('#s-connect .c-sub');
+  if (sub) sub.innerHTML = 'Escribe el PIN que pusiste en<br>«Acceso móvil» del PC';
+  const hint = document.querySelector('#s-connect .c-hint');
+  if (hint) hint.textContent = 'Tu móvil y tu PC tienen que estar en la misma WiFi.';
+  setTimeout(() => { try { $('inp-pin').focus(); } catch(_){} }, 300);
+}
 intentarAutoconect();
 </script>
 </body>

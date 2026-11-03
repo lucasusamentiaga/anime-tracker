@@ -56,7 +56,14 @@ _setup_file_logging()
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -125,8 +132,15 @@ async def _lifespan(app: FastAPI):
     except Exception:
         pass
     _start_auto_backup_once()
+    try:
+        _marcar_primer_arranque()
+    except Exception:  # noqa: BLE001 — nunca debe impedir arrancar
+        pass
     if not _sin_hilos_de_fondo():
         copia_nube.iniciar_hilo()
+        # Google Sheets: cualquier cambio de la lista llega a la hoja (v2.16).
+        sheets_sync.vigilar(_get_sheets_config, lambda: db._cache_gen,
+                            db.listar_animes, _record_sync)
     migrations.completar_episodios_vistos()   # rápido (solo SQL), idempotente
     _start_cap200_fix_once()
     _start_emision_refresh_once()
@@ -220,6 +234,12 @@ async def _lan_auth_guard(request: Request, call_next):
     if path in _RUTAS_SOLO_LOCAL:
         return JSONResponse({"detail": "No encontrado"}, status_code=404)
 
+    # v2.16: desde el móvil, la web de PC no sirve (sus llamadas no llevan
+    # token y todo da 401). Quien abre la dirección del PC en el navegador del
+    # móvil va directo a la versión para móvil, que pide el PIN.
+    if path in ("/", "/app"):
+        return RedirectResponse("/m", status_code=307)
+
     # Páginas HTML (no /api) — siempre OK: no llevan datos, los piden luego a
     # /api/, que sí exige token.
     if not path.startswith("/api/"):
@@ -243,9 +263,15 @@ async def _cache_headers(request: Request, call_next):
     """Cache largo para assets estáticos, corto para API."""
     response = await call_next(request)
     path = request.url.path
-    if path.startswith("/static/"):
-        # SVGs, CSS, JS, imágenes — cache 1 semana (SW invalida)
-        response.headers["Cache-Control"] = "public, max-age=604800, immutable"
+    if path.startswith(("/static/fonts/", "/static/emblems/")) or path.endswith((".png", ".ico", ".woff2")):
+        # Fuentes e imágenes: no cambian entre versiones → caché larga.
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    elif path.startswith("/static/"):
+        # JS y CSS: antes "immutable" una semana → tras actualizar Miraru el
+        # navegador seguía usando los scripts viejos hasta 7 días (por eso a
+        # algunos no les salían las novedades). Ahora se revalida siempre (en
+        # localhost un 304 cuesta nada).
+        response.headers["Cache-Control"] = "no-cache"
     elif path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-cache"
     return response
@@ -1321,6 +1347,12 @@ async def menu():
     """Menú principal."""
     return FileResponse(str(TEMPLATES_DIR / "menu.html"))
 
+@app.get("/m", response_class=HTMLResponse)
+async def movil_web():
+    """v2.16: Miraru para el navegador del móvil (misma WiFi). Se abre
+    escaneando el QR de «Acceso móvil»: no hace falta instalar nada."""
+    return FileResponse(str(FROZEN_DIR / "mobile" / "index.html"))
+
 @app.get("/app", response_class=HTMLResponse)
 async def index():
     """App principal de tracking."""
@@ -1395,6 +1427,7 @@ def verify_setup(req: ConfigRequest):
     if not ok:
         raise HTTPException(400, msg)
     db.set_config("spreadsheet_id", req.spreadsheet_id)
+    sheets_sync.olvidar_huella()
     return {"ok": True}
 
 @app.get("/api/setup/status")
@@ -2121,11 +2154,6 @@ async def guardar_anime(req: BuscarRequest):
         raise HTTPException(409 if msg == "duplicado" else 500, msg)
 
     # Sync automático a Sheets en background
-    cfg = _get_sheets_config()
-    if cfg:
-        anime_dict = db.obtener_anime(data.get("nombre",""))
-        if anime_dict:
-            _sync_bg(sheets_sync.append_anime, anime_dict, cfg[0], cfg[1])
 
     saved = db.obtener_anime(data.get("nombre","")) or data
     saved["fuente_usada"] = fuente_usada
@@ -2234,11 +2262,6 @@ async def restaurar_anime(data: dict):
         ok, msg = db.guardar_anime(data)
     if not ok:
         raise HTTPException({"duplicado": 409, "nombre vacío": 400}.get(msg, 500), msg)
-    cfg = _get_sheets_config()
-    if cfg:
-        ad = db.obtener_anime(data.get("nombre", ""))
-        if ad:
-            _sync_bg(sheets_sync.append_anime, ad, cfg[0], cfg[1])
     return {"ok": True}
 
 # ── Sync ──────────────────────────────────────────────────────────────────────
@@ -2255,6 +2278,8 @@ def sync_sheets(req: SyncRequest):
     animes = db.listar_animes()
     ok, msg = sheets_sync.sincronizar_todo(animes, sid, str(CREDENTIALS))
     _record_sync(ok, msg)
+    if ok:
+        sheets_sync._vig["huella"] = sheets_sync.huella(animes)
     if not ok:
         # v2: no filtramos tracebacks/internals al cliente
         _sync_log.warning("Sheets sync error: %s", msg)
@@ -2432,8 +2457,9 @@ async def get_stats():
         [a for a in animes if a.get("puntuacion")],
         key=lambda x: float(x["puntuacion"]),
         reverse=True,
-    )[:5]
-    recently_added = animes[:8]
+    )[:6]
+    # Mismo número en las dos listas (antes 5 y 8: una tarjeta quedaba medio vacía).
+    recently_added = sorted(animes, key=lambda x: x.get("creado_en") or "", reverse=True)[:6]
 
     return {
         "total":          total,
@@ -2514,7 +2540,6 @@ async def importar_bulk(req: ImportRequest):
 
     loop = asyncio.get_running_loop()
     resultados = {"añadidos": [], "duplicados": [], "no_encontrados": []}
-    cfg = _get_sheets_config()
 
     for nombre in nombres:
         # Buscar en fuentes
@@ -2537,10 +2562,6 @@ async def importar_bulk(req: ImportRequest):
             resultados["duplicados"].append(nombre)
         elif ok:
             resultados["añadidos"].append(resultado.nombre)
-            if cfg:
-                anime_dict = db.obtener_anime(resultado.nombre)
-                if anime_dict:
-                    _sync_bg(sheets_sync.append_anime, anime_dict, cfg[0], cfg[1])
         else:
             resultados["no_encontrados"].append(nombre)
 
@@ -2578,7 +2599,10 @@ async def plus_episodio(nombre: str, nota: str = ""):
     # dejaba 13/12 y un episodio fantasma en las estadísticas. "24+" (en
     # emisión) o "?" no son un tope.
     total = str(anime.get("capitulos") or "").strip()
-    if total.isdigit() and int(total) > 0 and nuevos > int(total):
+    # "24+" (en emisión: el dato puede ir atrasado) o "?" no son un tope aquí;
+    # «Continuar viendo» sí esconde el +1 al llegar a los emitidos.
+    m_tot = re.match(r"(\d+)(?:\.0+)?$", total)
+    if m_tot and int(m_tot.group(1)) > 0 and nuevos > int(m_tot.group(1)):
         raise HTTPException(409, "Ya has visto todos los episodios")
     ok, msg = db.actualizar_anime(nombre, {"episodios_vistos": nuevos})
     if not ok:
@@ -2589,10 +2613,7 @@ async def plus_episodio(nombre: str, nota: str = ""):
     if nota and nota.strip():
         db.guardar_nota_episodio(nombre, nuevos, nota.strip()[:2000])
     # Una sola relectura para Sheets y para el email (antes se consultaba dos veces)
-    cfg = _get_sheets_config()
     actualizado = db.obtener_anime(nombre)
-    if cfg and actualizado:
-        _sync_bg(sheets_sync.update_anime_row, actualizado, cfg[0], cfg[1])
     # Igual que al editar: con AniList conectado, el +1 también se sube (antes
     # solo se subía al guardar desde la ficha y el +1 se quedaba en local).
     if actualizado and actualizado.get("anilist_id") and anilist_sync.is_connected():
@@ -2686,11 +2707,27 @@ async def set_mobile_pin(req: PinRequest):
 async def mobile_status():
     """Estado del acceso móvil — sin auth para que el setup de PC funcione."""
     pin_set = bool(db.get_config("mobile_pin"))
+    host = db.get_config("network_host") or ""
     return {
         "pin_configurado": pin_set,
+        "activado":        _mobile_mode_active(),
         "tokens_activos":  len(_mobile_tokens),
-        "network_host":    db.get_config("network_host") or "",
+        "network_host":    host,
+        # ¿De verdad se puede entrar desde la WiFi? Solo si Miraru se abrió
+        # con el acceso ya activado (escucha en la red, no solo en este PC).
+        "en_red":          bool(host) and await asyncio.get_running_loop().run_in_executor(None, _escucha_en, host),
+        "url_movil":       f"http://{host}/m" if host else "",
     }
+
+
+def _escucha_en(host: str) -> bool:
+    import socket
+    try:
+        ip, _, puerto = host.rpartition(":")
+        with socket.create_connection((ip, int(puerto)), timeout=0.6):
+            return True
+    except (OSError, ValueError):
+        return False
 
 # ── Endpoints móvil autenticados (misma lógica que PC pero con auth) ─────────
 
@@ -2708,11 +2745,6 @@ async def mobile_actualizar(nombre: str, req: ActualizarRequest, request: Reques
     ok, msg = db.actualizar_anime(nombre, campos)
     if not ok:
         raise HTTPException(404, msg)
-    cfg = _get_sheets_config()
-    if cfg:
-        anime_dict = db.obtener_anime(nombre)
-        if anime_dict:
-            _sync_bg(sheets_sync.update_anime_row, anime_dict, cfg[0], cfg[1])
     return {"ok": True}
 
 @app.post("/api/mobile/animes/{nombre:path}/plus1")
@@ -3180,15 +3212,52 @@ _CLAVE_NOVEDADES = "novedades_vistas"
 
 @app.get("/api/aviso-novedades")
 def novedades_estado():
-    """¿Hay que enseñar el aviso de novedades de esta versión? Se guarda en la
-    BD (no en el navegador) para que salga una sola vez aunque cambies de
-    navegador o abras Miraru en el móvil."""
-    return {"version": VERSION, "mostrar": db.get_config(_CLAVE_NOVEDADES) != VERSION}
+    """Novedades que este usuario aún no ha visto (una vez por versión). Se
+    guarda en la BD, no en el navegador, para que salga una sola vez aunque
+    cambies de navegador o abras Miraru en el móvil. Si te saltaste versiones,
+    ves también las de esas. Quien instala Miraru por primera vez no ve
+    novedades (no hay nada «nuevo» para él): le toca el recorrido guiado."""
+    import novedades as _nov
+    vista = db.get_config(_CLAVE_NOVEDADES)
+    if vista is None and copia_nube.lista_vacia():
+        db.set_config(_CLAVE_NOVEDADES, VERSION)
+        return {"version": VERSION, "mostrar": False, "versiones": []}
+    if vista == VERSION:
+        return {"version": VERSION, "mostrar": False, "versiones": []}
+    # Antes de la 2.15 no se guardaba qué se había visto: se enseña desde la 2.14.
+    versiones = _nov.pendientes(vista or "2.14.99", VERSION)
+    return {"version": VERSION, "mostrar": bool(versiones), "versiones": versiones}
 
 
 @app.post("/api/aviso-novedades/visto")
 def novedades_visto():
     db.set_config(_CLAVE_NOVEDADES, VERSION)
+    return {"ok": True}
+
+
+# ── Recorrido guiado (v2.16): solo para instalaciones nuevas ─────────────────
+def _marcar_primer_arranque() -> None:
+    """La primera vez que arranca esta versión (o cualquiera posterior) sobre
+    una BD: si la lista está vacía es una instalación nueva → recorrido
+    pendiente y sin «novedades» (para él no hay nada nuevo). Quien actualiza
+    con su lista no ve el recorrido."""
+    if db.get_config("primer_arranque"):
+        return
+    if copia_nube.lista_vacia():
+        db.set_config("recorrido_pendiente", "1")
+        if db.get_config(_CLAVE_NOVEDADES) is None:
+            db.set_config(_CLAVE_NOVEDADES, VERSION)
+    db.set_config("primer_arranque", VERSION)
+
+
+@app.get("/api/recorrido")
+def recorrido_estado():
+    return {"mostrar": db.get_config("recorrido_pendiente") == "1"}
+
+
+@app.post("/api/recorrido/visto")
+def recorrido_visto():
+    db.set_config("recorrido_pendiente", "0")
     return {"ok": True}
 
 
@@ -3318,7 +3387,6 @@ async def importar_mal_xml(file: UploadFile = File(...)):
 
     loop = asyncio.get_running_loop()
     añadidos, duplicados, errores = [], [], []
-    cfg = _get_sheets_config()
 
     for data in animes_raw[:200]:  # máx 200
         # Buscar info completa en AniList
@@ -3343,10 +3411,6 @@ async def importar_mal_xml(file: UploadFile = File(...)):
             duplicados.append(data["nombre"])
         elif ok:
             añadidos.append(data["nombre"])
-            if cfg:
-                ad = db.obtener_anime(data["nombre"])
-                if ad:
-                    _sync_bg(sheets_sync.append_anime, ad, cfg[0], cfg[1])
         else:
             errores.append(data["nombre"])
 
@@ -3424,11 +3488,6 @@ async def toggle_favorito(nombre: str):
     ok, msg = db.actualizar_anime(nombre, {"favorito": nuevo})
     if not ok:
         raise HTTPException(500, msg)
-    cfg = _get_sheets_config()
-    if cfg:
-        upd = db.obtener_anime(nombre)
-        if upd:
-            _sync_bg(sheets_sync.update_anime_row, upd, cfg[0], cfg[1])
     return {"ok": True, "favorito": bool(nuevo), "nombre": nombre}
 
 @app.post("/api/animes/{nombre:path}/notif")
@@ -3503,12 +3562,10 @@ async def continuar_viendo():
         if estado not in ("viendo", "watching"):
             continue
         # Excluir los que ya completaron
-        try:
-            total = int(a.get("capitulos") or 0)
-        except (ValueError, TypeError):
-            total = 0
+        m_tot = re.match(r"\s*(\d+)(?:\.0+)?\s*(\+?)\s*$", str(a.get("capitulos") or ""))
+        total = int(m_tot.group(1)) if m_tot else 0
         vistos = int(a.get("episodios_vistos") or 0)
-        if total and vistos >= total:
+        if total and vistos >= total and not m_tot.group(2):
             continue
         candidatos.append(a)
     if not candidatos:
@@ -4491,8 +4548,69 @@ async def stats_wrapped(year: Optional[int] = None):
                 if g: genre_cnt[g] += 1
         recientes_year = animes[:5]
 
+    # ── v2.16: más datos para «Mi año en anime» ─────────────────────────────
+    por_mes = [0] * 12
+    mas_vistos: list[dict] = []
+    dias_activos = racha_max = 0
+    nuevos_year = 0
+    primero = ultimo = None
+    with db.get_conn() as conn:
+        anos = sorted({int(r["y"]) for r in conn.execute(
+            "SELECT DISTINCT strftime('%Y', fecha) AS y FROM ep_log WHERE fecha IS NOT NULL"
+        ).fetchall() if r["y"] and str(r["y"]).isdigit()}, reverse=True)
+        if use_year:
+            y = str(year)
+            for r in conn.execute(
+                "SELECT CAST(strftime('%m', fecha) AS INTEGER) AS m, COUNT(*) AS c FROM ep_log "
+                "WHERE strftime('%Y', fecha) = ? GROUP BY m", (y,)
+            ).fetchall():
+                if r["m"] and 1 <= r["m"] <= 12:
+                    por_mes[r["m"] - 1] = r["c"]
+            por_anime = conn.execute(
+                "SELECT nombre, COUNT(*) AS c FROM ep_log WHERE strftime('%Y', fecha) = ? "
+                "GROUP BY nombre ORDER BY c DESC, MAX(fecha) DESC LIMIT 5", (y,)
+            ).fetchall()
+            dias = [r["d"] for r in conn.execute(
+                "SELECT DISTINCT date(fecha) AS d FROM ep_log WHERE strftime('%Y', fecha) = ? ORDER BY d",
+                (y,)
+            ).fetchall() if r["d"]]
+            orden = conn.execute(
+                "SELECT nombre FROM ep_log WHERE strftime('%Y', fecha) = ? ORDER BY fecha", (y,)
+            ).fetchall()
+            if orden:
+                primero, ultimo = orden[0]["nombre"], orden[-1]["nombre"]
+            dias_activos = len(dias)
+            racha = 0
+            prev = None
+            for d_txt in dias:
+                d_obj = datetime.date.fromisoformat(d_txt)
+                racha = racha + 1 if prev and (d_obj - prev).days == 1 else 1
+                racha_max = max(racha_max, racha)
+                prev = d_obj
+            por_nombre = {a["nombre"]: a for a in animes}
+            for r in por_anime:
+                a = por_nombre.get(r["nombre"], {})
+                mas_vistos.append({"nombre": r["nombre"], "episodios": r["c"],
+                                   "imagen": a.get("imagen") or "", "puntuacion": a.get("puntuacion")})
+            nuevos_year = sum(1 for a in animes if str(a.get("creado_en") or "").startswith(y))
+            # «Mejor valorados» de ESE año: los que viste ese año, no los de siempre.
+            sc_y = [(a["nombre"], float(a["puntuacion"])) for a in relevantes if a.get("puntuacion")]
+            if sc_y:
+                top_scores = sorted(sc_y, key=lambda x: -x[1])[:5]
+    mes_top = max(range(12), key=lambda i: por_mes[i]) if any(por_mes) else None
+
     return {
         "year":            year if use_year else None,
+        "anos":            anos,
+        "animes_vistos":   len(nombres_activos) if use_year else None,
+        "nuevos":          nuevos_year,
+        "por_mes":         por_mes,
+        "mes_top":         mes_top,
+        "mas_vistos":      mas_vistos,
+        "dias_activos":    dias_activos,
+        "racha_max":       racha_max,
+        "primero":         primero,
+        "ultimo":          ultimo,
         "total_animes":    len(animes),
         "completados":     completados_year,
         "total_episodios": total_eps,
@@ -4910,12 +5028,8 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
             db.quitar_eps_recientes(nombre, nuevos)
     # Sync automático en background (Sheets + AniList)
     anime_dict = db.obtener_anime(nombre)
-    if anime_dict:
-        cfg = _get_sheets_config()
-        if cfg:
-            _sync_bg(sheets_sync.update_anime_row, anime_dict, cfg[0], cfg[1])
-        if anilist_sync.is_connected() and anime_dict.get("anilist_id"):
-            _sync_bg(anilist_sync.push_anime, anime_dict)
+    if anime_dict and anilist_sync.is_connected() and anime_dict.get("anilist_id"):
+        _sync_bg(anilist_sync.push_anime, anime_dict)
     return {"ok": True}
 
 @app.delete("/api/animes/{nombre:path}")
@@ -4925,9 +5039,6 @@ async def eliminar_anime(nombre: str):
     if not ok:
         raise HTTPException(404, msg)
     # Sync automático a Sheets en background
-    cfg = _get_sheets_config()
-    if cfg:
-        _sync_bg(sheets_sync.delete_anime_row, nombre, cfg[0], cfg[1])
     return {"ok": True, "copia": copia}
 
 

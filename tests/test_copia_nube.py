@@ -195,3 +195,11 @@ def test_onedrive_sin_sesion_va_detras_de_google_drive(cn, nube, tmp_path, monke
     servicios = [x["servicio"] for x in cn.detectar_nubes()]
     assert servicios == ["Google Drive", "OneDrive"]
     assert cn.carpeta_activa().parent.name == "My Drive"
+
+
+def test_mega_y_proton_drive(cn, tmp_path, monkeypatch):
+    monkeypatch.delenv("OneDrive")
+    (tmp_path / "home" / "MEGA").mkdir(parents=True)
+    (tmp_path / "home" / "Proton Drive").mkdir(parents=True)
+    servicios = [x["servicio"] for x in cn.detectar_nubes()]
+    assert "MEGA" in servicios and "Proton Drive" in servicios

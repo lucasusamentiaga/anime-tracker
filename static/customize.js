@@ -297,38 +297,85 @@
   };
   window.MIRARU_SIN_PORTADA = SIN_PORTADA;
 
-  // ── Botón flotante de apariencia ──────────────────────────────────────────
-  // Se auto-inyecta en las páginas que no tengan ya un botón propio
-  // (#btn-appearance), para que la personalización esté a un clic en todas.
-  function injectFab() {
-    if (document.getElementById("btn-appearance")) return;      // ya hay uno en la cabecera
-    if (document.getElementById("miraru-fab")) return;
-    var b = document.createElement("button");
-    b.id = "miraru-fab";
-    b.type = "button";
-    b.title = "Apariencia (tema, color, densidad)";
-    b.setAttribute("aria-label", "Apariencia");
-    b.textContent = "🎨";
-    b.style.cssText =
-      "position:fixed;bottom:70px;right:20px;z-index:60;width:40px;height:40px;border-radius:50%;" +
-      "border:1px solid var(--border);background:var(--card);color:var(--fg);font-size:17px;cursor:pointer;" +
-      "display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);" +
-      "transition:transform .2s cubic-bezier(.16,1,.3,1),box-shadow .2s;opacity:.9";
-    b.addEventListener("mouseenter", function () {
-      b.style.transform = "scale(1.12) rotate(-8deg)";
-      b.style.boxShadow = "var(--shadow-accent)";
-      b.style.opacity = "1";
+  // ── Barra flotante: apariencia + redes del autor ──────────────────────────
+  // Una sola barra en todas las páginas (antes cada plantilla llevaba sus
+  // propios botones de X e Instagram y la de inicio un 🎨 en la cabecera).
+  var REDES = [
+    {id: "gh", t: "GitHub de Miraru", url: "https://github.com/lucasusamentiaga/anime-tracker", bg: "#24292f",
+     svg: '<path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/>'},
+    {id: "ig", t: "@lucasuazz_ en Instagram", url: "https://www.instagram.com/lucasuazz_/",
+     bg: "linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",
+     svg: '<path d="M12 2.16c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.69 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.64.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85C2.38 3.92 3.9 2.38 7.15 2.23 8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 2.7.27.27 2.69.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.2 4.36 2.62 6.78 6.98 6.98 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c4.35-.2 6.78-2.62 6.98-6.98.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.2-4.35-2.62-6.78-6.98-6.98C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/>'},
+    {id: "x", t: "@T0ff3_x en X", url: "https://x.com/T0ff3_x", bg: "#000",
+     svg: '<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24H16.17l-4.71-6.23-5.4 6.23H2.75l7.73-8.84L1.25 2.25H8.08l4.25 5.62zm-1.16 17.52h1.83L7.08 4.13H5.12z"/>'}
+  ];
+
+  function injectDock() {
+    if (document.getElementById("miraru-dock")) return;
+    var css = document.createElement("style");
+    css.textContent =
+      "#miraru-dock{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;gap:8px;align-items:center}" +
+      "#miraru-dock .md-b{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;" +
+      "border:1px solid rgba(255,255,255,.08);cursor:pointer;text-decoration:none;opacity:.88;font-size:17px;" +
+      "box-shadow:0 2px 10px rgba(0,0,0,.35);transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .2s}" +
+      "#miraru-dock .md-b:hover,#miraru-dock .md-b:focus-visible{transform:translateY(-3px);opacity:1}" +
+      "#miraru-dock .md-b svg{width:17px;height:17px;fill:currentColor}" +
+      "#miraru-dock .md-ap{background:var(--card,#181426);color:var(--fg,#edecf4);border-color:var(--border,#2b2542)}" +
+      "@media (max-width:640px){#miraru-dock .md-red{display:none}#miraru-dock{right:14px;bottom:14px}}" +
+      "@media (prefers-reduced-motion:reduce){#miraru-dock .md-b{transition:none}}";
+    document.head.appendChild(css);
+    var d = document.createElement("div");
+    d.id = "miraru-dock";
+    var ap = document.createElement("button");
+    ap.type = "button";
+    ap.className = "md-b md-ap";
+    ap.id = "miraru-fab";
+    ap.title = "Apariencia (tema, color, densidad)";
+    ap.setAttribute("aria-label", "Apariencia");
+    ap.textContent = "🎨";
+    ap.addEventListener("click", open);
+    // v2.16: en la app, «?» repite el recorrido guiado cuando quieras.
+    if (location.pathname === "/app") {
+      var ay = document.createElement("button");
+      ay.type = "button";
+      ay.className = "md-b md-ap";
+      ay.id = "miraru-ayuda";
+      ay.title = "Recorrido por la app";
+      ay.setAttribute("aria-label", "Recorrido por la app");
+      ay.textContent = "?";
+      ay.style.fontWeight = "800";
+      ay.addEventListener("click", function () { if (window.miraruTour) window.miraruTour.empezar(true); });
+      d.appendChild(ay);
+    }
+    d.appendChild(ap);
+    REDES.forEach(function (r) {
+      var a = document.createElement("a");
+      a.className = "md-b md-red";
+      a.id = r.id + "-btn";
+      a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+      a.title = r.t; a.setAttribute("aria-label", r.t);
+      a.style.background = r.bg;
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + r.svg + "</svg>";
+      d.appendChild(a);
     });
-    b.addEventListener("mouseleave", function () {
-      b.style.transform = ""; b.style.boxShadow = "var(--shadow-md)"; b.style.opacity = ".9";
-    });
-    b.addEventListener("click", open);
-    document.body.appendChild(b);
+    document.body.appendChild(d);
   }
 
+  // ── Sin menú del botón derecho ────────────────────────────────────────────
+  // Miraru es una app: el menú del navegador («Inspeccionar», «Ver código»…)
+  // no pinta nada. Se deja donde sí hace falta: campos de texto (pegar) y
+  // cuando hay texto seleccionado (copiar).
+  document.addEventListener("contextmenu", function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest("input, textarea, [contenteditable=''], [contenteditable='true']")) return;
+    var sel = window.getSelection && window.getSelection();
+    if (sel && String(sel).trim()) return;
+    e.preventDefault();
+  });
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", injectFab);
+    document.addEventListener("DOMContentLoaded", injectDock);
   } else {
-    injectFab();
+    injectDock();
   }
 })();
