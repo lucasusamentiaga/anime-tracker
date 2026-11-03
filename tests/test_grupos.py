@@ -184,6 +184,18 @@ def test_api_buscar_franquicia_marca_lo_que_ya_tienes(cliente, db, monkeypatch):
     assert [e["en_lista"] for e in d["entradas"]] == [True, False]
 
 
+def test_saga_sin_principio_comun_se_llama_como_la_raiz(cliente, monkeypatch):
+    """v2.16: buscar «naruto» titulaba la saga «BORUTO» (el nombre más corto)."""
+    c, _ = cliente
+    base = {"estado_anime": "Finalizado", "imagen": "", "genero": [], "mes": 1, "dia": 1, "capitulos": 12}
+    ents = [dict(base, anilist_id=20, nombre="Naruto", formato="TV", anio=2002, raiz=True),
+            dict(base, anilist_id=1735, nombre="Naruto: Shippuuden", formato="TV", anio=2007, raiz=False),
+            dict(base, anilist_id=97938, nombre="BORUTO", formato="TV", anio=2017, raiz=False)]
+    monkeypatch.setattr(al, "franquicia", lambda q: ents)
+    d = c.post("/api/buscar/franquicia", json={"nombre": "naruto"}).json()
+    assert d["ok"] and d["nombre"] == "Naruto"
+
+
 def test_relaciones_se_guardan_y_agrupan(cliente, db):
     _, main = cliente
     _alta(db, "Fate/Zero", anilist_id=10087)

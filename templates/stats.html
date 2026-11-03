@@ -187,6 +187,8 @@ main{padding:20px;max-width:900px;margin:0 auto}
 .wrap-cifra .ico{font-size:20px}
 .wrap-cifra strong{display:block;font:700 28px/1.15 "Space Grotesk",Inter,sans-serif;color:var(--fg);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .wrap-cifra small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.wrap-aviso{margin:14px 0 0;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.55;color:var(--fg);
+  background:rgba(var(--accent-rgb,124,58,237),.10);border:1px solid rgba(var(--accent-rgb,124,58,237),.3)}
 .wrap-frase{margin:16px 2px 4px;font-size:14.5px;line-height:1.6;color:var(--muted);text-wrap:pretty}
 .wrap-frase b{color:var(--fg)}
 .wrap-bloque{margin-top:16px;padding:16px;border-radius:16px;background:var(--card2);border:1px solid var(--border);min-width:0}
@@ -945,11 +947,16 @@ function _pintarWrapped(fondo, d) {
     });
     cuerpo.append(cif);
 
+    if (d.pocos_datos) {
+      const av = _wEl('p', 'wrap-aviso');
+      av.textContent = 'Aquí cuenta lo que vas marcando con +1 (o desde AniList y AnimeAV1) desde que usas Miraru. Lo que importaste de golpe no tiene fecha, así que no entra: tu año se irá llenando según veas anime.';
+      cuerpo.append(av);
+    }
     // Frase resumen
     const frases = [];
     if (d.mes_top != null) frases.push('Tu mes más fuerte fue <b>' + _MESES_L[d.mes_top] + '</b>, con ' + d.por_mes[d.mes_top] + ' episodios.');
     if (d.racha_max > 1) frases.push('Tu mejor racha: <b>' + d.racha_max + ' días seguidos</b> viendo anime.');
-    if (d.dias_activos) frases.push('Viste anime <b>' + d.dias_activos + ' días</b> del año.');
+    if (d.dias_activos) frases.push('Viste anime <b>' + d.dias_activos + (d.dias_activos === 1 ? ' día' : ' días') + '</b> del año.');
     if (frases.length) {
       const p = _wEl('p', 'wrap-frase');
       // Solo números y nombres de meses fijos: seguro.

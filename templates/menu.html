@@ -412,7 +412,7 @@ async function loadContinue() {
       const total = parseInt(a.capitulos) || 0;
       const vistos = a.episodios_vistos || 0;
       const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
-      next.textContent = alDia ? '✓ Al día · ' + vistos + ' / ' + total
+      next.textContent = alDia ? '✓ Al día · ep ' + vistos
                                : 'Ep ' + (vistos + 1) + (total ? ' / ' + total : '');
       info.appendChild(name);
       info.appendChild(next);

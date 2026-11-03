@@ -3971,7 +3971,9 @@ async function cargarContinuar() {
       const total = parseInt(a.capitulos) || 0;
       const vistos = a.episodios_vistos || 0;
       const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
-      next.textContent = alDia ? `✓ ${_tr('Al día')} · ${vistos} / ${total}`
+      // Si ya llevas más de los que dice la ficha («4+» con 6 vistos: dato de emisión
+      // atrasado), no se enseña «6 / 4», que parece un error.
+      next.textContent = alDia ? `✓ ${_tr('Al día')} · ep ${vistos}`
                                : `Ep ${vistos + 1}` + (total ? ` / ${total}` : '');
       info.appendChild(name);
       info.appendChild(next);

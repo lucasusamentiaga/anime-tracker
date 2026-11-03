@@ -1764,6 +1764,10 @@ async def buscar_franquicia(req: BuscarRequest):
         raiz = next((e for e in entradas if e["raiz"]), entradas[0])
         series = [e for e in entradas if e["formato"] in ("TV", "TV_SHORT", "ONA")]
         nombre = fq_mod.nombre_comun([fq_mod._base_name(e["nombre"]) for e in (series or entradas)])
+        # Sin principio común («Naruto», «Naruto: Shippuuden», «Boruto»), el
+        # más corto salía de nombre («BORUTO» al buscar naruto): manda la raíz.
+        if not nombre or nombre.casefold() not in raiz["nombre"].casefold():
+            nombre = fq_mod._base_name(raiz["nombre"]) or raiz["nombre"]
         resp = {"ok": True, "nombre": nombre or raiz["nombre"], "fuente": fuente,
                 "entradas": entradas}
         _cache_set(ck, resp)
@@ -4525,10 +4529,17 @@ async def stats_wrapped(year: Optional[int] = None):
                 (str(year),)
             ).fetchall()}
             # Completados ESE año = filas de historial con estado completado/completed
+            # v2.16: sin contar importaciones ni sincronizaciones masivas
+            # (cientos de «completado» en el mismo minuto al importar de
+            # AniList no son cientos de animes terminados ese año).
             completados_year = int(conn.execute(
-                "SELECT COUNT(DISTINCT nombre) AS c FROM historial "
-                "WHERE strftime('%Y', fecha) = ? AND estado IN ('completado','completed')",
-                (str(year),)
+                "SELECT COUNT(DISTINCT h.nombre) AS c FROM historial h "
+                "WHERE strftime('%Y', h.fecha) = ? AND h.estado IN ('completado','completed') "
+                "AND substr(h.fecha, 1, 16) IN ("
+                "  SELECT substr(fecha, 1, 16) FROM historial "
+                "  WHERE strftime('%Y', fecha) = ? AND estado IN ('completado','completed') "
+                "  GROUP BY substr(fecha, 1, 16) HAVING COUNT(*) <= 5)",
+                (str(year), str(year))
             ).fetchone()["c"] or 0)
         # Top géneros: solo de animes con actividad ese año
         relevantes = [a for a in animes if a["nombre"] in nombres_activos]
@@ -4603,6 +4614,9 @@ async def stats_wrapped(year: Optional[int] = None):
         "year":            year if use_year else None,
         "anos":            anos,
         "animes_vistos":   len(nombres_activos) if use_year else None,
+        # Pocos episodios apuntados frente a una lista grande: casi todo vino de
+        # una importación (sin fecha). La ventana lo explica en vez de mentir.
+        "pocos_datos":     bool(use_year and total_eps < 30 and len(animes) >= 40),
         "nuevos":          nuevos_year,
         "por_mes":         por_mes,
         "mes_top":         mes_top,

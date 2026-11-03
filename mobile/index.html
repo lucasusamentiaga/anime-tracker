@@ -577,7 +577,7 @@ function renderLista() {
 
     const info=document.createElement('div');
     info.className='ac-info';
-    info.textContent=(a.fuente||'')+(cap>0?` · ${cap} ep`:'');
+    info.textContent=(a.fuente||'')+(cap>0?` · ${String(a.capitulos).trim()} ep`:'');
 
     const badge=document.createElement('span');
     badge.className='badge '+cls; badge.textContent=lbl;
@@ -591,7 +591,7 @@ function renderLista() {
       const pf=document.createElement('div'); pf.className='prog-fill';
       pf.style.width=pct+'%'; pb.appendChild(pf); body.appendChild(pb);
       const ec=document.createElement('div'); ec.className='ep-count';
-      ec.textContent=vis+'/'+cap+' ep ('+pct+'%)'; body.appendChild(ec);
+      ec.textContent=vis>cap ? vis+' ep vistos (en emisión)' : vis+'/'+cap+' ep ('+pct+'%)'; body.appendChild(ec);
     }
 
     card.appendChild(img); card.appendChild(body);
