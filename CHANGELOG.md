@@ -13,6 +13,8 @@
   temporada sin IMDb llevan la nota de su serie (Wikidata P179/P361). La página espera a que
   lleguen las notas y las pinta sin recargar.
 - **Avisos**: el número rojo son episodios nuevos sin ver (antes, de cuántos animes avisaba).
+- **Carpetas**: lo que AniList relaciona como resumen o versión alternativa (las películas de
+  Attack on Titan) va en la carpeta de su saga, también si esa carpeta es una tuya.
 - Calendario traducido (días, «Episodio», «HOY») y «1 título» en No Anime.
 
 ## v2.16.2 — Anime y manga, cada uno en su sitio

@@ -258,7 +258,40 @@ def agrupar_franquicias(animes: list[dict],
     componentes: dict[int, list[int]] = {}
     for i in automaticos:
         componentes.setdefault(uf.raiz(i), []).append(i)
+
+    # v2.16.3: lo automático que es de la misma saga que una caja TUYA va a esa
+    # caja (por relación de AniList o por nombre base). Antes las películas de
+    # «Shingeki no Kyojin» quedaban fuera de tu caja «Attack on Titan».
+    manual_por_id: dict[int, str] = {}
+    manual_por_base: dict[str, set] = {}
+    for a in animes:
+        g = (a.get("grupo") or "").strip()
+        if not g or g == GRUPO_SUELTO:
+            continue
+        t = "manga" if (a.get("tipo") or "anime") == "manga" else "anime"
+        if int(a.get("anilist_id") or 0):
+            manual_por_id[int(a["anilist_id"])] = g
+        k = t + ":" + " ".join(_palabras(_base_name(a.get("nombre", ""))))
+        manual_por_base.setdefault(k, set()).add(g)
+
+    def _caja_tuya(idxs: list[int]) -> str | None:
+        cands: set[str] = set()
+        for i in idxs:
+            k = _tipo(i) + ":" + " ".join(palabras[i])
+            if len(manual_por_base.get(k, ())) == 1:
+                cands |= manual_por_base[k]
+            aid = int(animes[i].get("anilist_id") or 0)
+            for rel in (relaciones or {}).get(aid) or (relaciones or {}).get(str(aid)) or []:
+                if int(rel) in manual_por_id:
+                    cands.add(manual_por_id[int(rel)])
+        return next(iter(cands)) if len(cands) == 1 else None
+
     for idxs in componentes.values():
+        caja = _caja_tuya(idxs) if manual_por_id or manual_por_base else None
+        if caja:
+            for i in idxs:
+                _meter(_clave(caja) or f"manual:{caja}", caja, True, animes[i])
+            continue
         nombre = nombre_comun(sorted({bases[i] for i in idxs}))
         for i in idxs:
             _meter(("manga:" if _tipo(idxs[0]) == "manga" else "") + (_clave(nombre) or f"auto:{idxs[0]}"),

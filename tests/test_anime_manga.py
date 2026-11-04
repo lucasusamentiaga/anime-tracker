@@ -116,3 +116,14 @@ def test_bajar_el_manga_de_anilist_no_toca_el_anime_del_mismo_nombre(db, monkeyp
     assert db.obtener_anime("Frieren")["episodios_vistos"] == 5      # el anime, intacto
     m = db.obtener_anime("Frieren (Manga)")
     assert m["tipo"] == "manga" and m["episodios_vistos"] == 120
+
+
+def test_lo_automatico_de_la_misma_saga_entra_en_tu_caja():
+    animes = [{"nombre": "Attack on Titan", "anilist_id": 1, "grupo": "Attack on Titan"},
+              {"nombre": "Shingeki no Kyojin OVA", "anilist_id": 2, "grupo": "Attack on Titan"},
+              {"nombre": "Shingeki no Kyojin Movie 1", "anilist_id": 3},
+              {"nombre": "Shingeki no Kyojin Movie: Final", "anilist_id": 0},
+              {"nombre": "Otra cosa", "anilist_id": 9}]
+    grupos = {g["nombre"]: [a["nombre"] for a in g["animes"]]
+              for g in fq.agrupar_franquicias(animes, {"3": [1]})}
+    assert len(grupos["Attack on Titan"]) == 4 and "Otra cosa" not in grupos["Attack on Titan"]

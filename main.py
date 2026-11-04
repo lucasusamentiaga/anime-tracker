@@ -748,6 +748,13 @@ def _start_enrich_unknown_eps():
             _sync_log.info("Enriquecidos %d animes con eps desconocidos", eps)
         if imgs:
             _sync_log.info("Reparadas %d portadas rotas/animeflv → AniList", imgs)
+        # v2.13: relaciones de AniList para agrupar sagas de títulos distintos.
+        try:
+            n = _actualizar_relaciones(db.listar_animes_slim())
+            if n:
+                _sync_log.info("Relaciones de AniList de %d animes", n)
+        except Exception as e:
+            _sync_log.warning("relaciones: %s", e)
         # Resolver poco a poco los anilist_id que faltan (notificaciones y
         # refrescos por lotes los necesitan). Tope por arranque para no
         # acaparar el cupo de AniList (30 req/min) que usa también la UI.
@@ -757,13 +764,6 @@ def _start_enrich_unknown_eps():
                 _sync_log.info("Resueltos %d anilist_id", r["resolved"])
         except Exception as e:
             _sync_log.warning("resolver IDs: %s", e)
-        # v2.13: relaciones de AniList para agrupar sagas de títulos distintos.
-        try:
-            n = _actualizar_relaciones(db.listar_animes_slim())
-            if n:
-                _sync_log.info("Relaciones de AniList de %d animes", n)
-        except Exception as e:
-            _sync_log.warning("relaciones: %s", e)
         # v2.16.1: el mismo anime con nombres de fuentes distintas
         # («Attack on Titan» y «Shingeki no Kyojin») se junta en uno.
         _fusionar_repetidos()
@@ -1836,7 +1836,13 @@ def _relaciones_guardadas() -> dict:
     """{anilist_id (str): [ids de la misma saga]} guardado en config."""
     global _relaciones_cache
     if _relaciones_cache is None:
+        from scrapers.anilist import RELACIONES_VERSION
         try:
+            if (db.get_config("anilist_relaciones_v") or "1") != RELACIONES_VERSION:
+                # Guardadas con otro conjunto de relaciones: se vuelven a pedir
+                # (el hilo de fondo lo hace al arrancar, en lotes de 50).
+                db.set_config("anilist_relaciones", "{}")
+                db.set_config("anilist_relaciones_v", RELACIONES_VERSION)
             _relaciones_cache = json.loads(db.get_config("anilist_relaciones") or "{}")
             if not isinstance(_relaciones_cache, dict):
                 _relaciones_cache = {}

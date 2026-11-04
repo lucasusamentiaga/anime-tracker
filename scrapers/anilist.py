@@ -321,7 +321,11 @@ class AniListScraper(BaseScraper):
 # ── Franquicias (v2.13) ──────────────────────────────────────────────────────
 # Relaciones que cuentan como "la misma saga". SPIN_OFF, ALTERNATIVE (remakes),
 # SUMMARY (resúmenes) y CHARACTER se quedan fuera: suelen ser otra cosa.
-RELACIONES_SAGA = {"SEQUEL", "PREQUEL", "PARENT", "SIDE_STORY"}
+# v2.16.3: también ALTERNATIVE / SUMMARY / COMPILATION. Las películas resumen
+# de Attack on Titan solo enlazan así con la serie, y al juntar «Shingeki no
+# Kyojin» con «Attack on Titan» se quedaban en una carpeta aparte.
+RELACIONES_SAGA = {"SEQUEL", "PREQUEL", "PARENT", "SIDE_STORY", "ALTERNATIVE", "SUMMARY", "COMPILATION"}
+RELACIONES_VERSION = "2"     # sube si cambia el conjunto: se vuelven a pedir
 FORMATOS_SAGA = {"TV", "TV_SHORT", "ONA", "MOVIE", "OVA", "SPECIAL"}
 _MAX_FRANQUICIA = 60
 
