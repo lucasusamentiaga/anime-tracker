@@ -29,6 +29,7 @@ URL_NOTAS = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 URL_WIKIDATA = "https://query.wikidata.org/sparql"
 UA = "Miraru (https://github.com/lucasusamentiaga/anime-tracker)"
 CADA = 7 * 86400
+FORMATO = 2          # 2 = también la nota de la serie para fichas de temporada
 _ARCHIVO = "imdb_notas.json"
 
 _mem: dict = {"datos": None, "ruta": None}
@@ -62,8 +63,16 @@ def nota(datos: dict, anilist_id=0, id_mal=0):
     return (n[0], n[1], t) if n else None
 
 
-def _sparql(prop: str, s) -> dict[str, str]:
-    r = s.get(URL_WIKIDATA, params={"query": f"SELECT ?id ?imdb WHERE {{ ?i wdt:{prop} ?id; wdt:P345 ?imdb }}"},
+def _sparql(prop: str, s, padre: bool = False) -> dict[str, str]:
+    """{id: tconst}. Con `padre`, para las fichas de temporada que no tienen
+    IMDb propio (en Wikidata «One-Punch Man temporada 1» no lo tiene): el de la
+    serie a la que pertenecen (P179 «parte de la serie» o P361 «parte de»)."""
+    if padre:
+        q = (f"SELECT ?id ?imdb WHERE {{ ?i wdt:{prop} ?id; (wdt:P179|wdt:P361) ?s . "
+             "?s wdt:P345 ?imdb . FILTER NOT EXISTS { ?i wdt:P345 [] } }")
+    else:
+        q = f"SELECT ?id ?imdb WHERE {{ ?i wdt:{prop} ?id; wdt:P345 ?imdb }}"
+    r = s.get(URL_WIKIDATA, params={"query": q},
               headers={"Accept": "text/csv", "User-Agent": UA}, timeout=90)
     r.raise_for_status()
     out = {}
@@ -80,6 +89,14 @@ def actualizar(app_dir: Path, s=None) -> dict:
     s = s or requests.Session()
     al = _sparql("P8729", s)
     mal = _sparql("P4086", s)
+    # v2.16.3: las temporadas sin ficha en IMDb llevan la de su serie (antes
+    # «One Punch Man», «Vinland Saga» o «Frieren» se quedaban sin nota).
+    for prop, d in (("P8729", al), ("P4086", mal)):
+        try:
+            for k, v in _sparql(prop, s, padre=True).items():
+                d.setdefault(k, v)
+        except Exception as e:  # noqa: BLE001 — sin esto, lo de antes sigue valiendo
+            log.warning("IMDb (series): %s", e)
     quiero = set(al.values()) | set(mal.values())
     notas: dict[str, list] = {}
     with s.get(URL_NOTAS, headers={"User-Agent": UA}, timeout=120, stream=True) as r:
@@ -94,7 +111,7 @@ def actualizar(app_dir: Path, s=None) -> dict:
                         notas[t] = [float(media), int(votos)]
                     except ValueError:
                         pass
-    datos = {"al": al, "mal": mal, "notas": notas, "ts": time.time()}
+    datos = {"al": al, "mal": mal, "notas": notas, "ts": time.time(), "v": FORMATO}
     tmp = _ruta(app_dir).with_suffix(".tmp")
     tmp.write_text(json.dumps(datos, separators=(",", ":")), encoding="utf-8")
     tmp.replace(_ruta(app_dir))
@@ -106,7 +123,8 @@ def actualizar(app_dir: Path, s=None) -> dict:
 
 def caducado(app_dir: Path) -> bool:
     d = cargar(app_dir)
-    return time.time() - float(d.get("ts") or 0) > CADA
+    # Un archivo de una versión anterior (sin las notas de serie) se rehace ya.
+    return d.get("v") != FORMATO or time.time() - float(d.get("ts") or 0) > CADA
 
 
 def notas_biblioteca(datos: dict, animes: list[dict], franquicias: list[dict] | None = None,

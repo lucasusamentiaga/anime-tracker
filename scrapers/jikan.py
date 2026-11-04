@@ -10,6 +10,32 @@ from .base import AnimeData, BaseScraper
 # Session reutilizable: pooling + reintentos con backoff (Jikan devuelve 429 a menudo)
 _session = net.make_session()
 
+# v2.16.3: si Jikan no responde (en algunas redes está bloqueado), cada búsqueda
+# esperaba ~32 s. Con 50 animes eran horas de hilo de fondo ocupado, y lo que
+# iba detrás (juntar repetidos) no llegaba nunca. Tras un fallo de conexión se
+# deja de llamar a Jikan durante 30 minutos.
+_PAUSA = 30 * 60
+_caida_hasta = 0.0
+
+
+def caida() -> bool:
+    import time
+    return time.time() < _caida_hasta
+
+
+def _get(params: dict):
+    global _caida_hasta
+    import time
+
+    import requests
+    if caida():
+        raise requests.ConnectionError("Jikan en pausa tras un fallo de conexión")
+    try:
+        return _session.get(f"{BASE}/anime", params=params, headers=HEADERS, timeout=(6, 15))
+    except (requests.ConnectionError, requests.Timeout):
+        _caida_hasta = time.time() + _PAUSA
+        raise
+
 BASE = "https://api.jikan.moe/v4"
 HEADERS = {"User-Agent": "AnimeTracker/2.6.2", "Accept-Encoding": "identity"}
 
@@ -29,12 +55,7 @@ class JikanV4Scraper(BaseScraper):
 
     def buscar(self, nombre: str) -> Optional[AnimeData]:
         try:
-            resp = _session.get(
-                f"{BASE}/anime",
-                params={"q": nombre, "limit": 5, "sfw": True},
-                headers=HEADERS,
-                timeout=15,
-            )
+            resp = _get({"q": nombre, "limit": 5, "sfw": True})
             resp.raise_for_status()
             items = adulto.filtrar(resp.json().get("data", []))
             if not items:
@@ -93,9 +114,7 @@ class JikanV4Scraper(BaseScraper):
         Hanayome") que el buscador de AniList no encuentra; con el ID se puede
         saltar a AniList vía `Media(idMal:)`."""
         try:
-            resp = _session.get(f"{BASE}/anime",
-                                params={"q": nombre, "limit": 1, "sfw": True},
-                                headers=HEADERS, timeout=15)
+            resp = _get({"q": nombre, "limit": 1, "sfw": True})
             resp.raise_for_status()
             items = adulto.filtrar(resp.json().get("data") or [])
             return int(items[0].get("mal_id") or 0) if items else 0

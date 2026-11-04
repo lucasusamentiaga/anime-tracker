@@ -72,3 +72,49 @@ def test_fusion_real_en_la_bd(db, monkeypatch):
     assert r["fusionados"] == 1
     a = db.obtener_anime("Attack on Titan")
     assert a and a["puntuacion"] == 9 and db.obtener_anime("Shingeki no Kyojin") is None
+
+
+# ── v2.16.3 ──────────────────────────────────────────────────────────────────
+
+def _media(i, fmt, eps, romaji, english=None, syn=()):
+    return {"id": i, "format": fmt, "episodes": eps,
+            "title": {"romaji": romaji, "english": english, "native": None}, "synonyms": list(syn)}
+
+
+def test_sin_id_se_junta_con_su_titulo_de_anilist():
+    animes = [{"nombre": "Chitose Is in the Ramune Bottle", "anilist_id": 5, "capitulos": "13", "fuente": "anilist"},
+              {"nombre": "Chitose-kun wa Ramune Bin no Naka", "anilist_id": 0, "capitulos": "13", "fuente": "animeflv"}]
+    info = {5: _media(5, "TV", 13, "Chitose-kun wa Ramune Bin no Naka", "Chitose Is in the Ramune Bottle")}
+    assert duplicados.planificar_sin_id(animes, info) == [
+        ("Chitose Is in the Ramune Bottle", ["Chitose-kun wa Ramune Bin no Naka"])]
+
+
+def test_sin_id_la_serie_no_acaba_dentro_de_su_pelicula():
+    # En AniList «Gotoubun no Hanayome» es sinónimo de la PELÍCULA.
+    animes = [{"nombre": "5-toubun no Hanayome Movie", "anilist_id": 9, "capitulos": "película"},
+              {"nombre": "Gotoubun no Hanayome", "anilist_id": 0, "capitulos": "?"}]
+    info = {9: _media(9, "MOVIE", 1, "Gotoubun no Hanayome Movie", syn=["Gotoubun no Hanayome"])}
+    assert duplicados.planificar_sin_id(animes, info) == []
+    animes[1]["capitulos"] = "12"
+    assert duplicados.planificar_sin_id(animes, info) == []
+
+
+def test_sin_id_ambiguo_no_se_toca():
+    animes = [{"nombre": "A", "anilist_id": 1, "capitulos": "12"}, {"nombre": "B", "anilist_id": 2, "capitulos": "12"},
+              {"nombre": "Baki", "anilist_id": 0, "capitulos": "12"}]
+    info = {1: _media(1, "TV", 12, "Baki"), 2: _media(2, "TV", 12, "X", syn=["Baki"])}
+    assert duplicados.planificar_sin_id(animes, info) == []
+
+
+def test_por_kitsu_junta_o_apunta_el_id(monkeypatch):
+    apuntados = {}
+    monkeypatch.setattr(duplicados.db, "actualizar_anime", lambda n, c: apuntados.update({n: c}) or (True, ""))
+    animes = [{"nombre": "AoT Special 1", "anilist_id": 146984, "capitulos": "1", "fuente": "anilist"},
+              {"nombre": "Attack on Titan: The Final Season - Final Chapters Part 1", "anilist_id": 0, "capitulos": "1",
+               "fuente": "kitsu"},
+              {"nombre": "Isekai Ojisan", "anilist_id": 0, "capitulos": "?", "fuente": "animeflv"}]
+    info = {146984: _media(146984, "SPECIAL", 1, "Shingeki no Kyojin: Kanketsu-hen Zenpen")}
+    ids = {"Attack on Titan: The Final Season - Final Chapters Part 1": 146984, "Isekai Ojisan": 141019}
+    plan = duplicados._por_kitsu(animes, info, lambda n: ids.get(n, 0))
+    assert plan == [("AoT Special 1", ["Attack on Titan: The Final Season - Final Chapters Part 1"])]
+    assert apuntados == {"Isekai Ojisan": {"anilist_id": 141019}}

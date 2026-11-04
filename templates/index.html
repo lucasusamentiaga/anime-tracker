@@ -137,7 +137,7 @@ body.sel-mode .ac.selected{opacity:1}
 .copia-aviso .acc{display:flex;gap:8px;flex-wrap:wrap}
 #btn-copia{position:relative}
 /* v2.16.1: nota de IMDb en la esquina de cada portada */
-.thumb .imdb{position:absolute;right:6px;bottom:6px;z-index:2;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:4px;
+.thumb .imdb{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:4px;
   background:#f5c518;color:#000;font:800 9.5px/1.2 Inter,system-ui,sans-serif;letter-spacing:.01em;pointer-events:none;
   box-shadow:0 1px 3px rgba(0,0,0,.45)}
 .thumb .imdb b{font-weight:800;font-size:10.5px}
@@ -548,10 +548,13 @@ body.sel-mode .ac .salir{display:none}
 .ac .thumb{position:relative;aspect-ratio:3/4}
 .ac .thumb img{width:100%;height:100%;object-fit:cover}
 .ac .overlay{
-  position:absolute;bottom:0;inset-x:0;
+  position:absolute;bottom:0;left:0;right:0;
   background:linear-gradient(transparent,rgba(0,0,0,.9));
   padding:8px 8px 6px;
+  /* v2.16.3: IMDb abajo a la izquierda, el estado a la derecha */
+  display:flex;align-items:flex-end;justify-content:space-between;gap:6px;
 }
+.ac .overlay .badge{margin-left:auto}
 .ac .del{
   position:absolute;top:6px;right:6px;opacity:0;transition:opacity .15s;
   background:rgba(127,29,29,.88);color:#fca5a5;border:none;border-radius:50%;
@@ -752,9 +755,9 @@ body.sel-mode .ac .salir{display:none}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
-<script src="/static/novedades.js?v=2.16.2" defer></script>
-<script src="/static/selects.js?v=2.16.2" defer></script>
-<script src="/static/tour.js?v=2.16.2" defer></script>
+<script src="/static/novedades.js?v=2.16.3" defer></script>
+<script src="/static/selects.js?v=2.16.3" defer></script>
+<script src="/static/tour.js?v=2.16.3" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -1684,7 +1687,9 @@ async function cargar(opts = {}) {
       fetch('/api/imdb/biblioteca').catch(() => null)
     ]);
     // v2.16.1: nota de IMDb de cada anime (esquina de la portada).
-    try { if (rI && rI.ok) IMDB = (await rI.json()).notas || {}; } catch (_) {}
+    try {
+      if (rI && rI.ok) { const dI = await rI.json(); IMDB = dI.notas || {}; _vigilarImdb(dI.actualizado || 0, dI.pendiente); }
+    } catch (_) {}
     // v2.12: con Miraru cerrado (p. ej. tras apagar el PC con la pestaña
     // abierta) el Service Worker responde con la última copia guardada o con
     // un 503. Antes esa respuesta vacía borraba las franquicias y todo salía
@@ -1724,6 +1729,26 @@ async function cargar(opts = {}) {
     console.error('cargar:', e);
     toast('Error cargando lista: ' + e.message, 'err');
   }
+}
+
+// v2.16.3: las notas se descargan en segundo plano al poco de arrancar Miraru
+// (y una vez por semana). Si la lista se abrió antes, salían sin nota hasta
+// recargar; ahora se mira cada minuto un rato y se pintan al llegar.
+function _vigilarImdb(ts, pendiente) {
+  window._imdbTs = ts;
+  if (window._imdbVigila || !pendiente) return;
+  let n = 0;
+  window._imdbVigila = setInterval(async () => {
+    if (++n > 15) { clearInterval(window._imdbVigila); return; }
+    try {
+      const d = await (await fetch('/api/imdb/biblioteca', {cache: 'no-store'})).json();
+      if ((d.actualizado || 0) !== window._imdbTs && Object.keys(d.notas || {}).length) {
+        IMDB = d.notas; window._imdbTs = d.actualizado;
+        clearInterval(window._imdbVigila);
+        render();
+      }
+    } catch (_) {}
+  }, 60000);
 }
 
 function poblarFiltroFuente() {
@@ -2073,8 +2098,9 @@ function render() {
         (isManga ? `<div style="position:absolute;top:5px;right:${a.notif_activa ? '52px' : '32px'};font-size:11px;opacity:0.9;z-index:2;background:rgba(0,0,0,.5);padding:1px 4px;border-radius:4px">📖</div>` : '') +
         (a.notif_activa ? `<div style="position:absolute;top:5px;right:32px;font-size:11px;opacity:0.9;z-index:2">🔔</div>` : '') +
         `<img data-src="${thumbSrc}" src="${_esc(BLANK_IMG)}" alt="" decoding="async">` +
-        `<div class="overlay"><span class="badge ${_esc(bc)}">${_esc(stLabel)}</span></div>` +
-        (IMDB[a.nombre] ? `<span class="imdb" title="Nota en IMDb">IMDb <b>${_esc(Number(IMDB[a.nombre]).toFixed(1))}</b></span>` : '') +
+        `<div class="overlay">` +
+          (IMDB[a.nombre] ? `<span class="imdb" title="Nota en IMDb">IMDb <b>${_esc(Number(IMDB[a.nombre]).toFixed(1))}</b></span>` : '') +
+          `<span class="badge ${_esc(bc)}">${_esc(stLabel)}</span></div>` +
         (capNum > 0 ? `<button class="plus1" title="+1 ${isManga ? 'cap' : 'ep'}">+1</button>` : '') +
         `<button class="del" title="${delTitle}">✕</button>` +
       `</div>` +
@@ -3589,17 +3615,23 @@ async function actualizarBotonAvisos() {
     btn.style.borderColor = '';
   }
   if (on) {
+    // v2.16.3: el número rojo son EPISODIOS NUEVOS que aún no has visto (antes
+    // contaba de cuántos animes avisa, y un «1» parecía un aviso sin leer).
     try {
-      const r = await fetch('/api/notif/activas');
-      const d = await r.json();
-      const count = (d.animes || []).length;
-      if (count > 0) {
+      const [ra, rc] = await Promise.all([fetch('/api/notif/activas'), fetch('/api/notif/check')]);
+      const vigila = ((await ra.json()).animes || []).length;
+      const pend = (await rc.json()).pendientes || [];
+      btn.title = _tr('Avisando de ' + vigila + (vigila === 1 ? ' anime' : ' animes')) +
+        (pend.length ? ' · ' + _tr('Episodios nuevos') + ': ' + pend.map(p => p.nombre + ' (ep ' + p.siguiente + ')').join(', ') : '');
+      if (pend.length) {
         const badge = document.createElement('span');
         badge.className = 'notif-badge';
-        badge.textContent = count > 99 ? '99+' : count;
+        badge.textContent = pend.length > 99 ? '99+' : pend.length;
         btn.appendChild(badge);
       }
     } catch(_) {}
+  } else {
+    btn.title = _tr('Notificaciones del navegador');
   }
 }
 

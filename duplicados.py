@@ -134,6 +134,57 @@ def planificar(animes: list[dict], info: dict[int, dict]) -> list[tuple[str, lis
     return plan
 
 
+def planificar_sin_id(animes: list[dict], info: dict[int, dict]) -> list[tuple[str, list[str]]]:
+    """v2.16.3: animes SIN anilist_id (llegaron de AnimeFLV o Kitsu y no se
+    pudieron identificar) que son otro de tu lista con ID: su nombre es,
+    exacto (con `clave`), uno de los títulos o sinónimos de AniList de ese
+    otro, y los episodios cuadran. Ej.: «Attack on Titan: The Final Season -
+    Final Chapters Part 1» (Kitsu) = «… THE FINAL CHAPTERS Special 1». Puro."""
+    por_clave: dict[tuple, set[int]] = {}       # títulos y sinónimos
+    por_titulo: dict[tuple, set[int]] = {}      # solo los títulos principales
+    con_id: dict[tuple, list[dict]] = {}
+    for a in animes:
+        aid = int(a.get("anilist_id") or 0)
+        if not aid or aid not in info:
+            continue
+        tipo = a.get("tipo") or "anime"
+        con_id.setdefault((aid, tipo), []).append(a)
+        m = info[aid]
+        t = m.get("title") or {}
+        for v in (t.get("romaji"), t.get("english"), t.get("native")):
+            k = clave(v or "")
+            if k:
+                por_titulo.setdefault((k, tipo), set()).add(aid)
+        for v in (t.get("romaji"), t.get("english"), t.get("native"), *(m.get("synonyms") or [])):
+            k = clave(v or "")
+            if k:
+                por_clave.setdefault((k, tipo), set()).add(aid)
+    plan = []
+    for a in animes:
+        if int(a.get("anilist_id") or 0):
+            continue
+        tipo = a.get("tipo") or "anime"
+        caps = str(a.get("capitulos") or "").strip().lower()
+        sin_eps = caps in ("", "?")
+        # Sin episodios conocidos no hay con qué confirmar: solo vale el título
+        # principal, no un sinónimo («Gotoubun no Hanayome» es sinónimo de su
+        # PELÍCULA en AniList y la serie acababa dentro de la película).
+        ids = (por_titulo if sin_eps else por_clave).get((clave(a["nombre"]), tipo)) or set()
+        if len(ids) != 1:
+            continue                              # ninguno, o ambiguo: no se toca
+        aid = next(iter(ids))
+        media = info[aid]
+        es_peli = "pel" in caps
+        if (media.get("format") == "MOVIE") != es_peli:
+            continue                              # serie ≠ película
+        if not _casan_episodios(a.get("capitulos"), media):
+            continue
+        destino = sorted(con_id[(aid, tipo)], key=_prioridad, reverse=True)[0]
+        if destino["nombre"] != a["nombre"]:
+            plan.append((destino["nombre"], [a["nombre"]]))
+    return plan
+
+
 def _fusionar(queda: str, otro: str) -> bool:
     ok, _ = db.fusionar_animes(queda, otro)
     if ok:
@@ -151,7 +202,34 @@ def _fusionar(queda: str, otro: str) -> bool:
     return ok
 
 
-def fusionar_repetidos(post) -> dict:
+def _por_kitsu(animes: list[dict], info: dict[int, dict], kitsu_id, limite: int = 40) -> list[tuple[str, list[str]]]:
+    """Los que siguen sin anilist_id: Kitsu sabe el ID de AniList de casi todo
+    (y casa nombres de AnimeFLV o Kitsu que el buscador de AniList no entiende).
+    Si ese ID ya está en tu lista (mismo tipo, episodios compatibles), es un
+    repetido; si no, se le apunta el ID para lo demás (avisos, notas…)."""
+    con_id: dict[int, list[dict]] = {}
+    for a in animes:
+        if int(a.get("anilist_id") or 0) and (a.get("tipo") or "anime") == "anime":
+            con_id.setdefault(int(a["anilist_id"]), []).append(a)
+    plan = []
+    candidatos = [a for a in animes if not int(a.get("anilist_id") or 0)
+                  and (a.get("tipo") or "anime") == "anime"]
+    for a in candidatos[:limite]:
+        aid = kitsu_id(a["nombre"])
+        if not aid:
+            continue
+        if aid in con_id and aid in info and _casan_episodios(a.get("capitulos"), info[aid]):
+            destino = sorted(con_id[aid], key=_prioridad, reverse=True)[0]
+            plan.append((destino["nombre"], [a["nombre"]]))
+        elif aid not in con_id:
+            try:
+                db.actualizar_anime(a["nombre"], {"anilist_id": aid})
+            except Exception:  # noqa: BLE001
+                pass
+    return plan
+
+
+def fusionar_repetidos(post, kitsu_id=None) -> dict:
     """Junta los repetidos (mismo nombre normalizado, o mismo anime en AniList
     confirmado). Devuelve {fusionados, grupos, detalle}. Nunca lanza."""
     hechos: list[str] = []
@@ -172,6 +250,22 @@ def fusionar_repetidos(post) -> dict:
         if repetidos:
             info = titulos_anilist(repetidos, post)
             for queda, fuera in planificar(animes, info):
+                for otro in fuera:
+                    if _fusionar(queda, otro):
+                        hechos.append(f"{otro} → {queda}")
+        # 3) Sin anilist_id pero con el nombre de otro de tu lista en AniList.
+        animes = db.listar_animes()
+        if any(not int(a.get("anilist_id") or 0) for a in animes):
+            info = titulos_anilist([int(a["anilist_id"]) for a in animes if a.get("anilist_id")], post)
+            for queda, fuera in planificar_sin_id(animes, info):
+                for otro in fuera:
+                    if _fusionar(queda, otro):
+                        hechos.append(f"{otro} → {queda}")
+            # 4) Los que aún no tienen ID: Kitsu guarda el de AniList.
+            if kitsu_id is None:
+                import fuentes_respaldo
+                kitsu_id = fuentes_respaldo.anilist_id_por_kitsu
+            for queda, fuera in _por_kitsu(db.listar_animes(), info, kitsu_id):
                 for otro in fuera:
                     if _fusionar(queda, otro):
                         hechos.append(f"{otro} → {queda}")

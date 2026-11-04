@@ -117,7 +117,7 @@ select:focus,.modal input:focus{border-color:var(--accent)}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
-<script src="/static/selects.js?v=2.16.2" defer></script>
+<script src="/static/selects.js?v=2.16.3" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -264,7 +264,7 @@ async function cargarStats(){
     const r = await fetch('/api/media/stats');
     const s = await r.json();
     document.getElementById('head-stats').innerHTML =
-      `<span class="pill">${s.total} títulos</span>`+
+      `<span class="pill">${s.total} ${s.total === 1 ? 'título' : 'títulos'}</span>`+
       `<span class="pill">🎬 ${s.peliculas}</span>`+
       `<span class="pill">📺 ${s.series}</span>`;
   }catch(e){}

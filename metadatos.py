@@ -87,7 +87,8 @@ def resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=No
     """Busca un título en AniList; si no lo encuentra y es anime, prueba vía
     MyAnimeList (Jikan → mal_id → AniList `idMal`). El buscador de AniList no
     reconoce muchos romaji de MAL/AnimeFLV ("Gotoubun no Hanayome", "Isekai
-    Ojisan"). Devuelve AnimeData o None. Hasta 4 AniList + 1 Jikan peticiones."""
+    Ojisan"). Último recurso: el enlace a AniList que guarda Kitsu.
+    Devuelve AnimeData o None."""
     from scrapers import SCRAPERS
     anilist = anilist or SCRAPERS.get("anilist")
     if not anilist:
@@ -102,4 +103,13 @@ def resolver_en_anilist(nombre: str, tipo: str = "anime", anilist=None, jikan=No
             or not hasattr(anilist, "buscar_por_mal"):
         return None
     mal_id = jikan.buscar_mal_id(nombre)
-    return anilist.buscar_por_mal(mal_id) if mal_id else None
+    r = anilist.buscar_por_mal(mal_id) if mal_id else None
+    if r is not None:
+        return r
+    # v2.16.3: nombres de Kitsu que AniList no encuentra → el enlace de Kitsu.
+    if hasattr(anilist, "buscar_por_ids"):
+        import fuentes_respaldo
+        aid = fuentes_respaldo.anilist_id_por_kitsu(nombre)
+        if aid:
+            return anilist.buscar_por_ids([aid]).get(aid)
+    return None

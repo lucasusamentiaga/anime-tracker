@@ -685,15 +685,32 @@ def _enriquecer_desde_anilist(animes: list[dict], anilist,
                     _aplicar(a, r, ne, ni)
             sleep(ANILIST_MIN_INTERVAL)
 
-    for a, ne, ni in (p for p in pend if not p[0].get("anilist_id")):
+    # v2.16.3: los que no se pudieron identificar en los últimos 7 días no se
+    # vuelven a buscar en cada arranque (eran ~50 búsquedas lentas cada vez).
+    try:
+        fallos = json.loads(db.get_config("resolver_fallos") or "{}")
+        fallos = fallos if isinstance(fallos, dict) else {}
+    except ValueError:
+        fallos = {}
+    ahora = _time.time()
+    sin_id = [p for p in pend if not p[0].get("anilist_id")
+              and ahora - float(fallos.get(p[0]["nombre"], 0) or 0) > 7 * 86400]
+    for a, ne, ni in sin_id:
         try:
             r = _resolver_en_anilist(a["nombre"], a.get("tipo") or "anime", anilist=anilist)
             if r:
                 _aplicar(a, r, ne, ni)
+            else:
+                fallos[a["nombre"]] = ahora
         except Exception:
             pass
         # hasta una petición por variante del título + la de idMal
         sleep(ANILIST_MIN_INTERVAL * (len(candidatos_busqueda(a["nombre"])) + 1))
+    if sin_id:
+        try:
+            db.set_config("resolver_fallos", json.dumps(fallos, ensure_ascii=False))
+        except Exception:  # noqa: BLE001
+            pass
     return eps_fixed, img_fixed
 
 
@@ -705,6 +722,17 @@ def _start_enrich_unknown_eps():
     if _enrich_started or _sin_hilos_de_fondo():
         return
     _enrich_started = True
+
+    def _repetidos():
+        # v2.16.3: en su propio hilo y pronto. Antes iba al final del
+        # enriquecido, que con Jikan bloqueado tardaba horas: nunca llegaba.
+        _time.sleep(20)
+        try:
+            _fusionar_repetidos()
+        except Exception as e:  # noqa: BLE001
+            _sync_log.warning("repetidos: %s", e)
+
+    threading.Thread(target=_repetidos, daemon=True, name="repetidos").start()
 
     def _run():
         _time.sleep(60)  # espera para no competir con el arranque
@@ -743,13 +771,22 @@ def _start_enrich_unknown_eps():
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
 
 
+_fusion_lock = threading.Lock()
+
+
 def _fusionar_repetidos() -> dict:
     """Junta los animes repetidos (ver duplicados.py). Antes, una copia de
-    seguridad por si acaso. Se puede llamar a mano desde /api/duplicados."""
+    seguridad por si acaso. Se puede llamar a mano desde /api/duplicados.
+    Con candado: lo llaman el arranque, el enriquecido y la extensión."""
+    with _fusion_lock:
+        return _fusionar_repetidos_sin_candado()
+
+
+def _fusionar_repetidos_sin_candado() -> dict:
     import duplicados
     from scrapers.anilist import _post as _anilist_post
     try:
-        if not db.buscar_duplicados() and not _hay_ids_repetidos():
+        if not db.buscar_duplicados() and not _hay_ids_repetidos() and not _hay_sin_id():
             return {"fusionados": 0, "detalle": []}
         _crear_backup_disco()
     except Exception as e:  # noqa: BLE001
@@ -759,6 +796,12 @@ def _fusionar_repetidos() -> dict:
     if r.get("fusionados"):
         _sync_log.info("Fusionados %d animes repetidos", r["fusionados"])
     return r
+
+
+def _hay_sin_id() -> bool:
+    with db.get_conn() as conn:
+        return bool(conn.execute(
+            "SELECT 1 FROM animes WHERE COALESCE(anilist_id,0)=0 LIMIT 1").fetchone())
 
 
 def _hay_ids_repetidos() -> bool:
@@ -1725,15 +1768,19 @@ async def imdb_biblioteca():
     llevan la de su saga). Se recalcula solo si la lista o las notas cambian."""
     import imdb
     datos = imdb.cargar(APP_DIR)
-    clave = (db._cache_gen, datos.get("ts"), _relaciones_version)
+    txt_mal = db.get_config("anilist_idmal") or "{}"
+    clave = (db._cache_gen, datos.get("ts"), _relaciones_version, len(txt_mal))
     if _imdb_memo["clave"] != clave:
         try:
-            id_mal = json.loads(db.get_config("anilist_idmal") or "{}")
+            id_mal = json.loads(txt_mal)
         except ValueError:
             id_mal = {}
         fq = (await listar_franquicias())["franquicias"]
         _imdb_memo.update(clave=clave, notas=imdb.notas_biblioteca(datos, db.listar_animes_slim(), fq, id_mal))
-    return {"notas": _imdb_memo["notas"], "actualizado": datos.get("ts") or 0}
+    # pendiente: toca descargarlas (al arrancar, o el formato cambió); la
+    # página vuelve a preguntar hasta que lleguen.
+    return {"notas": _imdb_memo["notas"], "actualizado": datos.get("ts") or 0,
+            "pendiente": imdb.caducado(APP_DIR)}
 
 
 _imdb_started = False
@@ -1749,7 +1796,7 @@ def _start_imdb_once():
 
     def _run():
         import imdb
-        _time.sleep(90)
+        _time.sleep(15 if imdb.caducado(APP_DIR) else 90)
         try:
             if imdb.caducado(APP_DIR):
                 imdb.actualizar(APP_DIR)
@@ -3739,6 +3786,9 @@ async def continuar_viendo():
     return {"animes": out}
 
 
+_notif_cache: dict = {}
+
+
 @app.get("/api/notif/check")
 async def notif_check():
     """v2: devuelve solo animes con notif_activa cuyo último episodio emitido
@@ -3747,8 +3797,15 @@ async def notif_check():
     activos = db.listar_con_notif()
     if not activos:
         return {"pendientes": []}
+    # v2.16.3: el botón Avisos también lo pregunta al abrir la app; lo que
+    # dice AniList se guarda 10 min (los episodios vistos se miran siempre).
     loop = asyncio.get_running_loop()
-    info = await loop.run_in_executor(executor, _fetch_ultimos_episodios, activos)
+    ck = "notif_eps:" + "|".join(sorted(a["nombre"] for a in activos))
+    info = _notif_cache.get(ck) if _notif_cache.get(ck + ":t", 0) > _time.time() - 600 else None
+    if info is None:
+        info = await loop.run_in_executor(executor, _fetch_ultimos_episodios, activos)
+        _notif_cache.clear()
+        _notif_cache[ck], _notif_cache[ck + ":t"] = info, _time.time()
 
     pendientes = []
     now_ts = _time.time()
@@ -4000,6 +4057,9 @@ def _fetch_score_anilist(nombre: str) -> dict:
 
 def _fetch_score_mal(nombre: str) -> dict:
     """MAL vía Jikan v4: score ya viene en escala 1-10."""
+    from scrapers import jikan as _jk
+    if _jk.caida():
+        return {"score": None, "score_raw": None, "url": ""}
     try:
         from scrapers.net import make_session
         s = make_session(total=1, backoff=0.3)

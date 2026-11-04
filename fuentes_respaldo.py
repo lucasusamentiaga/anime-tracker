@@ -244,3 +244,44 @@ def ficha_por_titulo(titulo: str, timeout: int = 15) -> dict:
         "link":              f"https://kitsu.app/anime/{attrs.get('slug', '')}",
         "estado_anime":      estado,
     }
+
+
+# ── v2.16.3: identificar en AniList lo que llegó con nombre de Kitsu ─────────
+def _clave(t: str) -> str:
+    import unicodedata
+    n = unicodedata.normalize("NFKC", t or "").casefold()
+    return "".join(ch for ch in n if ch.isalnum())
+
+
+def anilist_id_por_kitsu(nombre: str, s=None) -> int:
+    """ID de AniList de un anime buscándolo en Kitsu, que guarda el enlace
+    a AniList («mappings»). Sirve para nombres que el buscador de AniList no
+    reconoce («Attack on Titan: The Final Season - Final Chapters Part 1»).
+    Solo si uno de los títulos de Kitsu es EXACTAMENTE el nombre (sin contar
+    mayúsculas ni signos). 0 si no hay o falla. Nunca lanza."""
+    k = _clave(nombre)
+    if not k:
+        return 0
+    try:
+        s = s or make_session(total=1, backoff=0.3)
+        r = s.get(f"{KITSU}/anime", headers=_HEADERS, timeout=(5, 12), params={
+            "filter[text]": nombre, "page[limit]": 5, "include": "mappings",
+            "fields[anime]": "canonicalTitle,titles,mappings",
+            "fields[mappings]": "externalSite,externalId"})
+        r.raise_for_status()
+        d = r.json()
+    except Exception:  # noqa: BLE001
+        return 0
+    mapeos = {i["id"]: i.get("attributes") or {} for i in d.get("included") or []
+              if i.get("type") == "mappings"}
+    for a in d.get("data") or []:
+        at = a.get("attributes") or {}
+        titulos = [at.get("canonicalTitle")] + list((at.get("titles") or {}).values())
+        if k not in {_clave(t) for t in titulos if t}:
+            continue
+        for m in ((a.get("relationships") or {}).get("mappings") or {}).get("data") or []:
+            mp = mapeos.get(m.get("id")) or {}
+            if mp.get("externalSite") == "anilist/anime" and str(mp.get("externalId", "")).isdigit():
+                return int(mp["externalId"])
+        return 0
+    return 0

@@ -27,4 +27,4 @@ def test_en_la_app_real_si_arrancan(monkeypatch):
     with patch.object(m.threading, "Thread") as hilo:
         m._start_auto_backup_once()
         m._start_enrich_unknown_eps()
-    assert hilo.call_count == 2
+    assert hilo.call_count == 3     # copia + repetidos + enriquecido

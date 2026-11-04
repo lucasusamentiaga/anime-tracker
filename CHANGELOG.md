@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.16.3 — Menos repetidos, IMDb en casi todo y avisos claros
+
+- **Repetidos**: se juntan nada más arrancar (antes esperaban al final del enriquecido, que
+  con Jikan bloqueado tardaba horas y no llegaba). Ahora también los que no tenían anilist_id:
+  si su nombre es un título de AniList de otro de tu lista, o si Kitsu sabe su ID de AniList
+  (p. ej. «… Final Chapters Part 1» = «… THE FINAL CHAPTERS Special 1»). Una serie nunca acaba
+  dentro de su película. Kitsu también pone ID a los que no lo tenían.
+- **Jikan**: si no responde, se deja de llamar 30 min (antes ~32 s por anime en cada arranque)
+  y los animes que no se pudieron identificar no se vuelven a buscar en 7 días.
+- **IMDb abajo a la izquierda** (el estado, a la derecha) y en ~85 % de la lista: las fichas de
+  temporada sin IMDb llevan la nota de su serie (Wikidata P179/P361). La página espera a que
+  lleguen las notas y las pinta sin recargar.
+- **Avisos**: el número rojo son episodios nuevos sin ver (antes, de cuántos animes avisaba).
+- Calendario traducido (días, «Episodio», «HOY») y «1 título» en No Anime.
+
 ## v2.16.2 — Anime y manga, cada uno en su sitio
 
 - **Pestañas Anime / Manga / Todo** encima de la lista (solo si tienes manga). Se empieza en

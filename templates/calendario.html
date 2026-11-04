@@ -110,7 +110,9 @@ async function cargar() {
       const dt = new Date(dayKey + 'T12:00:00');
       const header = document.createElement('div');
       header.className = 'day-header';
-      header.textContent = DIAS_ES[dt.getDay()] + ' ' + dt.getDate() + '/' + (dt.getMonth()+1);
+      // Día y fecha en nodos separados: el traductor reconoce «Domingo» suelto.
+      const dn = document.createElement('span'); dn.textContent = DIAS_ES[dt.getDay()];
+      header.append(dn, ' ' + dt.getDate() + '/' + (dt.getMonth()+1));
       if (dayKey === hoy) {
         const badge = document.createElement('span');
         badge.className = 'today';

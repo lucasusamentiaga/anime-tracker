@@ -33,3 +33,16 @@ def test_cargar_sin_archivo(tmp_path):
     imdb._mem.update(datos=None, ruta=None)
     d = imdb.cargar(tmp_path)
     assert d["al"] == {} and d["notas"] == {}
+
+
+def test_archivo_de_formato_viejo_se_rehace(tmp_path):
+    import json
+    import time
+    (tmp_path / "imdb_notas.json").write_text(json.dumps({"al": {}, "mal": {}, "notas": {}, "ts": time.time()}))
+    imdb._mem.update(datos=None, ruta=None)
+    assert imdb.caducado(tmp_path)
+
+
+def test_manga_sin_nota_de_imdb():
+    animes = [{"nombre": "M", "anilist_id": 1, "tipo": "manga", "capitulos": "100"}]
+    assert imdb.notas_biblioteca(DATOS, animes) == {}

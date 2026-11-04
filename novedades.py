@@ -11,6 +11,18 @@ from __future__ import annotations
 # accion (opcional): {"texto": "...", "url": "/app#..."} → botón dentro del punto.
 NOVEDADES: list[dict] = [
     {
+        "version": "2.16.3",
+        "titulo": "Menos repetidos y más notas de IMDb",
+        "puntos": [
+            {"icono": "🧹", "titulo": "Repetidos, también sin identificar",
+             "texto": "Miraru junta ahora los animes repetidos aunque uno no estuviera identificado, y lo hace nada más arrancar."},
+            {"icono": "⭐", "titulo": "IMDb en casi todo",
+             "texto": "La nota sale abajo a la izquierda de cada portada y ahora también en temporadas sin ficha propia (llevan la de su serie)."},
+            {"icono": "🔔", "titulo": "Avisos más claros",
+             "texto": "El número rojo del botón Avisos son episodios nuevos que aún no has visto."},
+        ],
+    },
+    {
         "version": "2.16.2",
         "titulo": "Anime y manga, cada uno en su sitio",
         "puntos": [
