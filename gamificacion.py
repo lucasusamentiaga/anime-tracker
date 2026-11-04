@@ -63,6 +63,44 @@ def umbral(nivel: int) -> int:
     return 50 * nivel * (nivel - 1)   # 0,100,300,600,1000,1500,...
 
 
+# Título según el nivel: lo que se lee de un vistazo junto al número.
+TITULOS = [(40, "Leyenda"), (25, "Sensei"), (15, "Veterano"), (10, "Otaku"),
+           (5, "Aficionado"), (1, "Novato")]
+
+
+def titulo_nivel(nivel: int) -> str:
+    for desde, nombre in TITULOS:
+        if nivel >= desde:
+            return nombre
+    return "Novato"
+
+
+def siguiente_titulo(nivel: int) -> tuple[str, int] | None:
+    """(título, nivel en que se alcanza) del próximo título, o None si ya es el último."""
+    for desde, nombre in reversed(TITULOS):
+        if desde > nivel:
+            return nombre, desde
+    return None
+
+
+def fuentes_xp(stats: dict, checkins: int, logros_desbloqueados: int) -> list[dict]:
+    """De dónde sale tu XP, para explicarlo (misma cuenta que calcular_xp)."""
+    filas = [("episodio", "Episodios vistos", stats.get("episodios")),
+             ("completado", "Títulos completados", stats.get("completados")),
+             ("titulo", "Títulos en tu biblioteca", stats.get("total")),
+             ("checkin", "Días que abres Miraru", checkins),
+             ("logro", "Logros desbloqueados", logros_desbloqueados)]
+    out = []
+    for clave, label, n in filas:
+        try:
+            n = int(n or 0)
+        except (TypeError, ValueError):
+            n = 0
+        out.append({"clave": clave, "label": label, "cantidad": n,
+                    "por_unidad": XP[clave], "xp": n * XP[clave]})
+    return out
+
+
 def progreso(xp: int) -> dict:
     """Nivel actual y progreso hacia el siguiente a partir de la XP total."""
     xp = max(0, int(xp or 0))
@@ -79,6 +117,7 @@ def progreso(xp: int) -> dict:
         "xp_siguiente":  siguiente,
         "falta":         max(0, siguiente - xp),
         "progreso":      round((xp - base) / rango, 3) if rango > 0 else 1.0,
+        "titulo":        titulo_nivel(nivel),
     }
 
 

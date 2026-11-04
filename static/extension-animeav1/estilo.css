@@ -164,3 +164,12 @@ p{text-wrap:pretty}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}
   .m-ojo::after,.paso.mal .num::after{display:none}
 }
+
+/* v1.4: Mis Listas */
+.listas{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:10px 0 0;border-radius:12px;
+  background:var(--card);border:1px solid var(--borde)}
+.listas .ico{font-size:18px}
+.listas .t{flex:1;min-width:0}
+.listas .t b{display:block;font-size:13px}
+.listas .t small{display:block;font-size:12px;color:var(--gris);line-height:1.4}
+.btn.mini{padding:6px 10px;font-size:12px;white-space:nowrap}

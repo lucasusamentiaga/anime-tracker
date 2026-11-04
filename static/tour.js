@@ -20,7 +20,7 @@
     {sel: '#continuar-wrap', ico: '▶️', tit: 'Continuar viendo',
      txt: 'Lo que tienes a medias, con el siguiente episodio a un clic.'},
     {sel: '.header-nav', ico: '🧭', tit: 'Todo lo demás',
-     txt: 'Estadísticas (y tu «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y tus películas y series.'},
+     txt: 'Estadísticas (y tu «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y «No Anime», para tus películas y series.'},
     {sel: '#btn-copia', ico: '☁️', tit: 'Tu lista, a salvo',
      txt: 'Miraru guarda una copia en tu OneDrive, Google Drive o Dropbox. Si formateas el PC, la recuperas con un clic.'},
     {sel: ['#btn-anilist', '#btn-extension'], ico: '🔗', tit: 'Trae tu lista y no apuntes a mano',

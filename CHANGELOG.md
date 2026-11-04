@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.16.1 — Sin repetidos, nota de IMDb y logros renovados
+
+- **Adiós a los animes repetidos**: si el mismo anime entró varias veces con nombres distintos
+  (AniList, AnimeFLV, Kitsu…), Miraru los junta en uno, conservando grupo, nota, puntuación y
+  episodios. Solo junta lo que AniList confirma (títulos y episodios), hace copia antes, y ya no
+  deja añadir un anime que ya tienes.
+- **Nota de IMDb** en una esquina de cada anime, en la lista y en la búsqueda (datos públicos de
+  IMDb enlazados con Wikidata, guardados en local y renovados cada semana). Las temporadas sin
+  ficha propia llevan la de su saga.
+- **Extensión de AnimeAV1 1.4**: también trae lo que tienes en «Mis Listas», cada 3 horas o con
+  «Traer ahora», sin duplicar.
+- **Estadísticas**: «Completados», «Viendo ahora» y «Episodios este año» se pueden pulsar y
+  enseñan la lista. Las cifras de anime ya no mezclan manga.
+- **Niveles y logros renovados**: título por nivel (Novato → Leyenda), de dónde sale tu XP, el
+  camino ninja como línea de rangos, logros por categorías con colores de bronce/plata/oro y
+  cuánto te falta para cada uno. Tres logros nuevos.
+- **«Mi año en anime»**: la imagen para compartir lleva las portadas de lo que más viste, tu
+  anime del año y tu nivel.
+- **Anime y manga, mejor separados**: las carpetas de saga ya no mezclan el manga con el anime,
+  la actividad diaria y la racha solo cuentan episodios, y el manga dice «Cap» en vez de «Ep».
+- **Actividad por día**: etiquetas de días correctas, fechas en tu idioma y se adapta al ancho.
+- **Avisos**: avisan también de los animes que estás viendo en emisión aunque no activaras la
+  campanita.
+- «Pelis» pasa a llamarse **«No Anime»** en todos los idiomas.
+- **Más rápida**: las carpetas cerradas no crean sus tarjetas hasta abrirlas (la lista pinta
+  unas 4 veces menos elementos) y los menús desplegables usan menos oyentes. Fuera código viejo.
+
 ## v2.16.0 — Recorrido guiado, estadísticas renovadas y Miraru en el navegador del móvil
 
 - **Recorrido guiado** para quien abre Miraru por primera vez: un foco va iluminando cada parte

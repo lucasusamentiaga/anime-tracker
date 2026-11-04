@@ -67,6 +67,9 @@ async def gamificacion_estado():
     checkins = int(cfg.get("open_checkins_total") or 0)
     xp = gamificacion.calcular_xp(stats, checkins, logros["desbloqueados"])
     prog = gamificacion.progreso(xp)
+    sig = gamificacion.siguiente_titulo(prog["nivel"])
+    rangos = [{"nombre": l["nombre"], "emblema": l["emblema"], "horas": l["meta"],
+               "unlocked": l["unlocked"]} for l in logros["logros"] if l["cat"] == "rango"]
     return {
         "nivel":           prog["nivel"],
         "xp":              prog,
@@ -74,7 +77,10 @@ async def gamificacion_estado():
                             "max": int(cfg.get("open_streak_max") or 0)},
         "racha_episodios": db.ep_log_streak(),
         "logros":          logros,
-        "rango_ninja":     achievements.rango_ninja(stats.get("horas", 0)),
+        "rango_ninja":     {**achievements.rango_ninja(stats.get("horas", 0)), "escala": rangos},
+        "titulo":          prog["titulo"],
+        "siguiente_titulo": {"nombre": sig[0], "nivel": sig[1]} if sig else None,
+        "fuentes_xp":      gamificacion.fuentes_xp(stats, checkins, logros["desbloqueados"]),
     }
 
 

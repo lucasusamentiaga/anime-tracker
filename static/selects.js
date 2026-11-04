@@ -110,12 +110,13 @@
     if (sel.title) btn.title = sel.title;
     btn.innerHTML = '<span class="msel-txt"></span>' + CHEV;
     caja.appendChild(btn);
+    var txt = btn.firstChild;
 
     function pintar() {
       var op = sel.options[sel.selectedIndex];
       var t = op ? op.textContent.trim() : '';
       if (op && !partir(t)[0] && icono(sel, op)) t = icono(sel, op) + ' ' + t;
-      btn.querySelector('.msel-txt').textContent = t;
+      if (txt.textContent !== t) txt.textContent = t;
       btn.setAttribute('aria-label', (etiqueta ? etiqueta + ': ' : '') + t);
       btn.disabled = !!sel.disabled;
       // Filtro aplicado (no es la primera opción "todos") → se resalta.
@@ -176,11 +177,19 @@
       d.append(ico, tx);
       d.insertAdjacentHTML('beforeend', OK);
       d.__i = i;
-      d.addEventListener('mousedown', function (e) { e.preventDefault(); });
-      d.addEventListener('click', function () { if (!o.disabled) elegir(i); });
-      d.addEventListener('mousemove', function () { enfocar(ops.indexOf(d), false); });
+      d.__k = ops.length;
       pan.appendChild(d);
       ops.push(d);
+    });
+    // Un solo oyente por panel (antes, tres por opción).
+    pan.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    pan.addEventListener('click', function (e) {
+      var d = e.target.closest('.msel-op');
+      if (d && d.getAttribute('aria-disabled') !== 'true') elegir(d.__i);
+    });
+    pan.addEventListener('mousemove', function (e) {
+      var d = e.target.closest('.msel-op');
+      if (d && abierto && abierto.foco !== d.__k) enfocar(d.__k, false);
     });
     document.body.appendChild(pan);
     btn.setAttribute('aria-expanded', 'true');
@@ -263,9 +272,13 @@
     if (abierto && !abierto.pan.contains(e.target) && !abierto.btn.contains(e.target)) cerrar(false);
   }, true);
   window.addEventListener('resize', function () { cerrar(false); });
+  // Recolocar al hacer scroll, como mucho una vez por fotograma.
+  var pendiente = false;
   window.addEventListener('scroll', function (e) {
-    if (abierto && !abierto.pan.contains(e.target)) colocar();
-  }, true);
+    if (!abierto || pendiente || abierto.pan.contains(e.target)) return;
+    pendiente = true;
+    requestAnimationFrame(function () { pendiente = false; colocar(); });
+  }, {capture: true, passive: true});
 
   function arrancar() {
     // v2.16: todos los desplegables (barra de filtros, ventanas, idioma…),

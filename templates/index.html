@@ -136,23 +136,21 @@ body.sel-mode .ac.selected{opacity:1}
 .copia-aviso p{margin:0;color:var(--muted);font-size:13px}
 .copia-aviso .acc{display:flex;gap:8px;flex-wrap:wrap}
 #btn-copia{position:relative}
+/* v2.16.1: nota de IMDb en la esquina de cada portada */
+.thumb .imdb{position:absolute;right:6px;bottom:6px;z-index:2;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:4px;
+  background:#f5c518;color:#000;font:800 9.5px/1.2 Inter,system-ui,sans-serif;letter-spacing:.01em;pointer-events:none;
+  box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.thumb .imdb b{font-weight:800;font-size:10.5px}
+.sp-imdb{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;background:#f5c518;color:#000;font:800 10px/1.4 Inter,sans-serif;vertical-align:1px}
 .nov-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px}
 .upd-lista{margin:6px 0 12px;padding-left:20px;font-size:13px;line-height:1.7}
 #btn-copia.copia-mal::after{content:'';position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 2px var(--bg)}
-.av1-ext{border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08);border-radius:12px;padding:12px 14px}
-.av1-ext-cab{font-size:14px;margin-bottom:6px}
-.av1-ext-tag{font-size:10.5px;background:var(--accent);color:#fff;border-radius:99px;padding:1px 8px;margin-left:4px;vertical-align:1px}
-.av1-ext-pasos{font-size:12.5px;margin:0 0 10px 18px;padding:0;line-height:1.9}
-.av1-ext-pasos .btn{display:inline-flex;vertical-align:middle;margin:1px 0;text-decoration:none}
-.av1-ext-pasos a.btn-p{color:#fff}
-.av1-ext-pasos .btn-g{border:1px solid var(--border)!important;background:var(--card2)!important;color:var(--fg)!important}
 /* .btn-p / .btn-g se usaban en la ventana de AniList y AnimeAV1 pero nunca se
    definieron aquí (solo en otras páginas): sus botones salían sin estilo. */
 .btn.btn-p{background:var(--accent);color:#fff;border:1px solid transparent}
 .btn.btn-p:hover{background:var(--accent2)}
 .btn.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}
 .btn.btn-g:hover{color:var(--fg);border-color:var(--muted)}
-.av1-ext-pasos .gris{color:var(--muted);font-size:11.5px}
 .av1-acceso{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;margin:2px 0 6px;padding:12px 14px;border-radius:12px;
   border:1px solid rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.10);color:var(--fg);font:inherit;transition:background .2s}
 .av1-acceso:hover{background:rgba(var(--accent-rgb),.2)}
@@ -647,7 +645,7 @@ body.sel-mode .ac .salir{display:none}
 #lista.table-view .ac .thumb{width:36px;height:48px;aspect-ratio:auto;flex-shrink:0}
 #lista.table-view .ac .thumb img{width:36px;height:48px}
 #lista.table-view .ac .overlay{display:none}
-#lista.table-view .ac .del{display:none}
+#lista.table-view .ac .del,#lista.table-view .ac .imdb{display:none}
 #lista.table-view .ac .plus1{position:static;opacity:1;padding:2px 6px;font-size:9px;border-radius:4px;margin-left:auto;flex-shrink:0}
 #lista.table-view .ac .info{flex:1;display:flex;align-items:center;gap:8px;padding:4px 10px;min-width:0}
 #lista.table-view .ac .atitle{font-size:12px;margin:0;-webkit-line-clamp:1;flex:1;min-width:0}
@@ -746,9 +744,9 @@ body.sel-mode .ac .salir{display:none}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
-<script src="/static/novedades.js?v=2.16.0" defer></script>
-<script src="/static/selects.js?v=2.16.0" defer></script>
-<script src="/static/tour.js?v=2.16.0" defer></script>
+<script src="/static/novedades.js?v=2.16.1" defer></script>
+<script src="/static/selects.js?v=2.16.1" defer></script>
+<script src="/static/tour.js?v=2.16.1" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -1172,7 +1170,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
       <a href="/novedades" class="nav-link" title="Novedades"><span class="nav-icon">🎬</span><span id="nav-novedades">Novedades</span></a>
       <a href="/calendario" class="nav-link" title="Calendario semanal"><span class="nav-icon">📅</span><span id="nav-calendario">Calendario</span></a>
       <a href="/recomendaciones" class="nav-link" title="Recomendaciones"><span class="nav-icon">💡</span><span id="nav-recos">Recomendados</span></a>
-      <a href="/peliculas" class="nav-link nav-link--accent" title="Películas y Series"><span class="nav-icon">🎬</span><span>Pelis</span></a>
+      <a href="/peliculas" class="nav-link nav-link--accent" title="Películas y series que no son anime"><span class="nav-icon">🎬</span><span>No Anime</span></a>
     </nav>
     <button class="btn btn-ghost btn-sm solo-movil" id="btn-menu-movil" type="button" onclick="toggleMenuMovil()" aria-expanded="false" aria-label="Más opciones">☰</button>
     <!-- Separador visual -->
@@ -1432,17 +1430,6 @@ async function cambiarIdioma(lang) {
   }
 }
 
-// ── Tema ──────────────────────────────────────────────────────────────────────
-// Abre el panel de apariencia (tema, acento, densidad, animaciones).
-// La lógica vive en /static/customize.js; este envoltorio evita fallar si el
-// script no cargó y mantiene el onclick como función local del documento.
-function abrirApariencia() {
-  if (window.MiraruTheme && typeof window.MiraruTheme.open === 'function') {
-    window.MiraruTheme.open();
-  } else {
-    toast('No se pudo abrir la personalización', 'err');
-  }
-}
 
 function toggleTheme() {
   // Delegado a customize.js: mantiene sincronizados tema, acento y preferencias.
@@ -1660,6 +1647,7 @@ async function seguirTrabajo(tid, titulo) {
 }
 
 // ── Cargar datos ──────────────────────────────────────────────────────────────
+let IMDB = {};
 async function cargar(opts = {}) {
   // Show skeleton if no animes loaded yet
   const lista = document.getElementById('lista');
@@ -1674,11 +1662,14 @@ async function cargar(opts = {}) {
       const rv = await fetch('/api/biblioteca/version', {cache: 'no-store'});
       if (rv.ok) window._verBiblio = (await rv.json()).v;
     } catch (_) {}
-    const [rA, rF, rV] = await Promise.all([
+    const [rA, rF, rV, rI] = await Promise.all([
       fetch('/api/animes/slim').catch(() => null),
       fetch('/api/franquicias').catch(() => null),
-      fetch('/api/version', {cache: 'no-store'}).catch(() => null)
+      fetch('/api/version', {cache: 'no-store'}).catch(() => null),
+      fetch('/api/imdb/biblioteca').catch(() => null)
     ]);
+    // v2.16.1: nota de IMDb de cada anime (esquina de la portada).
+    try { if (rI && rI.ok) IMDB = (await rI.json()).notas || {}; } catch (_) {}
     // v2.12: con Miraru cerrado (p. ej. tras apagar el PC con la pestaña
     // abierta) el Service Worker responde con la última copia guardada o con
     // un 503. Antes esa respuesta vacía borraba las franquicias y todo salía
@@ -2011,6 +2002,7 @@ function render() {
         (a.notif_activa ? `<div style="position:absolute;top:5px;right:32px;font-size:11px;opacity:0.9;z-index:2">🔔</div>` : '') +
         `<img data-src="${thumbSrc}" src="${_esc(BLANK_IMG)}" alt="" decoding="async">` +
         `<div class="overlay"><span class="badge ${_esc(bc)}">${_esc(stLabel)}</span></div>` +
+        (IMDB[a.nombre] ? `<span class="imdb" title="Nota en IMDb">IMDb <b>${_esc(Number(IMDB[a.nombre]).toFixed(1))}</b></span>` : '') +
         (capNum > 0 ? `<button class="plus1" title="+1 ${isManga ? 'cap' : 'ep'}">+1</button>` : '') +
         `<button class="del" title="${delTitle}">✕</button>` +
       `</div>` +
@@ -2218,19 +2210,29 @@ function render() {
 
     const grid = document.createElement('div');
     grid.className = 'fq-grid' + (isOpen ? '' : ' collapsed');
-    fq.animes.forEach(a => {
-      const card = _crearCard(a);
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'salir'; b.textContent = '⤴';
-      b.title = _tr('Sacar del grupo'); b.setAttribute('aria-label', b.title);
-      card.querySelector('.thumb')?.appendChild(b);
-      grid.appendChild(card);
-    });
+    // v2.16.1: las tarjetas de una carpeta cerrada no se crean hasta abrirla
+    // (con 400 animes, casi todas lo están: filtrar y ordenar va mucho más ágil).
+    grid._llenar = () => {
+      if (grid._lleno) return;
+      grid._lleno = true;
+      const f = document.createDocumentFragment();
+      fq.animes.forEach(a => {
+        const card = _crearCard(a);
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'salir'; b.textContent = '⤴';
+        b.title = _tr('Sacar del grupo'); b.setAttribute('aria-label', b.title);
+        card.querySelector('.thumb')?.appendChild(b);
+        f.appendChild(card);
+      });
+      grid.appendChild(f);
+    };
+    if (isOpen) grid._llenar();
     // Arrastrar un anime encima de la caja lo mete en ella.
     group.dataset.grupo = fq.nombre;
 
     header.addEventListener('click', () => {
       const open = !grid.classList.contains('collapsed');
+      if (!open) grid._llenar();
       grid.classList.toggle('collapsed');
       chevron.classList.toggle('open');
       _franquiciasAbiertas[fq.nombre] = !open;
@@ -3354,6 +3356,7 @@ function toggleCompactAll() {
       chevron.classList.remove('open');
       _franquiciasAbiertas[nombre] = false;
     } else {
+      if (grid._llenar) grid._llenar();
       grid.classList.remove('collapsed');
       chevron.classList.add('open');
       _franquiciasAbiertas[nombre] = true;
@@ -3888,7 +3891,9 @@ function _pintarLocales(sp, q) {
     const n = document.createElement('span'); n.className = 'n'; n.textContent = a.nombre; n.setAttribute('data-no-i18n', '');
     const e = document.createElement('span'); e.className = 'e'; e.textContent = _tr(_EST_CORTO[a.estado_usuario] || '');
     const ir = document.createElement('span'); ir.className = 'ir'; ir.textContent = _tr('Abrir') + ' →';
-    b.append(img, n, e, ir);
+    b.append(img, n);
+    if (IMDB[a.nombre]) { const im = document.createElement('span'); im.className = 'sp-imdb'; im.textContent = 'IMDb ' + Number(IMDB[a.nombre]).toFixed(1); b.append(im); }
+    b.append(e, ir);
     b.onmousedown = ev => ev.preventDefault();           // que no se pierda el foco y se cierre antes del clic
     b.onclick = () => { cerrarPreview(); const i = document.getElementById('inp-nombre'); if (i) i.value = ''; abrirModal(encodeURIComponent(a.nombre)); };
     sec.appendChild(b);
@@ -3973,8 +3978,9 @@ async function cargarContinuar() {
       const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
       // Si ya llevas más de los que dice la ficha («4+» con 6 vistos: dato de emisión
       // atrasado), no se enseña «6 / 4», que parece un error.
-      next.textContent = alDia ? `✓ ${_tr('Al día')} · ep ${vistos}`
-                               : `Ep ${vistos + 1}` + (total ? ` / ${total}` : '');
+      const ud = a.tipo === 'manga' ? 'Cap' : 'Ep';      // el manga se lee por capítulos
+      next.textContent = alDia ? `✓ ${_tr('Al día')} · ${ud.toLowerCase()} ${vistos}`
+                               : `${ud} ${vistos + 1}` + (total ? ` / ${total}` : '');
       info.appendChild(name);
       info.appendChild(next);
 
@@ -4626,6 +4632,7 @@ async function buscarPreview(q) {
       const met = document.createElement('div');
       met.className = 'sp-meta';
       met.textContent = [a.capitulos + ' eps', a.estado_anime, (a.genero||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
+      if (a.imdb) { const im = document.createElement('span'); im.className = 'sp-imdb'; im.textContent = 'IMDb ' + Number(a.imdb).toFixed(1); tit.appendChild(im); }
       info.appendChild(tit);
       info.appendChild(met);
 
@@ -5528,6 +5535,18 @@ setTimeout(_ajustarCabecera, 50); setTimeout(_ajustarCabecera, 900);
 // Enlaces directos (desde Novedades, el menú o el recorrido): /app#copia, /app#animeav1…
 function _abrirPorHash() {
   const h = location.hash.slice(1);
+  // /app#anime=<nombre>: abre su ficha (desde Estadísticas, por ejemplo).
+  if (h.startsWith('anime=')) {
+    const nombre = decodeURIComponent(h.slice(6));
+    history.replaceState(null, '', location.pathname + location.search);
+    let n = 0;
+    const abrir = () => {
+      if (ANIMES.some(a => a.nombre === nombre)) abrirModal(encodeURIComponent(nombre));
+      else if (++n < 40) setTimeout(abrir, 250);
+    };
+    abrir();
+    return;
+  }
   const acciones = {copia: () => abrirCopia(), animeav1: () => abrirExtension(), extension: () => abrirExtension(),
                     anilist: () => abrirAniList(), recorrido: () => window.miraruTour && window.miraruTour.empezar(true)};
   if (!acciones[h]) return;

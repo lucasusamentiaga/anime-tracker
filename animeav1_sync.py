@@ -155,14 +155,18 @@ def _es_adulta(m: Optional[dict]) -> bool:
     return bool(m) and (bool(m.get("mature")) or adulto.es_adulto(m))
 
 
-def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep) -> dict:
+def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep,
+         datos: Optional[dict] = None) -> dict:
+    """Trae tus listas de AnimeAV1 a Miraru. `datos`: las listas ya leídas
+    (v2.16.1: las manda la extensión con la sesión de tu navegador, sin
+    cookie); si no, se leen con la cookie guardada."""
     cookie = get_cookie()
-    if not cookie:
+    if datos is None and not cookie:
         return {"added": 0, "updated": 0, "errors": 0, "error": "no conectado"}
     s = s or av1.sesion(cookie)
     if anilist is None:
         anilist = _anilist_protegido()
-    entradas = _entradas(_leer_listas(s))
+    entradas = _entradas(datos if datos is not None else _leer_listas(s))
     progreso.total(len(entradas))
 
     locales = db.listar_animes()
@@ -215,6 +219,10 @@ def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep) -> 
                     added += 1
                     ids[datos["nombre"]] = e["id"]
                     por_clave[db.clave_nombre(datos["nombre"])] = datos
+                    if datos.get("anilist_id"):      # dos entradas del mismo anime: una sola vez
+                        por_aid[datos["anilist_id"]] = datos
+                elif msg == "duplicado":
+                    pass                              # ya lo tenías (con otro nombre): no es un error
                 else:
                     errors += 1
                     log.warning("AnimeAV1: no se pudo añadir %s: %s", datos["nombre"], msg)

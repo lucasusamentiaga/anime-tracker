@@ -146,6 +146,7 @@ async def _lifespan(app: FastAPI):
     _start_emision_refresh_once()
     _start_enrich_unknown_eps()
     _start_notif_daemon_once()
+    _start_imdb_once()
     # Auto-detección de episodios: arranca si hay carpeta configurada
     try:
         import watch_folder
@@ -735,8 +736,36 @@ def _start_enrich_unknown_eps():
                 _sync_log.info("Relaciones de AniList de %d animes", n)
         except Exception as e:
             _sync_log.warning("relaciones: %s", e)
+        # v2.16.1: el mismo anime con nombres de fuentes distintas
+        # («Attack on Titan» y «Shingeki no Kyojin») se junta en uno.
+        _fusionar_repetidos()
 
     threading.Thread(target=_run, daemon=True, name="enrich-eps").start()
+
+
+def _fusionar_repetidos() -> dict:
+    """Junta los animes repetidos (ver duplicados.py). Antes, una copia de
+    seguridad por si acaso. Se puede llamar a mano desde /api/duplicados."""
+    import duplicados
+    from scrapers.anilist import _post as _anilist_post
+    try:
+        if not db.buscar_duplicados() and not _hay_ids_repetidos():
+            return {"fusionados": 0, "detalle": []}
+        _crear_backup_disco()
+    except Exception as e:  # noqa: BLE001
+        _sync_log.warning("copia antes de fusionar: %s", e)
+        return {"fusionados": 0, "detalle": [], "error": "sin copia de seguridad"}
+    r = duplicados.fusionar_repetidos(_anilist_post)
+    if r.get("fusionados"):
+        _sync_log.info("Fusionados %d animes repetidos", r["fusionados"])
+    return r
+
+
+def _hay_ids_repetidos() -> bool:
+    with db.get_conn() as conn:
+        return bool(conn.execute(
+            "SELECT 1 FROM animes WHERE anilist_id > 0 GROUP BY anilist_id, tipo HAVING COUNT(*) > 1 LIMIT 1"
+        ).fetchone())
 
 
 # ── Daemon de notificaciones de nuevos episodios ─────────────────────────────
@@ -1649,6 +1678,101 @@ async def listar_animes_slim():
     return {"animes": db.listar_animes_slim()}
 
 
+# ── Nota de IMDb (v2.16.1, ver imdb.py) ──────────────────────────────────────
+_imdb_memo: dict = {"clave": None, "notas": {}}
+
+
+def _idmal_de(anilist_id: int) -> int:
+    """id de MyAnimeList de un anime de AniList (guardado para no repetir)."""
+    if not anilist_id:
+        return 0
+    try:
+        guardado = json.loads(db.get_config("anilist_idmal") or "{}")
+    except ValueError:
+        guardado = {}
+    if str(anilist_id) in guardado:
+        return int(guardado[str(anilist_id)] or 0)
+    try:
+        from scrapers.anilist import _post as _anilist_post
+        m = (_anilist_post("query($id:Int){Media(id:$id){idMal}}", {"id": int(anilist_id)}, timeout=6)
+             .get("Media") or {})
+    except Exception:  # noqa: BLE001
+        return 0
+    guardado[str(anilist_id)] = m.get("idMal") or 0
+    db.set_config("anilist_idmal", json.dumps(guardado))
+    return int(guardado[str(anilist_id)])
+
+
+def _con_imdb(datos: dict) -> dict:
+    """Añade la nota de IMDb a un resultado de búsqueda (si la hay)."""
+    import imdb
+    d = dict(datos)
+    info = imdb.cargar(APP_DIR)
+    if info.get("notas"):
+        aid = int(d.get("anilist_id") or 0)
+        n = imdb.nota(info, aid) or (imdb.nota(info, 0, _idmal_de(aid)) if aid else None)
+        if n:
+            d["imdb"] = n[0]
+    return d
+
+
+@app.get("/api/imdb/biblioteca")
+async def imdb_biblioteca():
+    """{nombre: nota de IMDb} de tu lista (las temporadas sin ficha propia
+    llevan la de su saga). Se recalcula solo si la lista o las notas cambian."""
+    import imdb
+    datos = imdb.cargar(APP_DIR)
+    clave = (db._cache_gen, datos.get("ts"), _relaciones_version)
+    if _imdb_memo["clave"] != clave:
+        try:
+            id_mal = json.loads(db.get_config("anilist_idmal") or "{}")
+        except ValueError:
+            id_mal = {}
+        fq = (await listar_franquicias())["franquicias"]
+        _imdb_memo.update(clave=clave, notas=imdb.notas_biblioteca(datos, db.listar_animes_slim(), fq, id_mal))
+    return {"notas": _imdb_memo["notas"], "actualizado": datos.get("ts") or 0}
+
+
+_imdb_started = False
+
+
+def _start_imdb_once():
+    """Una vez por semana: notas de IMDb y enlaces de Wikidata (en segundo
+    plano: si no hay internet, la app sigue igual, sin las notas)."""
+    global _imdb_started
+    if _imdb_started or _sin_hilos_de_fondo():
+        return
+    _imdb_started = True
+
+    def _run():
+        import imdb
+        _time.sleep(90)
+        try:
+            if imdb.caducado(APP_DIR):
+                imdb.actualizar(APP_DIR)
+        except Exception as e:  # noqa: BLE001
+            _sync_log.warning("IMDb: %s", e)
+        # id de MyAnimeList de lo que tienes (Wikidata enlaza más animes por él)
+        try:
+            from scrapers.anilist import _post as _anilist_post
+            guardado = json.loads(db.get_config("anilist_idmal") or "{}")
+            faltan = sorted({int(a["anilist_id"]) for a in db.listar_animes_slim()
+                             if a.get("anilist_id") and str(a["anilist_id"]) not in guardado})
+            for i in range(0, len(faltan), 50):
+                d = _anilist_post("query($ids:[Int]){Page(perPage:50){media(id_in:$ids){id idMal}}}",
+                                  {"ids": faltan[i:i + 50]})
+                for m in ((d.get("Page") or {}).get("media") or []):
+                    guardado[str(m["id"])] = m.get("idMal") or 0
+                _time.sleep(2.5)
+            if faltan:
+                db.set_config("anilist_idmal", json.dumps(guardado))
+                _imdb_memo["clave"] = None
+        except Exception as e:  # noqa: BLE001
+            _sync_log.warning("IMDb (idMal): %s", e)
+
+    threading.Thread(target=_run, daemon=True, name="imdb").start()
+
+
 # Cache de franquicias — se invalida automáticamente con listar_animes_slim()
 # y cuando llegan relaciones nuevas de AniList.
 _franquicias_cache: list | None = None
@@ -1701,6 +1825,12 @@ def _actualizar_relaciones(animes: list[dict], anilist_mod=None, sleep=None) -> 
         nuevas += len(lote)
         sleep(ANILIST_MIN_INTERVAL)
     return nuevas
+
+
+@app.post("/api/duplicados/fusionar")
+def api_fusionar_repetidos():
+    """Junta ahora los animes repetidos (lo mismo que se hace solo al arrancar)."""
+    return _fusionar_repetidos()
 
 
 @app.get("/api/franquicias")
@@ -2101,7 +2231,8 @@ async def buscar_anime(req: BuscarRequest):
         resultado, fuente_usada = await _resolver_desde_url(req.nombre)
         if not resultado:
             return {"ok": False, "mensaje": f"No se pudo resolver la URL ({url_info[0]})"}
-        resp = {"ok": True, "data": resultado.__dict__, "fuente_usada": fuente_usada, "via": "url"}
+        resp = {"ok": True, "data": await asyncio.get_running_loop().run_in_executor(executor, _con_imdb, resultado.__dict__),
+                "fuente_usada": fuente_usada, "via": "url"}
         _cache_set(ck, resp)
         return resp
 
@@ -2112,7 +2243,8 @@ async def buscar_anime(req: BuscarRequest):
     resultado, fuente_usada = await _buscar_con_fallback(req.nombre, req.fuente)
     if not resultado:
         return {"ok": False, "mensaje": "Anime no encontrado"}
-    resp = {"ok": True, "data": resultado.__dict__, "fuente_usada": fuente_usada}
+    resp = {"ok": True, "data": await asyncio.get_running_loop().run_in_executor(executor, _con_imdb, resultado.__dict__),
+            "fuente_usada": fuente_usada}
     _cache_set(ck, resp)
     return resp
 
@@ -2401,7 +2533,11 @@ async def refrescar_estado():
 
 @app.get("/api/stats")
 async def get_stats():
-    animes = db.listar_animes()
+    todos  = db.listar_animes()
+    # v2.16.1: las cifras son de ANIME. Los mangas van aparte (sus capítulos
+    # leídos no son episodios ni horas de anime).
+    mangas = [a for a in todos if (a.get("tipo") or "anime") == "manga"]
+    animes = [a for a in todos if (a.get("tipo") or "anime") != "manga"]
     total  = len(animes)
 
     by_state  = {}
@@ -2476,6 +2612,8 @@ async def get_stats():
         "genres":         dict(sorted(genres.items(), key=lambda x: -x[1])[:10]),
         "top_rated":      top_rated,
         "recently_added": recently_added,
+        "mangas":         len(mangas),
+        "capitulos_manga": sum(int(a.get("episodios_vistos") or 0) for a in mangas),
     }
 
 # ── Importar desde texto ─────────────────────────────────────────────────────
@@ -3593,6 +3731,7 @@ async def continuar_viendo():
             "capitulos":        a.get("capitulos"),
             "episodios_vistos": a.get("episodios_vistos") or 0,
             "puntuacion":       a.get("puntuacion"),
+            "tipo":             a.get("tipo") or "anime",
             "ultima_vista":     last_seen.get(a["nombre"]),
         })
     return {"animes": out}
@@ -4521,11 +4660,11 @@ async def stats_wrapped(year: Optional[int] = None):
         with db.get_conn() as conn:
             total_eps = int(conn.execute(
                 "SELECT COUNT(*) AS c FROM ep_log "
-                "WHERE strftime('%Y', fecha) = ?", (str(year),)
+                "WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA, (str(year),)
             ).fetchone()["c"] or 0)
             # Animes únicos con actividad ese año
             nombres_activos = {r["nombre"] for r in conn.execute(
-                "SELECT DISTINCT nombre FROM ep_log WHERE strftime('%Y', fecha) = ?",
+                "SELECT DISTINCT nombre FROM ep_log WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA + "",
                 (str(year),)
             ).fetchall()}
             # Completados ESE año = filas de historial con estado completado/completed
@@ -4562,6 +4701,7 @@ async def stats_wrapped(year: Optional[int] = None):
     # ── v2.16: más datos para «Mi año en anime» ─────────────────────────────
     por_mes = [0] * 12
     mas_vistos: list[dict] = []
+    vistos_anio: list[dict] = []
     dias_activos = racha_max = 0
     nuevos_year = 0
     primero = ultimo = None
@@ -4573,20 +4713,20 @@ async def stats_wrapped(year: Optional[int] = None):
             y = str(year)
             for r in conn.execute(
                 "SELECT CAST(strftime('%m', fecha) AS INTEGER) AS m, COUNT(*) AS c FROM ep_log "
-                "WHERE strftime('%Y', fecha) = ? GROUP BY m", (y,)
+                "WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA + " GROUP BY m", (y,)
             ).fetchall():
                 if r["m"] and 1 <= r["m"] <= 12:
                     por_mes[r["m"] - 1] = r["c"]
             por_anime = conn.execute(
-                "SELECT nombre, COUNT(*) AS c FROM ep_log WHERE strftime('%Y', fecha) = ? "
-                "GROUP BY nombre ORDER BY c DESC, MAX(fecha) DESC LIMIT 5", (y,)
+                "SELECT nombre, COUNT(*) AS c FROM ep_log WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA + " "
+                "GROUP BY nombre ORDER BY c DESC, MAX(fecha) DESC", (y,)
             ).fetchall()
             dias = [r["d"] for r in conn.execute(
-                "SELECT DISTINCT date(fecha) AS d FROM ep_log WHERE strftime('%Y', fecha) = ? ORDER BY d",
+                "SELECT DISTINCT date(fecha) AS d FROM ep_log WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA + " ORDER BY d",
                 (y,)
             ).fetchall() if r["d"]]
             orden = conn.execute(
-                "SELECT nombre FROM ep_log WHERE strftime('%Y', fecha) = ? ORDER BY fecha", (y,)
+                "SELECT nombre FROM ep_log WHERE strftime('%Y', fecha) = ? AND " + db._SIN_MANGA + " ORDER BY fecha", (y,)
             ).fetchall()
             if orden:
                 primero, ultimo = orden[0]["nombre"], orden[-1]["nombre"]
@@ -4601,8 +4741,9 @@ async def stats_wrapped(year: Optional[int] = None):
             por_nombre = {a["nombre"]: a for a in animes}
             for r in por_anime:
                 a = por_nombre.get(r["nombre"], {})
-                mas_vistos.append({"nombre": r["nombre"], "episodios": r["c"],
-                                   "imagen": a.get("imagen") or "", "puntuacion": a.get("puntuacion")})
+                vistos_anio.append({"nombre": r["nombre"], "episodios": r["c"],
+                                    "imagen": a.get("imagen") or "", "puntuacion": a.get("puntuacion")})
+            mas_vistos = vistos_anio[:5]
             nuevos_year = sum(1 for a in animes if str(a.get("creado_en") or "").startswith(y))
             # «Mejor valorados» de ESE año: los que viste ese año, no los de siempre.
             sc_y = [(a["nombre"], float(a["puntuacion"])) for a in relevantes if a.get("puntuacion")]
@@ -4621,6 +4762,7 @@ async def stats_wrapped(year: Optional[int] = None):
         "por_mes":         por_mes,
         "mes_top":         mes_top,
         "mas_vistos":      mas_vistos,
+        "vistos_anio":     vistos_anio,
         "dias_activos":    dias_activos,
         "racha_max":       racha_max,
         "primero":         primero,
@@ -4899,6 +5041,55 @@ async def animeav1_evento(req: AnimeAV1EventoRequest, request: Request):
             "imagen": final.get("imagen") or "", "capitulos": str(final.get("capitulos") or "")}
 
 
+# ── v2.16.1: la extensión trae tus listas de AnimeAV1 («Mis Listas») ─────────
+class AnimeAV1ListasRequest(BaseModel):
+    datos: dict          # el /cuenta/listas/__data.json tal cual, leído con tu sesión
+
+
+_av1_listas = {"en_curso": False, "resultado": None, "cuando": 0.0}
+_av1_listas_lock = threading.Lock()
+
+
+@app.post("/api/animeav1/listas")
+async def animeav1_listas(req: AnimeAV1ListasRequest, request: Request):
+    """La extensión lee tus listas de AnimeAV1 (con la sesión de tu navegador,
+    sin cookie) y Miraru las mete en tu lista: lo que ya tenías se actualiza
+    (nunca baja tu progreso) y lo nuevo se añade una sola vez, aunque en
+    Miraru tenga otro nombre (se reconoce por AniList)."""
+    if request.headers.get("X-Miraru-Extension") != "1":
+        raise HTTPException(403, "Solo la extensión de Miraru puede usar esta ruta")
+    try:
+        from scrapers import animeav1 as av1_mod
+        datos = av1_mod.leer_datos(req.datos)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(422, "No entiendo esas listas de AnimeAV1") from e
+    if not isinstance(datos, dict) or not datos.get("libraryEntries"):
+        raise HTTPException(401, "Inicia sesión en AnimeAV1 para que Miraru lea tus listas")
+    with _av1_listas_lock:
+        if _av1_listas["en_curso"]:
+            return {"ok": True, "en_curso": True}
+        _av1_listas["en_curso"] = True
+
+    def _hacer():
+        try:
+            r = animeav1_sync.pull(datos=datos)
+        except Exception as e:  # noqa: BLE001
+            r = {"added": 0, "updated": 0, "errors": 1, "error": str(e)[:200]}
+        with _av1_listas_lock:
+            _av1_listas.update(en_curso=False, resultado=r, cuando=_time.time())
+        if r.get("added"):
+            _fusionar_repetidos()          # por si algo entró con otro nombre
+
+    threading.Thread(target=_hacer, daemon=True, name="av1-listas").start()
+    return {"ok": True, "en_curso": True, "total": len(datos.get("libraryEntries") or [])}
+
+
+@app.get("/api/animeav1/listas/estado")
+async def animeav1_listas_estado():
+    with _av1_listas_lock:
+        return dict(_av1_listas)
+
+
 @app.get("/api/animeav1/extension")
 async def animeav1_extension_estado():
     """Para la ventana de Miraru: ¿ha llegado algo de la extensión?"""
@@ -5035,7 +5226,9 @@ async def actualizar_anime(nombre: str, req: ActualizarRequest):
         nuevos = int(campos["episodios_vistos"] or 0)
         viejos = int(prev.get("episodios_vistos") or 0)
         delta = nuevos - viejos
-        if 0 < delta <= 3:
+        # v2.16.1: hasta 12 de golpe (una tanda de un día: «acabo de ver 8»).
+        # Más ya suele ser corregir un dato, no ver episodios hoy.
+        if 0 < delta <= 12:
             for ep in range(viejos + 1, nuevos + 1):
                 db.log_episode(nombre, ep)
         elif delta < 0:

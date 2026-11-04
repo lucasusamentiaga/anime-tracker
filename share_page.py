@@ -207,7 +207,7 @@ footer a{{color:var(--light);text-decoration:none}}
 <div class="barra">
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" aria-controls="p-anime" data-p="p-anime">🎌 Anime<span>{len(animes)}</span></button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="p-otros" data-p="p-otros">🎬 Series y películas<span>{len(series) + len(pelis)}</span></button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-otros" data-p="p-otros">🎬 No Anime<span>{len(series) + len(pelis)}</span></button>
   </div>
   <input class="buscar" type="search" placeholder="Buscar un título…" aria-label="Buscar un título">
 </div>

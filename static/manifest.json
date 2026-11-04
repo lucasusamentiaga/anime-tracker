@@ -34,7 +34,7 @@
     { "name": "Mi biblioteca",   "url": "/app" },
     { "name": "Estadísticas",    "url": "/stats" },
     { "name": "Recomendaciones", "url": "/recomendaciones" },
-    { "name": "Pelis y series",  "url": "/peliculas" }
+    { "name": "No Anime",  "url": "/peliculas" }
   ],
-  "version": "2.16.0"
+  "version": "2.16.1"
 }

@@ -3,7 +3,6 @@ Sincronización con Google Sheets — limpio, sin colores, sin sinopsis.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 # Google libraries — lazy import (heavy, only loaded when Sheets is used)
@@ -184,94 +183,6 @@ def sincronizar_todo(animes: list[dict], spreadsheet_id: str, credentials_path: 
         return True, f"{len(animes)} animes sincronizados"
     except Exception as e:
         return False, str(e)[:300]
-
-def append_anime(anime: dict, spreadsheet_id: str, credentials_path: str) -> tuple[bool, str]:
-    try:
-        svc, sid = _service(spreadsheet_id, credentials_path)
-        sheet_name, sheet_id = _get_sheet_info(svc, sid)
-        existing = svc.spreadsheets().values().get(
-            spreadsheetId=sid, range=f"{sheet_name}!A1:A1"
-        ).execute()
-        first_time = "values" not in existing
-        rows = ([HEADERS_DISPLAY] if first_time else []) + [_row(anime)]
-        result = svc.spreadsheets().values().append(
-            spreadsheetId=sid, range=sheet_name,
-            valueInputOption="USER_ENTERED", insertDataOption="INSERT_ROWS",
-            body={"values": rows},
-        ).execute()
-        fmts = []
-        if first_time:
-            fmts += _fmt_requests(sheet_id, 1)
-        else:
-            updated = result.get("updates", {}).get("updatedRange", "")
-            m = re.search(r":?[A-Z]+(\d+)$", updated)
-            if m:
-                ri = int(m.group(1)) - 1   # índice de fila 0-based (cabecera = 0)
-                if ri >= 1:
-                    # Misma estética que el resto: alternancia lila/blanco + texto
-                    # oscuro (antes pintaba la fila en tema oscuro y desentonaba).
-                    data_idx = ri - 1
-                    bg = _ROW_ODD if data_idx % 2 == 0 else _ROW_EVN
-                    fmts.append({"repeatCell": {
-                        "range": {"sheetId": sheet_id, "startRowIndex": ri, "endRowIndex": ri + 1},
-                        "cell": {"userEnteredFormat": {
-                            "backgroundColor": bg,
-                            "textFormat": {"foregroundColor": _TXT, "fontSize": 10},
-                            "verticalAlignment": "MIDDLE",
-                        }},
-                        "fields": "userEnteredFormat(backgroundColor,textFormat,verticalAlignment)",
-                    }})
-                    # Nombre (col A) en acento morado + negrita, como en el sync completo
-                    fmts.append({"repeatCell": {
-                        "range": {"sheetId": sheet_id, "startRowIndex": ri, "endRowIndex": ri + 1,
-                                  "startColumnIndex": 0, "endColumnIndex": 1},
-                        "cell": {"userEnteredFormat": {
-                            "textFormat": {"foregroundColor": _NAME_FG, "bold": True, "fontSize": 10},
-                        }},
-                        "fields": "userEnteredFormat.textFormat",
-                    }})
-        if fmts:
-            svc.spreadsheets().batchUpdate(spreadsheetId=sid, body={"requests": fmts}).execute()
-        return True, "ok"
-    except Exception as e:
-        return False, str(e)[:300]
-
-def update_anime_row(anime: dict, spreadsheet_id: str, credentials_path: str) -> tuple[bool, str]:
-    try:
-        svc, sid = _service(spreadsheet_id, credentials_path)
-        sheet_name, _ = _get_sheet_info(svc, sid)
-        all_vals = svc.spreadsheets().values().get(
-            spreadsheetId=sid, range=f"{sheet_name}!A:A"
-        ).execute().get("values", [])
-        row_idx = next((i for i, r in enumerate(all_vals) if r and r[0] == anime.get("nombre")), None)
-        if row_idx is None:
-            return False, "no encontrado en Sheets"
-        svc.spreadsheets().values().update(
-            spreadsheetId=sid, range=f"{sheet_name}!A{row_idx + 1}",
-            valueInputOption="USER_ENTERED", body={"values": [_row(anime)]},
-        ).execute()
-        return True, "ok"
-    except Exception as e:
-        return False, str(e)[:300]
-
-def delete_anime_row(nombre: str, spreadsheet_id: str, credentials_path: str) -> tuple[bool, str]:
-    try:
-        svc, sid = _service(spreadsheet_id, credentials_path)
-        sheet_name, sheet_id = _get_sheet_info(svc, sid)
-        all_vals = svc.spreadsheets().values().get(
-            spreadsheetId=sid, range=f"{sheet_name}!A:A"
-        ).execute().get("values", [])
-        row_idx = next((i for i, r in enumerate(all_vals) if r and r[0] == nombre), None)
-        if row_idx is None:
-            return False, "no encontrado en Sheets"
-        svc.spreadsheets().batchUpdate(spreadsheetId=sid, body={"requests": [
-            {"deleteDimension": {"range": {"sheetId": sheet_id, "dimension": "ROWS",
-                                           "startIndex": row_idx, "endIndex": row_idx + 1}}}
-        ]}).execute()
-        return True, "ok"
-    except Exception as e:
-        return False, str(e)[:300]
-
 
 # ── v2.16: sincronización automática completa ───────────────────────────────
 # Antes cada cambio intentaba tocar SOLO su fila (añadir, actualizar, borrar).

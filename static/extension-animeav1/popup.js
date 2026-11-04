@@ -76,6 +76,27 @@ async function pintar() {
   });
 }
 
+// Mis Listas de AnimeAV1 → Miraru
+const TXT_LISTAS = {
+  'enviado': d => `Enviadas a Miraru ${hace(d.cuando)}${d.total ? ` (${d.total} animes)` : ''}.`,
+  'al-dia': d => `Al día · revisadas ${hace(d.cuando)}.`,
+  'sin-sesion': () => 'Inicia sesión en AnimeAV1 para traerlas.',
+  'miraru-cerrado': () => 'Se mandarán al abrir Miraru.',
+  'error': d => 'No se pudo: ' + (d.detalle || 'error') + '.',
+};
+async function pintarListas() {
+  const {listas} = await chrome.storage.local.get('listas');
+  if (listas && TXT_LISTAS[listas.estado]) $('listas-txt').textContent = TXT_LISTAS[listas.estado](listas);
+}
+$('btn-listas').addEventListener('click', async () => {
+  const b = $('btn-listas');
+  b.disabled = true; b.textContent = 'Leyendo…';
+  try { await chrome.runtime.sendMessage('listas'); } catch (_) { /* nada */ }
+  b.disabled = false; b.textContent = 'Traer ahora';
+  pintarListas();
+});
+pintarListas();
+
 $('puerto').addEventListener('change', async e => {
   const n = Number(e.target.value);
   if (n > 0 && n < 65536) await chrome.storage.local.set({puerto: n});

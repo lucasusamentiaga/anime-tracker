@@ -78,3 +78,13 @@ def test_construir_stats_normaliza():
     # 12 episodios de anime + 1 ítem (película) = 13 unidades unificadas
     assert s["episodios"] == 13 and s["puntuados"] == 1
     assert s["racha_max"] == 7
+
+
+def test_titulos_de_nivel_y_fuentes():
+    import gamificacion as g
+    assert g.titulo_nivel(1) == "Novato" and g.titulo_nivel(12) == "Otaku" and g.titulo_nivel(60) == "Leyenda"
+    assert g.siguiente_titulo(12) == ("Veterano", 15) and g.siguiente_titulo(40) is None
+    st = {"episodios": 10, "completados": 2, "total": 4}
+    f = g.fuentes_xp(st, 3, 1)
+    assert sum(x["xp"] for x in f) == g.calcular_xp(st, 3, 1)
+    assert g.progreso(0)["titulo"] == "Novato"

@@ -11,6 +11,26 @@ from __future__ import annotations
 # accion (opcional): {"texto": "...", "url": "/app#..."} → botón dentro del punto.
 NOVEDADES: list[dict] = [
     {
+        "version": "2.16.1",
+        "titulo": "Sin repetidos y con nota de IMDb",
+        "puntos": [
+            {"icono": "🧹", "titulo": "Adiós a los repetidos",
+             "texto": "Si un anime estaba dos veces (con nombres distintos según de dónde llegó), Miraru los junta en uno sin perder nada."},
+            {"icono": "⭐", "titulo": "Nota de IMDb",
+             "texto": "Cada anime lleva su nota de IMDb en una esquina, en tu lista y al buscar."},
+            {"icono": "🧩", "titulo": "Tus listas de AnimeAV1",
+             "texto": "La extensión trae también lo que tienes en «Mis Listas» de AnimeAV1, sin duplicar nada.",
+             "accion": {"texto": "Ver la extensión", "url": "/app#extension"}},
+            {"icono": "🏅", "titulo": "Niveles y logros renovados",
+             "texto": "Títulos por nivel, de dónde sale tu XP, tu camino ninja y cuánto te falta para cada logro.",
+             "accion": {"texto": "Ver mis logros", "url": "/stats#logros-section"}},
+            {"icono": "📸", "titulo": "«Mi año en anime», más visual",
+             "texto": "La imagen para compartir lleva las portadas de lo que más viste."},
+            {"icono": "🎬", "titulo": "«Pelis» ahora es «No Anime»",
+             "texto": "Y en Estadísticas puedes pulsar Completados, Viendo ahora o Episodios este año para ver la lista."},
+        ],
+    },
+    {
         "version": "2.16.0",
         "titulo": "Más rápida, más clara y con recorrido guiado",
         "puntos": [

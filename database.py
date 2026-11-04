@@ -464,6 +464,14 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
     # "One Punch Man" entraban como dos animes distintos.
     if buscar_por_clave(nombre):
         return False, "duplicado"
+    # v2.16.1: el mismo anime con otro nombre («Shingeki no Kyojin» cuando ya
+    # tienes «Attack on Titan»): mismo anilist_id y mismo tipo = repetido.
+    aid = int(data.get("anilist_id") or 0)
+    if aid:
+        with get_conn() as conn:
+            if conn.execute("SELECT 1 FROM animes WHERE anilist_id=? AND COALESCE(tipo,'anime')=?",
+                            (aid, data.get("tipo", "anime") or "anime")).fetchone():
+                return False, "duplicado"
     genero = data.get("genero", [])
     if isinstance(genero, list):
         genero = ", ".join(genero)
@@ -682,10 +690,14 @@ def listar_favoritos() -> list[dict]:
 
 
 def listar_con_notif() -> list[dict]:
-    """Animes con notificación de nuevo episodio activa."""
+    """Animes de los que avisar cuando salga un episodio: los que tienen la
+    campanita y, v2.16.1, también los que estás viendo y siguen en emisión
+    (antes sin la campanita no avisaba de nada, aunque activaras «Avisos»)."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT * FROM animes WHERE notif_activa=1"
+            "SELECT * FROM animes WHERE notif_activa=1 OR ("
+            " estado_usuario IN ('viendo','watching') AND COALESCE(tipo,'anime') <> 'manga'"
+            " AND lower(COALESCE(estado_anime,'')) IN ('en emisión','en emision','releasing','currently airing'))"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -703,6 +715,11 @@ def listar_por_lista(lista: str) -> list[dict]:
 # ── Episode log (v2.2) ────────────────────────────────────────────────────────
 # Cada vez que el usuario marca "+1 episodio" guardamos (anime, episodio, fecha)
 # para poder pintar el heatmap, calcular streaks y derivar wrapped real.
+
+# v2.16.1: el mapa de actividad, las rachas y «Mi año» cuentan EPISODIOS de
+# anime; los capítulos de manga leídos no son horas de anime.
+_SIN_MANGA = "nombre NOT IN (SELECT nombre FROM animes WHERE tipo='manga')"
+
 
 def log_episode(nombre: str, episodio: int):
     """Registra que el usuario vio el episodio N del anime. Idempotente: si ya
@@ -749,7 +766,7 @@ def ep_log_heatmap(dias: int = 365) -> list[dict]:
         rows = conn.execute(
             "SELECT date(fecha) AS d, COUNT(*) AS c "
             "FROM ep_log "
-            "WHERE fecha >= datetime('now','localtime', ?) "
+            "WHERE fecha >= datetime('now','localtime', ?) AND " + _SIN_MANGA + " "
             "GROUP BY d "
             "ORDER BY d",
             (f"-{dias} days",),
@@ -761,7 +778,7 @@ def ep_log_streak() -> dict:
     """Calcula racha actual y la más larga en días con al menos 1 ep visto."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT date(fecha) AS d FROM ep_log ORDER BY d DESC"
+            "SELECT DISTINCT date(fecha) AS d FROM ep_log WHERE " + _SIN_MANGA + " ORDER BY d DESC"
         ).fetchall()
     if not rows:
         return {"actual": 0, "max": 0, "ultimo_dia": None}
@@ -826,10 +843,10 @@ def ep_log_total(dias: Optional[int] = None) -> int:
         return 0
     with get_conn() as conn:
         if dias is None:
-            row = conn.execute("SELECT COUNT(*) AS c FROM ep_log").fetchone()
+            row = conn.execute("SELECT COUNT(*) AS c FROM ep_log WHERE " + _SIN_MANGA).fetchone()
         else:
             row = conn.execute(
-                "SELECT COUNT(*) AS c FROM ep_log WHERE fecha >= datetime('now','localtime', ?)",
+                "SELECT COUNT(*) AS c FROM ep_log WHERE fecha >= datetime('now','localtime', ?) AND " + _SIN_MANGA,
                 (f"-{int(dias)} days",),
             ).fetchone()
         return int(row["c"] or 0)

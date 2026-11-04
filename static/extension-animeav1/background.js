@@ -175,15 +175,64 @@ async function marcar(texto, color, titulo) {
   } catch (_) { /* nada */ }
 }
 
+// ── v1.4: tus listas de AnimeAV1 («Mis Listas») también van a Miraru ────────
+// Se leen con la sesión de tu navegador (como al entrar en «Mis Listas») y se
+// mandan a Miraru, que añade lo que falta sin repetir nada y nunca baja tu
+// progreso. Solo si han cambiado desde la última vez.
+const URL_MIS_LISTAS = 'https://animeav1.com/cuenta/listas/__data.json';
+
+async function huella(texto) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(h).slice(0, 12)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sincronizarListas(forzar = false) {
+  const guardar = estado => chrome.storage.local.set({listas: Object.assign({cuando: Date.now()}, estado)});
+  let texto;
+  try {
+    const r = await fetch(URL_MIS_LISTAS, {credentials: 'include', cache: 'no-store'});
+    if (r.status === 401 || r.status === 403) { await guardar({estado: 'sin-sesion'}); return 'sin-sesion'; }
+    if (!r.ok) { await guardar({estado: 'error', detalle: 'AnimeAV1 ' + r.status}); return 'error'; }
+    texto = await r.text();
+    const j = JSON.parse(texto);
+    const malo = j.type === 'error' || j.type === 'redirect' || (j.nodes || []).some(n => n && n.type === 'error');
+    if (malo) { await guardar({estado: 'sin-sesion'}); return 'sin-sesion'; }
+  } catch (_) { await guardar({estado: 'error', detalle: 'AnimeAV1 no responde'}); return 'error'; }
+  const h = await huella(texto);
+  const {listasHuella} = await chrome.storage.local.get('listasHuella');
+  if (!forzar && h === listasHuella) { await guardar({estado: 'al-dia'}); return 'al-dia'; }
+  try {
+    const r = await fetch(`http://127.0.0.1:${await puerto()}/api/animeav1/listas`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-Miraru-Extension': '1'},
+      body: JSON.stringify({datos: JSON.parse(texto)}),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { await guardar({estado: 'error', detalle: d.detail || ('Miraru ' + r.status)}); return 'error'; }
+    await chrome.storage.local.set({listasHuella: h});
+    await guardar({estado: 'enviado', total: d.total || 0});
+    return 'enviado';
+  } catch (_) {
+    await guardar({estado: 'miraru-cerrado'});      // se reintenta en la próxima vuelta
+    return 'miraru-cerrado';
+  }
+}
+
 chrome.alarms.create('reintentar', {periodInMinutes: 1});
+chrome.alarms.create('listas', {periodInMinutes: 180, delayInMinutes: 1});
 
 // Al instalarla: la guía de bienvenida (comprueba sola que todo está listo).
 chrome.runtime.onInstalled.addListener(({reason}) => {
   if (reason === 'install') chrome.tabs.create({url: chrome.runtime.getURL('bienvenida.html')});
+  sincronizarListas();
 });
-chrome.alarms.onAlarm.addListener(a => { if (a.name === 'reintentar') enviarCola(); });
-chrome.runtime.onStartup.addListener(enviarCola);
+chrome.alarms.onAlarm.addListener(a => {
+  if (a.name === 'reintentar') enviarCola();
+  if (a.name === 'listas') sincronizarListas();
+});
+chrome.runtime.onStartup.addListener(() => { enviarCola(); sincronizarListas(); });
 chrome.runtime.onMessage.addListener((msg, _s, responder) => {
   if (msg === 'reintentar') enviarCola().then(() => responder(true));
+  else if (msg === 'listas') sincronizarListas(true).then(responder);
   return true;
 });

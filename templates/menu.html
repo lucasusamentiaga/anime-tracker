@@ -71,7 +71,7 @@ body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-seri
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
-<script src="/static/novedades.js?v=2.16.0" defer></script>
+<script src="/static/novedades.js?v=2.16.1" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -128,9 +128,9 @@ body{background:#080810;color:#e2e2e8;font-family:"Segoe UI",system-ui,sans-seri
 </div>
 
 <!-- v6: acceso a Películas y Series (abajo izquierda) -->
-<a href="/peliculas" id="media-tab" title="Películas y Series (no-anime)">
+<a href="/peliculas" id="media-tab" title="Películas y series que no son anime">
   <span style="font-size:17px">🎬</span>
-  <span class="media-tab-label">Películas y Series</span>
+  <span class="media-tab-label">No Anime</span>
 </a>
 <style>
 #media-tab{position:fixed;bottom:20px;left:20px;z-index:50;display:inline-flex;align-items:center;gap:8px;
@@ -412,8 +412,9 @@ async function loadContinue() {
       const total = parseInt(a.capitulos) || 0;
       const vistos = a.episodios_vistos || 0;
       const alDia = total > 0 && vistos >= total;          // "12+" en emisión y ya los has visto todos
-      next.textContent = alDia ? '✓ Al día · ep ' + vistos
-                               : 'Ep ' + (vistos + 1) + (total ? ' / ' + total : '');
+      const ud = a.tipo === 'manga' ? 'Cap' : 'Ep';      // el manga se lee por capítulos
+      next.textContent = alDia ? '✓ Al día · ' + ud.toLowerCase() + ' ' + vistos
+                               : ud + ' ' + (vistos + 1) + (total ? ' / ' + total : '');
       info.appendChild(name);
       info.appendChild(next);
 

@@ -313,16 +313,6 @@ def _pull_type(media_type: str = "ANIME", progreso: Progreso = NULO) -> dict:
     return {"added": added, "updated": updated, "errors": errors}
 
 
-def pull_list() -> dict:
-    """Descarga la lista ANIME completa del usuario de AniList."""
-    return _pull_type("ANIME")
-
-
-def pull_manga_list() -> dict:
-    """Descarga la lista MANGA completa del usuario de AniList."""
-    return _pull_type("MANGA")
-
-
 def pull_all(progreso: Progreso = NULO) -> dict:
     """Descarga anime + manga de AniList."""
     anime = _pull_type("ANIME", progreso)
@@ -375,7 +365,18 @@ def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep,
     from scrapers.anilist import candidatos_busqueda
 
     pendientes = [a for a in db.listar_animes() if not a.get("anilist_id")]
+    # v2.16.1: lo que no se encontró hace poco no se vuelve a buscar en cada
+    # arranque (antes los 40 primeros imposibles tapaban siempre al resto).
+    import json as _json
+    try:
+        fallos = _json.loads(db.get_config("resolver_fallos") or "{}")
+        if not isinstance(fallos, dict):
+            fallos = {}
+    except ValueError:
+        fallos = {}
+    ahora = _time.time()
     if limite is not None:
+        pendientes = [a for a in pendientes if ahora - float(fallos.get(a["nombre"], 0)) > 7 * 86400]
         pendientes = pendientes[:limite]
     resolved = errors = 0
     progreso.total(len(pendientes))
@@ -387,11 +388,18 @@ def resolve_anilist_ids(limite: int | None = None, sleep=_time.sleep,
             if r and r.anilist_id:
                 db.refrescar_metadata_anime(a["nombre"], {"anilist_id": r.anilist_id})
                 resolved += 1
+                fallos.pop(a["nombre"], None)
+            else:
+                fallos[a["nombre"]] = ahora
         except Exception:
             errors += 1
         # hasta una petición por variante del título + la de idMal
         sleep(ANILIST_MIN_INTERVAL * (len(candidatos_busqueda(a["nombre"])) + 1))
 
+    try:
+        db.set_config("resolver_fallos", _json.dumps(fallos, ensure_ascii=False))
+    except Exception:  # noqa: BLE001
+        pass
     log.info("Resolve IDs: %d resueltos, %d errores", resolved, errors)
     return {"resolved": resolved, "errors": errors,
             "pendientes": max(0, len(pendientes) - resolved)}

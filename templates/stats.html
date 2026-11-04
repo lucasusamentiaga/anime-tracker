@@ -139,24 +139,86 @@ main{padding:20px;max-width:900px;margin:0 auto}
 [data-theme=light] .donut-center{fill:#4f46e5}
 [data-theme=light] .back-btn{background:#fff;border-color:#d4d0ec;color:#4b4b6b}
 
-/* Tooltip para logros */
-.logro-item{text-align:center;position:relative;cursor:default}
-.logro-tip{
-  visibility:hidden;opacity:0;
-  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
-  background:var(--card);border:1px solid var(--border);border-radius:8px;
-  padding:8px 12px;width:max-content;max-width:180px;
-  box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:10;pointer-events:none;
-  transition:opacity .15s ease,visibility .15s ease;
-}
-.logro-item:hover .logro-tip{visibility:visible;opacity:1}
-.logro-tip .tip-name{font-size:12px;font-weight:700;color:var(--light);margin-bottom:2px}
-.logro-tip .tip-desc{font-size:11px;color:var(--muted);line-height:1.3}
-.logro-tip::after{
-  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
-  border:6px solid transparent;border-top-color:var(--border);
-}
-@media(prefers-reduced-motion:reduce){.logro-tip{transition:none}}
+/* v2.16.1: nivel, rango y logros */
+.gm{display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center}
+.gm-ring{position:relative;width:112px;height:112px;flex-shrink:0}
+.gm-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gm-ring .trk{fill:none;stroke:var(--card2);stroke-width:9}
+.gm-ring .arc{fill:none;stroke:url(#gmGrad);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1)}
+.gm-ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.gm-ring .n b{font-size:34px;font-weight:800;color:var(--light);font-variant-numeric:tabular-nums}
+.gm-ring .n small{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.5px}
+.gm-tit{font-size:26px;font-weight:800;color:var(--light);line-height:1.1;text-wrap:balance}
+.gm-sub{font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.gm-sig{font-size:12px;color:var(--muted);margin-top:4px}
+.gm-sig b{color:var(--accent3,#a78bfa);font-weight:700}
+.gm-racha{text-align:center;padding:10px 16px;border-radius:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+.gm-racha b{display:block;font-size:24px;font-weight:800;color:#fbbf24;font-variant-numeric:tabular-nums}
+.gm-racha span{font-size:10px;color:var(--muted)}
+.gm-xp{margin-top:16px;border-top:1px solid var(--border);padding-top:12px}
+.gm-xp summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:6px}
+.gm-xp summary::-webkit-details-marker{display:none}
+.gm-xp summary::before{content:'▸';transition:transform .2s}
+.gm-xp[open] summary::before{transform:rotate(90deg)}
+.gm-xp summary:hover{color:var(--light)}
+.gm-fuentes{display:grid;gap:8px;margin-top:12px}
+.gm-f{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:10px;align-items:center;font-size:12px}
+.gm-f .l{color:var(--light)}
+.gm-f .l small{color:var(--muted);margin-left:4px}
+.gm-f .t{height:6px;border-radius:99px;background:var(--card2);overflow:hidden}
+.gm-f .t i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.gm-f .v{color:var(--muted);font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+@media(max-width:560px){.gm{grid-template-columns:auto 1fr}.gm-racha{grid-column:1/-1;display:flex;gap:8px;align-items:baseline;justify-content:center;padding:6px 12px}.gm-racha b{font-size:18px}
+  .gm-ring{width:92px;height:92px}.gm-ring .n b{font-size:28px}.gm-tit{font-size:22px}.gm-f{grid-template-columns:1fr auto}.gm-f .t{grid-column:1/-1;order:3}}
+
+.rn{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rn img{filter:drop-shadow(0 4px 16px rgba(124,58,237,.45))}
+.rn-tit{font-size:24px;font-weight:800;color:var(--light)}
+.rn-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.rn-esc{display:flex;align-items:flex-start;margin-top:18px;position:relative}
+.rn-p{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;min-width:0}
+.rn-p::before{content:'';position:absolute;top:19px;right:50%;width:100%;height:3px;background:var(--card2);z-index:0}
+.rn-p:first-child::before{display:none}
+.rn-p.ok::before{background:linear-gradient(90deg,#f59e0b,#a855f7)}
+.rn-p .d{width:40px;height:40px;border-radius:50%;background:var(--card2);border:2px solid var(--border);display:grid;place-items:center;position:relative;z-index:1}
+.rn-p .d img{width:28px;height:28px;filter:grayscale(1);opacity:.35}
+.rn-p.ok .d{border-color:#a855f7;background:rgba(168,85,247,.15)}
+.rn-p.ok .d img{filter:none;opacity:1}
+.rn-p.act .d{box-shadow:0 0 0 4px rgba(168,85,247,.25)}
+.rn-p .nm{font-size:11px;font-weight:700;color:var(--muted);margin-top:6px}
+.rn-p.ok .nm{color:var(--light)}
+.rn-p .h{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rn-next{font-size:12px;color:var(--muted);margin-top:14px}
+.rn-next b{color:var(--light)}
+
+.lg-cat{margin-top:18px}
+.lg-cat h3{font-size:12px;font-weight:700;color:var(--muted);margin:0 0 10px;display:flex;gap:8px;align-items:baseline}
+.lg-cat h3 span{font-weight:500;font-variant-numeric:tabular-nums}
+.lg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+@media(max-width:560px){.lg-grid{grid-template-columns:1fr 1fr}.lg{flex-direction:column;text-align:center;gap:6px}.lg .tx{width:100%}.lg .nm{overflow-wrap:anywhere}}
+.lg{--t:#cd7f32;display:flex;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--card2);border:1px solid var(--border);position:relative;min-width:0}
+.lg[data-tier=plata]{--t:#cbd5e1}
+.lg[data-tier=oro]{--t:#f5c518}
+.lg .em{width:46px;height:46px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--t) 22%,transparent),transparent 70%);
+  border:2px solid color-mix(in srgb,var(--t) 70%,transparent)}
+.lg .em img{width:36px;height:36px}
+.lg .tx{min-width:0;flex:1}
+.lg .nm{font-size:12.5px;font-weight:700;color:var(--light);line-height:1.2}
+.lg .ds{font-size:11px;color:var(--muted);line-height:1.3;margin-top:2px}
+.lg .pg{margin-top:6px;display:flex;align-items:center;gap:6px}
+.lg .pg i{flex:1;height:4px;border-radius:99px;background:var(--border);overflow:hidden;display:block}
+.lg .pg i b{display:block;height:100%;background:var(--t);border-radius:99px}
+.lg .pg span{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.lg.off .em{border-style:dashed;border-color:var(--border);background:none}
+.lg.off .em img{filter:grayscale(1);opacity:.35}
+.lg.off .nm{color:var(--muted)}
+.lg.ok{border-color:color-mix(in srgb,var(--t) 35%,var(--border))}
+.lg .nv{position:absolute;top:-7px;right:8px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;letter-spacing:.4px;border-radius:99px;padding:2px 7px}
+[data-theme=light] .lg,[data-theme=light] .rn-p .d{background:#f4f2fb}
+[data-theme=light] .lg[data-tier=plata]{--t:#94a3b8}
+[data-theme=light] .lg[data-tier=oro]{--t:#d4a106}
+@media(prefers-reduced-motion:reduce){.gm-ring .arc{transition:none}}
 
 /* ── v2.16: Mi año en anime ── */
 .wrap-abrir{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;
@@ -238,6 +300,27 @@ main{padding:20px;max-width:900px;margin:0 auto}
 }
 @media (prefers-reduced-motion:reduce){.wrap-fondo,.wrap-caja,.wrap-cifra,.wrap-mes i,.wrap-gen .pista i{animation:none}}
 [data-theme=light] .wrap-caja{background:#fff}
+
+/* ── v2.16.1: lista al pulsar una cifra ── */
+.nota-manga{margin:-8px 2px 18px;font-size:13px;color:var(--muted)}
+.lk-fondo{position:fixed;inset:0;z-index:var(--z-aviso,1100);display:grid;place-items:center;padding:16px;background:rgba(6,4,12,.66);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:wrapFade .25s cubic-bezier(.22,1,.36,1) both}
+.lk-caja{width:min(560px,100%);max-height:min(82vh,760px);display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;animation:wrapIn .45s cubic-bezier(.16,1,.3,1) both}
+.lk-cab{display:flex;align-items:center;gap:10px;padding:18px 20px 12px;flex-shrink:0;position:relative}
+.lk-cab h2{margin:0;font:700 20px/1.2 "Space Grotesk",Inter,sans-serif;color:var(--fg);text-wrap:balance}
+.lk-n{padding:2px 9px;border-radius:99px;background:rgba(var(--accent-rgb,124,58,237),.2);color:var(--light);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.lk-cab .wrap-x{position:static;margin-left:auto}
+.lk-busca{margin:0 20px 10px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--fg);font:14px Inter,sans-serif;flex-shrink:0}
+.lk-lista{list-style:none;margin:0;padding:4px 10px 14px;overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.lk-fila{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:7px 10px;border-radius:10px;color:var(--fg);text-decoration:none;transition:background .15s}
+.lk-fila:hover,.lk-fila:focus-visible{background:rgba(var(--accent-rgb,124,58,237),.12);outline:none}
+.lk-fila img{width:36px;height:50px;border-radius:6px;object-fit:cover;background:var(--card2)}
+.lk-fila strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lk-fila small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.lk-fila .ir{color:var(--muted);font-size:14px}
+.lk-vacio{padding:30px 10px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.lk-fondo,.lk-caja{animation:none}}
 </style>
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
@@ -280,22 +363,24 @@ main{padding:20px;max-width:900px;margin:0 auto}
       <div class="value" id="k-genre" style="font-size:16px;line-height:1.3">–</div>
       <div class="label" id="lbl-genre">Género favorito</div>
     </div>
-    <div class="kpi">
+    <button type="button" class="kpi kpi-btn" onclick="abrirListaKpi('completados')" title="Ver cuáles">
       <div class="kpi-icon">🏆</div>
       <div class="value" id="k-completed">–</div>
       <div class="label" id="lbl-completed">Completados</div>
-    </div>
-    <div class="kpi">
+    </button>
+    <button type="button" class="kpi kpi-btn" onclick="abrirListaKpi('viendo')" title="Ver cuáles">
       <div class="kpi-icon">👀</div>
       <div class="value" id="k-watching">–</div>
       <div class="label" id="lbl-watching">Viendo ahora</div>
-    </div>
-    <button type="button" class="kpi kpi-btn" onclick="abrirWrapped()" title="Abre tu «Mi año en anime»">
+    </button>
+    <button type="button" class="kpi kpi-btn" onclick="abrirListaKpi('anio')" title="Ver qué viste este año">
       <div class="kpi-icon">✨</div>
       <div class="value" id="k-year">–</div>
       <div class="label" id="lbl-year">Episodios este año</div>
     </button>
   </div>
+
+  <p id="nota-manga" class="nota-manga" hidden></p>
 
   <!-- v2.2: heatmap de actividad estilo GitHub contributions -->
   <div class="section" style="margin-bottom:16px">
@@ -331,47 +416,45 @@ main{padding:20px;max-width:900px;margin:0 auto}
     <div id="chart-genres" class="genre-cloud"></div>
   </div>
 
-  <!-- Nivel, XP y racha de apertura -->
+  <!-- Nivel, XP y racha de apertura (v2.16.1) -->
   <div class="section" id="gami-section" style="margin-bottom:16px;display:none">
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-      <div id="gami-level" style="font-size:26px;font-weight:800;color:var(--light);white-space:nowrap">Nivel 1</div>
-      <div style="flex:1;min-width:200px">
-        <div style="height:12px;background:var(--card2);border:1px solid var(--border);border-radius:99px;overflow:hidden">
-          <div id="gami-xpbar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:99px;transition:width .8s cubic-bezier(.16,1,.3,1)"></div>
-        </div>
-        <div id="gami-xptext" style="font-size:11px;color:var(--muted);margin-top:5px"></div>
+    <div class="gm">
+      <div class="gm-ring" aria-hidden="true">
+        <svg viewBox="0 0 120 120"><defs><linearGradient id="gmGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs>
+          <circle class="trk" cx="60" cy="60" r="52"/>
+          <circle class="arc" id="gami-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
+        <div class="n"><b id="gami-num">1</b><small id="lbl-nivel">NIVEL</small></div>
       </div>
-      <div style="background:var(--grad-accent-soft,rgba(124,58,237,.12));border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:8px 14px;text-align:center">
-        <div id="gami-open-streak" style="font-size:20px;font-weight:800;color:var(--light)">🔥 0</div>
-        <div style="font-size:10px;color:var(--muted)">días seguidos</div>
+      <div style="min-width:0">
+        <div class="gm-tit" id="gami-titulo">Novato</div>
+        <div class="gm-sub" id="gami-xptext"></div>
+        <div class="gm-sig" id="gami-sig"></div>
       </div>
+      <div class="gm-racha"><b id="gami-open-streak">0</b><span>días seguidos</span></div>
     </div>
+    <details class="gm-xp"><summary>¿De dónde sale tu XP?</summary><div class="gm-fuentes" id="gami-fuentes"></div></details>
   </div>
 
   <!-- Rango ninja -->
   <div class="section" id="rango-section" style="margin-bottom:16px;display:none">
-    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-      <img id="rango-img" src="" alt="" width="72" height="72" style="filter:drop-shadow(0 4px 16px rgba(124,58,237,.5))">
-      <div style="flex:1;min-width:180px">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:2px">Rango Ninja</div>
-        <div id="rango-nombre" style="font-size:26px;font-weight:800;color:var(--light)"></div>
-        <div id="rango-desc" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
-        <div id="rango-bar-wrap" style="display:none">
-          <div style="height:8px;background:var(--card2);border:1px solid var(--border);border-radius:99px;overflow:hidden">
-            <div id="rango-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#f59e0b,#ef4444,#7c3aed);border-radius:99px;transition:width .8s cubic-bezier(.16,1,.3,1)"></div>
-          </div>
-          <div id="rango-next" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
-        </div>
+    <div class="rn">
+      <img id="rango-img" src="" alt="" width="64" height="64">
+      <div style="flex:1;min-width:160px">
+        <h2 style="margin:0 0 2px;font-size:13px;color:var(--muted)">Rango Ninja</h2>
+        <div class="rn-tit" id="rango-nombre"></div>
+        <div class="rn-desc" id="rango-desc"></div>
       </div>
     </div>
+    <div class="rn-esc" id="rango-escala"></div>
+    <div class="rn-next" id="rango-next"></div>
   </div>
 
-  <!-- Logros / emblemas (idea portada de Brasa/Lumbre) -->
+  <!-- Logros -->
   <div class="section" id="logros-section" style="margin-bottom:16px;display:none">
     <h2 id="lbl-logros">🏅 Logros
       <span id="logros-count" style="font-size:13px;color:var(--muted);font-weight:500"></span></h2>
-    <div id="logros-grid"
-         style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:16px;margin-top:12px"></div>
+    <div id="logros-grid"></div>
   </div>
 
   <!-- v2.4: tiempo hasta completar (derivado de ep_log) -->
@@ -581,6 +664,12 @@ async function loadStats() {
   // Completados
   const completados = (d.by_state || {}).completado || (d.by_state || {}).completed || 0;
   document.getElementById('k-completed').textContent = completados;
+  if (d.mangas) {
+    const nm = document.getElementById('nota-manga');
+    nm.textContent = '📖 Además, ' + d.mangas + (d.mangas === 1 ? ' manga' : ' mangas') + ' · ' +
+      (d.capitulos_manga || 0).toLocaleString('es-ES') + ' capítulos leídos (no cuentan como episodios ni horas de anime).';
+    nm.hidden = false;
+  }
   const bs = d.by_state || {};
   document.getElementById('k-watching').textContent = (bs.viendo || 0) + (bs.watching || 0);
   // Episodios de este año: el mismo dato que «Mi año en anime» (se guarda para
@@ -750,8 +839,9 @@ async function loadHeatmap() {
     const hm = await hmRes.json();
     const st = await stRes.json();
 
-    document.getElementById('streak-actual').textContent = (st.actual || 0) + ' días';
-    document.getElementById('streak-max').textContent    = (st.max    || 0) + ' días';
+    const _dias = n => n + (n === 1 ? ' día' : ' días');
+    document.getElementById('streak-actual').textContent = _dias(st.actual || 0);
+    document.getElementById('streak-max').textContent    = _dias(st.max || 0);
     document.getElementById('heatmap-total').textContent = (hm.total  || 0);
 
     if (!hm.dias || hm.dias.length === 0) {
@@ -799,7 +889,9 @@ async function loadHeatmap() {
 
     const w = OFFSET_LEFT + weeks.length * (CELL + GAP);
     const h = OFFSET_TOP + 7 * (CELL + GAP);
-    let svg = `<svg width="${w}" height="${h}" style="display:block">`;
+    // Escala al ancho de la tarjeta (sin barra de desplazamiento en el PC);
+    // en el móvil mantiene un mínimo legible y se desplaza.
+    let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;min-width:620px;max-width:${w * 1.4}px" role="img" aria-label="Mapa de actividad del último año">`;
 
     // Etiquetas de mes (solo cuando el mes cambia)
     let lastMonth = -1;
@@ -813,7 +905,8 @@ async function loadHeatmap() {
     });
 
     // Etiquetas de día de la semana (lun, mié, vie)
-    ['L','','M','','V','',''].forEach((d, i) => {
+    // Filas: lunes a domingo. Miércoles es «X» (antes ponía «M», que es martes).
+    ['L','','X','','V','',''].forEach((d, i) => {
       if (d) svg += `<text x="0" y="${OFFSET_TOP + i*(CELL+GAP) + 10}" font-size="9" fill="#6b6b88">${d}</text>`;
     });
 
@@ -834,9 +927,10 @@ async function loadHeatmap() {
         const c = byDate[iso] || 0;
         const future = day > today;
         const fill = future ? 'transparent' : colorFor(c);
+        const fechaTxt = day.toLocaleDateString(undefined, {weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'});
         const title = future
-          ? iso
-          : (c === 1 ? `${iso}: 1 episodio` : `${iso}: ${c} episodios`);
+          ? fechaTxt
+          : (c === 1 ? `${fechaTxt}: 1 episodio` : `${fechaTxt}: ${c} episodios`);
         svg += `<rect x="${OFFSET_LEFT + wi*(CELL+GAP)}" y="${OFFSET_TOP + di*(CELL+GAP)}" `
              + `width="${CELL}" height="${CELL}" rx="2" fill="${fill}">`
              + `<title>${title}</title></rect>`;
@@ -894,6 +988,79 @@ async function abrirWrapped(year) {
   }
   _wrapDatos = d;
   _pintarWrapped(fondo, d);
+}
+
+// ── v2.16.1: las cifras «Completados», «Viendo ahora» y «Episodios este año»
+// abren la lista de esos animes (y desde ahí, su ficha).
+const _LISTAS_KPI = {
+  completados: {t: 'Completados', ico: '🏆', vacio: 'Aún no has terminado ningún anime.'},
+  viendo:      {t: 'Viendo ahora', ico: '👀', vacio: 'No estás viendo nada ahora mismo.'},
+  anio:        {t: 'Lo que has visto este año', ico: '✨', vacio: 'Este año aún no has marcado episodios con +1.'},
+};
+async function abrirListaKpi(tipo) {
+  const cfg = _LISTAS_KPI[tipo];
+  let filas = [];
+  try {
+    if (tipo === 'anio') {
+      const w = _wrapDatos && _wrapDatos.year === new Date().getFullYear() ? _wrapDatos
+        : await (await fetch('/api/stats/wrapped?year=' + new Date().getFullYear(), {cache: 'no-store'})).json();
+      filas = (w.vistos_anio || []).map(a => ({nombre: a.nombre, imagen: a.imagen, meta: a.episodios + ' ' + (a.episodios === 1 ? 'episodio' : 'episodios') + ' este año'}));
+    } else {
+      const d = await (await fetch('/api/animes/slim', {cache: 'no-store'})).json();
+      const est = tipo === 'viendo' ? ['viendo', 'watching'] : ['completado', 'completed'];
+      filas = (d.animes || []).filter(a => est.includes(a.estado_usuario))
+        .sort((a, b) => tipo === 'viendo'
+          ? String(b.creado_en || '').localeCompare(String(a.creado_en || ''))
+          : a.nombre.localeCompare(b.nombre, 'es'))
+        .map(a => {
+          const tot = parseInt(a.capitulos) || 0, v = a.episodios_vistos || 0;
+          return {nombre: a.nombre, imagen: a.imagen,
+                  meta: tipo === 'viendo' ? (tot ? 'Ep ' + v + ' de ' + tot : 'Ep ' + v) : (a.puntuacion ? '⭐ ' + a.puntuacion : (tot ? tot + ' eps' : ''))};
+        });
+    }
+  } catch (_) { miraruAviso('No se pudo cargar la lista'); return; }
+
+  const fondo = _wEl('div', 'lk-fondo');
+  const caja = _wEl('div', 'lk-caja');
+  caja.setAttribute('role', 'dialog'); caja.setAttribute('aria-modal', 'true'); caja.setAttribute('aria-label', cfg.t);
+  const cab = _wEl('div', 'lk-cab');
+  const h = _wEl('h2', null, cfg.ico + ' ' + cfg.t);
+  const n = _wEl('span', 'lk-n', String(filas.length));
+  const x = _wEl('button', 'wrap-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Cerrar');
+  cab.append(h, n, x);
+  const busca = _wEl('input', 'lk-busca'); busca.type = 'search'; busca.placeholder = 'Buscar…';
+  const lista = _wEl('ul', 'lk-lista');
+  const pintar = () => {
+    const q = busca.value.trim().toLowerCase();
+    lista.innerHTML = '';
+    const vis = filas.filter(f => !q || f.nombre.toLowerCase().includes(q));
+    if (!vis.length) { lista.append(_wEl('li', 'lk-vacio', filas.length ? 'Nada con ese nombre.' : cfg.vacio)); return; }
+    const frag = document.createDocumentFragment();
+    vis.forEach(f => {
+      const li = _wEl('li');
+      const a = _wEl('a', 'lk-fila'); a.href = '/app#anime=' + encodeURIComponent(f.nombre);
+      const img = _wEl('img'); img.alt = ''; img.loading = 'lazy';
+      if (f.imagen) img.src = _thumbUrl(f.imagen); else img.style.visibility = 'hidden';
+      img.onerror = () => { img.style.visibility = 'hidden'; };
+      const t = _wEl('span', 't'); t.append(_wEl('strong', null, f.nombre), _wEl('small', null, f.meta || ''));
+      a.append(img, t, _wEl('span', 'ir', '→'));
+      li.append(a); frag.append(li);
+    });
+    lista.append(frag);
+  };
+  busca.addEventListener('input', pintar);
+  caja.append(cab, busca, lista);
+  fondo.append(caja);
+  document.body.append(fondo);
+  document.body.style.overflow = 'hidden';
+  pintar();
+  const cerrar = () => { fondo.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', tecla); };
+  const tecla = e => { if (e.key === 'Escape') cerrar(); };
+  x.onclick = cerrar;
+  fondo.addEventListener('click', e => { if (e.target === fondo) cerrar(); });
+  document.addEventListener('keydown', tecla);
+  setTimeout(() => (filas.length > 8 ? busca : x).focus(), 30);
+  if (filas.length <= 8) busca.style.display = 'none';
 }
 
 if (location.hash === '#mi-ano') {
@@ -1057,62 +1224,154 @@ async function exportarWrapped(btn) {
       return t + '…';
     };
 
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#1b1530'); bg.addColorStop(1, '#09070f');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-    const halo = ctx.createRadialGradient(W / 2, 120, 0, W / 2, 120, 620);
-    halo.addColorStop(0, `rgba(${ACC},.42)`); halo.addColorStop(1, `rgba(${ACC},0)`);
-    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, 760);
+    // Portadas: AniList permite CORS, así que se cargan como anónimas y el
+    // lienzo no queda «manchado». Si alguna falla, se dibuja un hueco con la inicial.
+    const T = (t) => (window.miraruTraducir ? window.miraruTraducir(t) : t);
+    const cargaImg = (url) => new Promise((ok) => {
+      if (!url) return ok(null);
+      const im = new Image(); im.crossOrigin = 'anonymous';
+      const t = setTimeout(() => ok(null), 5000);
+      im.onload = () => { clearTimeout(t); ok(im); };
+      im.onerror = () => { clearTimeout(t); ok(null); };
+      // La misma portada ya se pintó sin CORS en el resumen y el navegador la
+      // tiene en caché sin la cabecera: otra URL obliga a pedirla de nuevo.
+      im.src = url + (url.includes('?') ? '&' : '?') + 'cors=1';
+    });
+    const top = (d.mas_vistos || []).slice(0, 5);
+    const imgs = await Promise.all(top.map(a => cargaImg(a.imagen)));
+    let gami = null;
+    try { gami = await (await fetch('/api/gamificacion')).json(); } catch (_) {}
 
-    ctx.textAlign = 'center';
-    ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = F(700, 26); ctx.fillText('MIRARU', W / 2, 92);
-    ctx.fillStyle = '#fff'; ctx.font = G(700, 72); ctx.fillText('Mi año en anime', W / 2, 182);
-    ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = G(600, 34); ctx.fillText(String(d.year || ''), W / 2, 232);
+    const cubre = (im, x, y, w, h) => {      // object-fit: cover
+      const r = Math.max(w / im.width, h / im.height), sw = w / r, sh = h / r;
+      ctx.drawImage(im, (im.width - sw) / 2, (im.height - sh) / 2, sw, sh, x, y, w, h);
+    };
+    const poster = (im, a, x, y, w, h, rad) => {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, rad); ctx.fillStyle = '#1d1830'; ctx.fill();
+      ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, rad); ctx.clip();
+      if (im) cubre(im, x, y, w, h);
+      else {
+        const g = ctx.createLinearGradient(x, y, x + w, y + h);
+        g.addColorStop(0, `rgba(${ACC},.55)`); g.addColorStop(1, '#1d1830');
+        ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.font = G(700, w * .4); ctx.textAlign = 'center';
+        ctx.fillText(String(a && a.nombre || '?').trim().charAt(0).toUpperCase(), x + w / 2, y + h / 2 + w * .14);
+        ctx.textAlign = 'left';
+      }
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, rad); ctx.stroke();
+    };
+    const lineas = (txt, ancho, max) => {     // parte en líneas que quepan
+      const pal = String(txt).split(/\s+/), out = [];
+      let l = '';
+      for (const p of pal) {
+        const prueba = l ? l + ' ' + p : p;
+        if (ctx.measureText(prueba).width <= ancho || !l) l = prueba; else { out.push(l); l = p; }
+      }
+      if (l) out.push(l);
+      if (out.length > max) { out.length = max; out[max - 1] = recorta(out[max - 1] + '…', ancho).replace(/……$/, '…'); }
+      return out.map(t => recorta(t, ancho));
+    };
+    const insignia = (n, x, y, r) => {
+      ctx.fillStyle = `rgba(${ACC},1)`; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = G(700, r * 1.05); ctx.textAlign = 'center';
+      ctx.fillText(String(n), x, y + r * .37); ctx.textAlign = 'left';
+    };
 
-    // 4 cifras
+    // Fondo: la portada del nº 1, desenfocada, tiñe la parte de arriba.
+    ctx.fillStyle = '#0b0912'; ctx.fillRect(0, 0, W, H);
+    if (imgs[0]) {
+      ctx.save(); ctx.filter = 'blur(48px) saturate(1.3)'; ctx.globalAlpha = .55;
+      cubre(imgs[0], -80, -80, W + 160, 840); ctx.restore();
+    }
+    const halo = ctx.createRadialGradient(W * .8, 60, 0, W * .8, 60, 700);
+    halo.addColorStop(0, `rgba(${ACC},.45)`); halo.addColorStop(1, `rgba(${ACC},0)`);
+    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, 800);
+    const vel = ctx.createLinearGradient(0, 0, 0, H);
+    vel.addColorStop(0, 'rgba(11,9,18,.35)'); vel.addColorStop(.45, 'rgba(11,9,18,.85)'); vel.addColorStop(1, '#0b0912');
+    ctx.fillStyle = vel; ctx.fillRect(0, 0, W, H);
+
+    // Cabecera
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = F(700, 24); ctx.fillText('MIRARU', 80, 96);
+    ctx.fillStyle = '#fff'; ctx.font = G(700, 68); ctx.fillText(T('Mi año en anime'), 80, 172);
+    ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = G(700, 68);
+    ctx.fillText(String(d.year || ''), W - 80, 172); ctx.textAlign = 'left';
+    if (gami && gami.nivel) {
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = F(600, 22);
+      ctx.fillText(T('Nivel ' + gami.nivel) + (gami.titulo ? ' · ' + T(gami.titulo) : ''), 80, 214);
+    }
+
+    // Héroe: el anime del año + cifras
+    const HY = 262, PW = 270, PH = 384;
+    if (top[0]) {
+      poster(imgs[0], top[0], 80, HY, PW, PH, 20);
+      insignia(1, 80 + PW - 4, HY + 4, 30);
+    }
+    const cx0 = top[0] ? 80 + PW + 48 : 80, anchoD = W - 80 - cx0;
+    let yy = HY + 30;
+    if (top[0]) {
+      ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = F(700, 22); ctx.fillText(T('Tu anime del año').toUpperCase(), cx0, yy);
+      ctx.fillStyle = '#fff'; ctx.font = G(700, 44);
+      lineas(top[0].nombre, anchoD, 2).forEach((t, i) => ctx.fillText(t, cx0, yy + 54 + i * 50));
+      yy += 54 + Math.min(2, lineas(top[0].nombre, anchoD, 2).length) * 50;
+      ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.font = F(500, 24);
+      ctx.fillText(T(top[0].episodios + ' episodios este año') + (top[0].puntuacion ? '  ·  ★ ' + top[0].puntuacion : ''), cx0, yy - 6);
+      yy += 30;
+    }
     const horas = Number(d.horas_estimadas || 0);
-    const cif = [[_wNum(d.total_episodios), 'episodios'], [horas >= 48 ? _wNum(horas / 24) + ' d' : _wNum(horas) + ' h', 'de anime'],
-                 [_wNum(d.animes_vistos), 'animes'], [_wNum(d.completados), 'completados']];
+    const cif = [[_wNum(d.total_episodios), T('episodios')], [horas >= 48 ? _wNum(horas / 24) + ' d' : _wNum(horas) + ' h', T(horas >= 48 ? 'días de anime' : 'horas de anime')],
+                 [_wNum(d.animes_vistos), T('animes')], [_wNum(d.completados), T('completados')]];
+    const cw = (anchoD - 20) / 2, ch = 104, gy = Math.max(yy, HY + PH - ch * 2 - 20);
     cif.forEach(([n, l], i) => {
-      const cx = 80 + i * 230 + 110, y = 300;
-      ctx.fillStyle = 'rgba(255,255,255,.06)';
-      ctx.beginPath(); ctx.roundRect(cx - 105, y, 210, 150, 22); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = G(700, 54); ctx.fillText(n, cx, y + 84);
-      ctx.fillStyle = 'rgba(255,255,255,.62)'; ctx.font = F(500, 22); ctx.fillText(l, cx, y + 122);
+      const x = cx0 + (i % 2) * (cw + 20), y = gy + Math.floor(i / 2) * (ch + 20);
+      ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.beginPath(); ctx.roundRect(x, y, cw, ch, 16); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = G(700, 46); ctx.fillText(n, x + 22, y + 56);
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = F(500, 20); ctx.fillText(l, x + 22, y + 86);
     });
 
-    // Barras por mes
-    ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.font = G(700, 30);
-    ctx.fillText('Episodios por mes', 80, 530);
-    const pm = d.por_mes || [], mx = Math.max(1, ...pm), base = 740, alto = 170, ancho = 920 / 12;
+    // Lo que más viste: del 2 al 5, en pósters
+    const resto = top.slice(1);
+    const TY = 720;
+    if (resto.length) {
+      ctx.fillStyle = '#fff'; ctx.font = G(700, 30); ctx.fillText(T('Lo que más viste'), 80, TY);
+      const pw = 200, ph = 270, gap = (920 - pw * 4) / 3;
+      resto.forEach((a, i) => {
+        const x = 80 + i * (pw + gap), y = TY + 28;
+        poster(imgs[i + 1], a, x, y, pw, ph, 14);
+        insignia(i + 2, x + 26, y + 26, 20);
+        ctx.fillStyle = '#fff'; ctx.font = F(600, 21);
+        lineas(a.nombre, pw, 2).forEach((t, k) => ctx.fillText(t, x, y + ph + 32 + k * 26));
+        ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = F(500, 18);
+        ctx.fillText(a.episodios + ' eps', x, y + ph + 32 + Math.min(2, lineas(a.nombre, pw, 2).length) * 26 + 2);
+      });
+    }
+
+    // Episodios por mes (franja compacta)
+    const MY = resto.length ? 1150 : 740;
+    ctx.fillStyle = '#fff'; ctx.font = G(700, 26); ctx.fillText(T('Episodios por mes'), 80, MY);
+    const pm = d.por_mes || [], mx = Math.max(1, ...pm), alto = resto.length ? 66 : 300, base = MY + alto + 48, ancho = 920 / 12;
     pm.forEach((n, i) => {
-      const x = 80 + i * ancho, h = Math.max(n ? 6 : 2, (n / mx) * alto);
-      ctx.fillStyle = i === d.mes_top ? `rgba(${ACC},1)` : `rgba(${ACC},.45)`;
-      ctx.beginPath(); ctx.roundRect(x + 10, base - h, ancho - 20, h, 8); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = F(500, 18); ctx.textAlign = 'center';
-      ctx.fillText(_MESES[i], x + ancho / 2, base + 30);
-      if (n && i === d.mes_top) { ctx.fillStyle = '#fff'; ctx.font = F(700, 20); ctx.fillText(String(n), x + ancho / 2, base - h - 12); }
+      const x = 80 + i * ancho, h = Math.max(n ? 6 : 3, (n / mx) * alto);
+      ctx.fillStyle = i === d.mes_top ? `rgba(${ACC},1)` : 'rgba(255,255,255,.18)';
+      ctx.beginPath(); ctx.roundRect(x + 8, base - h, ancho - 16, h, 6); ctx.fill();
+      ctx.fillStyle = i === d.mes_top ? '#fff' : 'rgba(255,255,255,.45)'; ctx.font = F(600, 16); ctx.textAlign = 'center';
+      ctx.fillText(_MESES[i], x + ancho / 2, base + 24);
+      if (n && i === d.mes_top) { ctx.fillStyle = '#fff'; ctx.font = F(700, 18); ctx.fillText(String(n), x + ancho / 2, base - h - 10); }
       ctx.textAlign = 'left';
     });
-
-    // Lo que más viste
-    ctx.fillStyle = '#fff'; ctx.font = G(700, 30); ctx.fillText('Lo que más viste', 80, 850);
-    (d.mas_vistos || []).slice(0, 5).forEach((a, i) => {
-      const y = 900 + i * 62;
-      ctx.fillStyle = `rgba(${ACC},1)`; ctx.font = G(700, 30); ctx.fillText(String(i + 1), 80, y + 10);
-      ctx.fillStyle = '#fff'; ctx.font = F(600, 26); ctx.fillText(recorta(a.nombre, 640), 130, y + 8);
-      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = F(500, 22); ctx.textAlign = 'right';
-      ctx.fillText(a.episodios + ' eps', W - 80, y + 8); ctx.textAlign = 'left';
-    });
-
-    // Pie: género top + racha
+    // A la derecha del título del gráfico: género favorito y racha
     const gen = (d.top_generos || [])[0];
-    const pie = [gen ? 'Género favorito: ' + gen.genero : '', d.racha_max > 1 ? 'Mejor racha: ' + d.racha_max + ' días' : '']
-      .filter(Boolean).join('   ·   ');
-    ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = F(600, 24);
-    ctx.fillText(pie, W / 2, 1255);
-    ctx.fillStyle = 'rgba(255,255,255,.32)'; ctx.font = F(400, 18);
-    ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W / 2, H - 40);
+    const extra = [gen ? '♥ ' + gen.genero : '', d.racha_max > 1 ? '🔥 ' + d.racha_max + ' ' + T('días seguidos') : ''].filter(Boolean).join('   ');
+    ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.font = F(600, 22);
+    ctx.fillText(extra, W - 80, MY);
+
+    ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.font = F(400, 17); ctx.textAlign = 'center';
+    ctx.fillText('github.com/lucasusamentiaga/anime-tracker', W / 2, H - 22);
 
     const link = document.createElement('a');
     // Nombre solo con ASCII: con «ñ» Chrome descartaba el nombre y bajaba un archivo «download» sin extensión.
@@ -1130,6 +1389,7 @@ async function exportarWrapped(btn) {
 <script>
 // Gamificación: nivel + XP + racha de apertura + logros (idea de Brasa/Lumbre).
 (async function loadGami(){
+  const esc = function(t){ return String(t==null?'':t).replace(/[&<>"']/g, function(c){ return '&#'+c.charCodeAt(0)+';'; }); };
   // 1) registrar la apertura de hoy (racha diaria) — idempotente por día
   try { await fetch('/api/streak/checkin', {method:'POST'}); } catch(_){}
   // 2) pintar estado de gamificación
@@ -1138,60 +1398,83 @@ async function exportarWrapped(btn) {
     if(!r.ok) return;
     const d = await r.json();
     const gs = document.getElementById('gami-section');
+    const _n = function(v){ return Number(v||0).toLocaleString(); };
     if(gs){
       const xp = d.xp || {};
       const lvl = d.nivel || 1;
-      document.getElementById('gami-level').textContent = 'Nivel ' + lvl;
-      document.getElementById('gami-xpbar').style.width = Math.round((xp.progreso||0)*100) + '%';
+      document.getElementById('gami-num').textContent = lvl;
+      document.getElementById('gami-titulo').textContent = d.titulo || xp.titulo || 'Novato';
       document.getElementById('gami-xptext').textContent =
         (xp.xp||0) + ' XP · faltan ' + (xp.falta||0) + ' para nivel ' + (lvl+1);
-      const os = (d.racha_apertura||{}).actual || 0;
-      document.getElementById('gami-open-streak').textContent = '🔥 ' + os;
+      const sig = d.siguiente_titulo;
+      document.getElementById('gami-sig').innerHTML = sig
+        ? 'Siguiente título: <b>' + esc(sig.nombre) + '</b> · ' + 'Nivel ' + sig.nivel
+        : 'Título máximo alcanzado';
+      document.getElementById('gami-open-streak').textContent = (d.racha_apertura||{}).actual || 0;
       gs.style.display = 'block';
+      const arc = document.getElementById('gami-arc');
+      requestAnimationFrame(function(){ arc.style.strokeDashoffset = (326.7 * (1 - Math.min(1, xp.progreso||0))).toFixed(1); });
+      const fu = d.fuentes_xp || [];
+      const maxXp = Math.max(1, ...fu.map(function(f){ return f.xp; }));
+      document.getElementById('gami-fuentes').innerHTML = fu.map(function(f){
+        return '<div class="gm-f"><span class="l">' + esc(f.label) + '<small>×' + f.por_unidad + '</small></span>'
+          + '<span class="t"><i style="width:' + Math.round(f.xp/maxXp*100) + '%"></i></span>'
+          + '<span class="v">' + _n(f.xp) + ' XP</span></div>';
+      }).join('');
     }
-    // Rango ninja
+    // Rango ninja: rango actual + escala completa
     var rn = d.rango_ninja;
-    if(rn){
-      var rs = document.getElementById('rango-section');
-      if(rs){
-        document.getElementById('rango-img').src = '/static/emblems/'+rn.emblema+'.svg';
-        document.getElementById('rango-nombre').textContent = rn.nombre;
-        document.getElementById('rango-desc').textContent = rn.desc + ' — ' + rn.horas + 'h vistas';
-        if(rn.siguiente){
-          document.getElementById('rango-bar-wrap').style.display = 'block';
-          document.getElementById('rango-bar').style.width = Math.round(rn.progreso*100)+'%';
-          document.getElementById('rango-next').textContent =
-            'Siguiente: '+rn.siguiente+' ('+rn.siguiente_umbral+'h)';
-        }
-        rs.style.display = 'block';
-      }
+    var rs = document.getElementById('rango-section');
+    if(rn && rs){
+      document.getElementById('rango-img').src = '/static/emblems/'+rn.emblema+'.svg';
+      document.getElementById('rango-nombre').textContent = rn.nombre;
+      document.getElementById('rango-desc').textContent = rn.desc + ' · ' + rn.horas + 'h vistas';
+      var esc_ = rn.escala || [];
+      var ultimo = -1;
+      esc_.forEach(function(p, i){ if(p.unlocked) ultimo = i; });
+      document.getElementById('rango-escala').innerHTML = esc_.map(function(p, i){
+        return '<div class="rn-p' + (p.unlocked ? ' ok' : '') + (i === ultimo ? ' act' : '') + '" title="' + esc(p.nombre) + '">'
+          + '<span class="d"><img src="/static/emblems/' + p.emblema + '.svg" alt=""></span>'
+          + '<span class="nm">' + esc(p.nombre) + '</span><span class="h">' + p.horas + 'h</span></div>';
+      }).join('');
+      document.getElementById('rango-next').innerHTML = rn.siguiente
+        ? 'Siguiente: <b>' + esc(rn.siguiente) + '</b> · faltan ' + Math.max(0, Math.ceil(rn.siguiente_umbral - rn.horas)) + 'h'
+        : '';
+      rs.style.display = 'block';
     }
     const lg = d.logros || {};
     const grid = document.getElementById('logros-grid');
     const sec  = document.getElementById('logros-section');
     if(grid && sec){
+      const todos = (lg.logros||[]).filter(function(l){ return l.cat !== 'rango'; });
       const cnt = document.getElementById('logros-count');
-      if(cnt) cnt.textContent = (lg.desbloqueados||0) + '/' + (lg.total||0);
-      // Emblemas conseguidos desde la última visita → se resaltan con un latido
+      if(cnt) cnt.textContent = todos.filter(function(l){ return l.unlocked; }).length + '/' + todos.length;
+      // Emblemas conseguidos desde la última visita → etiqueta NUEVO
       var vistos = [];
       try { vistos = (JSON.parse(localStorage.getItem('miraru_gami_seen')||'{}').ids) || []; } catch(_) {}
-      grid.innerHTML = (lg.logros||[]).map(function(l){
+      const tierN = {bronce:'Bronce', plata:'Plata', oro:'Oro'};
+      const tarjeta = function(l){
         var nuevo = l.unlocked && vistos.length && vistos.indexOf(l.id) === -1;
-        var dim = l.unlocked ? '' : 'opacity:.32;filter:grayscale(1)';
-        var glow = l.unlocked ? 'filter:drop-shadow(0 4px 14px rgba(var(--accent-rgb),.5))' : '';
-        var col = l.unlocked ? 'var(--light)' : 'var(--muted)';
-        var estado = l.unlocked ? '✅' : '🔒';
-        return '<div class="logro-item" style="'+dim+'">'
-          + '<div class="logro-tip"><div class="tip-name">'+estado+' '+l.nombre+'</div>'
-          + '<div class="tip-desc">'+l.desc+'</div></div>'
-          + (nuevo ? '<span style="position:absolute;top:-3px;right:6px;background:var(--accent);color:#fff;'
-                   + 'font-size:8px;font-weight:800;letter-spacing:.4px;border-radius:99px;padding:2px 6px;'
-                   + 'box-shadow:var(--shadow-accent)">NUEVO</span>' : '')
-          + '<img class="'+(nuevo?'emblem-new':'')+'" src="/static/emblems/'+l.emblema+'.svg" alt="" width="60" height="60" style="'+glow+'">'
-          + '<div style="font-size:10px;margin-top:5px;color:'+col+';font-weight:600;line-height:1.2">'+l.nombre+'</div>'
-          + '</div>';
+        var prog = l.unlocked ? ''
+          : '<div class="pg"><i><b style="width:' + Math.round((l.progreso||0)*100) + '%"></b></i>'
+            + '<span>' + _n(l.actual) + '/' + _n(l.meta) + '</span></div>';
+        return '<div class="lg ' + (l.unlocked ? 'ok' : 'off') + '" data-tier="' + l.tier + '" title="' + (tierN[l.tier]||'') + '">'
+          + (nuevo ? '<span class="nv">NUEVO</span>' : '')
+          + '<span class="em"><img class="' + (nuevo ? 'emblem-new' : '') + '" src="/static/emblems/' + l.emblema + '.svg" alt=""></span>'
+          + '<div class="tx"><div class="nm">' + esc(l.nombre) + '</div><div class="ds">' + esc(l.desc) + '</div>' + prog + '</div></div>';
+      };
+      // Por categoría; dentro, primero los conseguidos y luego los más cerca.
+      grid.innerHTML = (lg.categorias||[{id:'biblioteca',nombre:'Logros'}]).filter(function(c){ return c.id !== 'rango'; }).map(function(c){
+        var items = todos.filter(function(l){ return (l.cat||'biblioteca') === c.id; });
+        if(!items.length) return '';
+        items.sort(function(a, b){ return (b.unlocked - a.unlocked) || ((b.progreso||0) - (a.progreso||0)); });
+        var ok = items.filter(function(l){ return l.unlocked; }).length;
+        return '<div class="lg-cat"><h3>' + esc(c.nombre) + ' <span>' + ok + '/' + items.length + '</span></h3>'
+          + '<div class="lg-grid">' + items.map(tarjeta).join('') + '</div></div>';
       }).join('');
       sec.style.display = 'block';
+      // /stats#logros-section (desde Novedades): la sección aparece tarde, así que el salto se hace aquí.
+      if (location.hash === '#logros-section') setTimeout(function(){ sec.scrollIntoView({block: 'start'}); }, 60);
     }
   }catch(_){}
 })();

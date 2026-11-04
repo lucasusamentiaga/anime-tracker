@@ -212,8 +212,12 @@ def agrupar_franquicias(animes: list[dict],
     bases = {i: _base_name(animes[i].get("nombre", "")) for i in automaticos}
     palabras = {i: _palabras(bases[i]) for i in automaticos}
     por_base: dict[str, int] = {}
+    # v2.16.1: el anime y el manga de la misma obra NO van en la misma caja
+    # (antes «Attack on Titan» manga caía entre las temporadas del anime).
+    def _tipo(i):
+        return "manga" if (animes[i].get("tipo") or "anime") == "manga" else "anime"
     for i in automaticos:
-        k = " ".join(palabras[i]) or animes[i].get("nombre", "").casefold()
+        k = _tipo(i) + ":" + (" ".join(palabras[i]) or animes[i].get("nombre", "").casefold())
         if k in por_base:
             uf.unir(por_base[k], i)
         else:
@@ -224,7 +228,7 @@ def agrupar_franquicias(animes: list[dict],
     for x in range(len(reps)):
         for y in range(x + 1, len(reps)):
             i, j = reps[x], reps[y]
-            if _misma_saga(palabras[i], palabras[j]):
+            if _tipo(i) == _tipo(j) and _misma_saga(palabras[i], palabras[j]):
                 uf.unir(i, j)
 
     # 3. Relaciones de AniList
@@ -238,7 +242,7 @@ def agrupar_franquicias(animes: list[dict],
             aid = int(animes[i].get("anilist_id") or 0)
             for rel in relaciones.get(aid) or relaciones.get(str(aid)) or []:
                 j = por_id.get(int(rel))
-                if j is not None:
+                if j is not None and _tipo(i) == _tipo(j):
                     uf.unir(i, j)
 
     # 4. Grupos: automáticos por componente, manuales por nombre. Si un grupo
@@ -257,7 +261,8 @@ def agrupar_franquicias(animes: list[dict],
     for idxs in componentes.values():
         nombre = nombre_comun(sorted({bases[i] for i in idxs}))
         for i in idxs:
-            _meter(_clave(nombre) or f"auto:{idxs[0]}", nombre, False, animes[i])
+            _meter(("manga:" if _tipo(idxs[0]) == "manga" else "") + (_clave(nombre) or f"auto:{idxs[0]}"),
+                   nombre, False, animes[i])
 
     for i, a in enumerate(animes):
         g = (a.get("grupo") or "").strip()
