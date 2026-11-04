@@ -15,6 +15,20 @@ MOVIE_MIN = 95   # minutos por película cuando no se conoce la duración real
 _COMPLETADO = ("completado", "completed")
 
 
+def es_manga(a: dict) -> bool:
+    return (a.get("tipo") or "anime") == "manga"
+
+
+def capitulos_leidos(a: dict) -> int:
+    """Capítulos leídos de un manga (completado = todos los que tenga)."""
+    leidos = int(a.get("episodios_vistos") or 0)
+    if a.get("estado_usuario") in _COMPLETADO:
+        nums = re.findall(r"\d+", str(a.get("capitulos") or ""))
+        if nums:
+            leidos = max(leidos, int(nums[0]))
+    return leidos
+
+
 def anime_vistos(a: dict) -> tuple[int, int]:
     """(episodios, minutos) vistos de un anime — misma lógica que /api/stats.
     Un anime completado cuenta TODOS sus capítulos aunque nunca se incrementaran
@@ -55,6 +69,10 @@ def media_vistos(m: dict) -> tuple[int, int]:
 def stats_globales(animes: list[dict], media: list[dict]) -> dict:
     """Resumen combinado de TODA la biblioteca (anime + pelis + series)."""
     ae = am = me = mm = 0
+    # v2.16.2: el manga va aparte. Sus capítulos no son episodios ni horas de
+    # anime (antes cada capítulo sumaba 24 min al rango ninja y a «Centenario»).
+    mangas = [a for a in animes if es_manga(a)]
+    animes = [a for a in animes if not es_manga(a)]
     for a in animes:
         e, mi = anime_vistos(a)
         ae += e
@@ -64,7 +82,7 @@ def stats_globales(animes: list[dict], media: list[dict]) -> dict:
         me += e
         mm += mi
     return {
-        "total_titulos":    len(animes) + len(media),
+        "total_titulos":    len(animes) + len(mangas) + len(media),
         "animes":           len(animes),
         "media":            len(media),
         "peliculas":        sum(1 for m in media if (m.get("tipo") or "pelicula") == "pelicula"),
@@ -75,4 +93,6 @@ def stats_globales(animes: list[dict], media: list[dict]) -> dict:
         "horas_totales":    round((am + mm) / 60, 1),
         "horas_anime":      round(am / 60, 1),
         "horas_media":      round(mm / 60, 1),
+        "mangas":           len(mangas),
+        "capitulos_manga":  sum(capitulos_leidos(a) for a in mangas),
     }

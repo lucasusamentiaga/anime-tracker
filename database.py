@@ -382,10 +382,11 @@ def buscar_por_clave(nombre: str) -> Optional[str]:
 
 def buscar_duplicados() -> list[list[str]]:
     """Grupos de nombres (≥2) que comparten clave_nombre."""
-    grupos: dict[str, list[str]] = {}
+    grupos: dict[tuple, list[str]] = {}
     with get_conn() as conn:
-        for (n,) in conn.execute("SELECT nombre FROM animes ORDER BY id"):
-            grupos.setdefault(clave_nombre(n), []).append(n)
+        # Por tipo: un anime y su manga con el mismo nombre no son repetidos.
+        for n, t in conn.execute("SELECT nombre, COALESCE(tipo,'anime') FROM animes ORDER BY id"):
+            grupos.setdefault((clave_nombre(n), t), []).append(n)
     return [g for g in grupos.values() if len(g) > 1]
 
 
@@ -462,8 +463,19 @@ def guardar_anime(data: dict) -> tuple[bool, str]:
         return False, "nombre vacío"
     # UNIQUE(nombre) distingue mayúsculas y signos: "One-Punch Man" y
     # "One Punch Man" entraban como dos animes distintos.
-    if buscar_por_clave(nombre):
-        return False, "duplicado"
+    choque = buscar_por_clave(nombre)
+    if choque:
+        # v2.16.2: el manga y su anime suelen llamarse igual («Frieren»). Antes
+        # el segundo no se podía añadir; ahora entra con su tipo entre paréntesis.
+        tipo_nuevo = data.get("tipo") or "anime"
+        with get_conn() as conn:
+            fila = conn.execute("SELECT COALESCE(tipo,'anime') FROM animes WHERE nombre=?", (choque,)).fetchone()
+        if not fila or fila[0] == tipo_nuevo:
+            return False, "duplicado"
+        nombre = f"{nombre} ({'Manga' if tipo_nuevo == 'manga' else 'Anime'})"
+        if buscar_por_clave(nombre):
+            return False, "duplicado"
+        data["nombre"] = nombre
     # v2.16.1: el mismo anime con otro nombre («Shingeki no Kyojin» cuando ya
     # tienes «Attack on Titan»): mismo anilist_id y mismo tipo = repetido.
     aid = int(data.get("anilist_id") or 0)

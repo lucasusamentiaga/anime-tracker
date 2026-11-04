@@ -223,6 +223,10 @@ def _pull_type(media_type: str = "ANIME", progreso: Progreso = NULO) -> dict:
     local_by_aid: dict[int, dict] = {}
     local_by_name: dict[str, dict] = {}
     for a in db.listar_animes():
+        # v2.16.2: solo los del MISMO tipo. Antes el manga «Frieren» casaba por
+        # nombre con el anime «Frieren» y le ponía sus capítulos como episodios.
+        if (a.get("tipo") or "anime") != tipo_local:
+            continue
         if a.get("anilist_id"):
             local_by_aid[a["anilist_id"]] = a
         local_by_name[a["nombre"].lower()] = a

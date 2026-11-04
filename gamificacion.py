@@ -19,6 +19,7 @@ XP = {
     "titulo":     5,    # por título en la biblioteca
     "checkin":    10,   # por día que abres la app (racha)
     "logro":      50,   # por logro desbloqueado
+    "capitulo":   1,    # por capítulo de manga leído (v2.16.2: antes contaba como episodio)
 }
 
 
@@ -41,6 +42,8 @@ def construir_stats(animes: list[dict], media: list[dict], ep_streak: dict) -> d
         "racha_max":         ep_streak.get("max", 0),
         "racha_actual":      ep_streak.get("actual", 0),
         "favoritos":         sum(1 for a in animes if a.get("favorito")) + sum(1 for m in media if m.get("favorito")),
+        "mangas":            g.get("mangas", 0),
+        "capitulos_manga":   g.get("capitulos_manga", 0),
     }
 
 
@@ -53,6 +56,7 @@ def calcular_xp(stats: dict, checkins: int, logros_desbloqueados: int) -> int:
         + (stats.get("total", 0) or 0) * XP["titulo"]
         + (checkins or 0) * XP["checkin"]
         + (logros_desbloqueados or 0) * XP["logro"]
+        + (stats.get("capitulos_manga", 0) or 0) * XP["capitulo"]
     )
 
 
@@ -90,6 +94,8 @@ def fuentes_xp(stats: dict, checkins: int, logros_desbloqueados: int) -> list[di
              ("titulo", "Títulos en tu biblioteca", stats.get("total")),
              ("checkin", "Días que abres Miraru", checkins),
              ("logro", "Logros desbloqueados", logros_desbloqueados)]
+    if stats.get("capitulos_manga"):
+        filas.insert(1, ("capitulo", "Capítulos de manga leídos", stats.get("capitulos_manga")))
     out = []
     for clave, label, n in filas:
         try:

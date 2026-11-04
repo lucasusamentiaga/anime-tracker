@@ -141,6 +141,14 @@ body.sel-mode .ac.selected{opacity:1}
   background:#f5c518;color:#000;font:800 9.5px/1.2 Inter,system-ui,sans-serif;letter-spacing:.01em;pointer-events:none;
   box-shadow:0 1px 3px rgba(0,0,0,.45)}
 .thumb .imdb b{font-weight:800;font-size:10.5px}
+.seg-tipo{display:inline-flex;gap:4px;padding:4px;margin:0 0 16px;border-radius:12px;background:var(--card);border:1px solid var(--border)}
+.seg-tipo[hidden]{display:none}
+.seg-tipo button{display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;padding:8px 16px;border-radius:9px;background:transparent;color:var(--muted);font:600 13.5px/1 inherit;transition:background .15s,color .15s}
+.seg-tipo button:hover{color:var(--fg)}
+.seg-tipo button[aria-selected=true]{background:var(--accent);color:#fff}
+.seg-tipo .n{font-weight:500;opacity:.75;font-variant-numeric:tabular-nums}
+.seg-tipo button:focus-visible{outline:2px solid var(--light);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.seg-tipo button{transition:none}}
 .sp-imdb{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:4px;background:#f5c518;color:#000;font:800 10px/1.4 Inter,sans-serif;vertical-align:1px}
 .nov-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:99px;padding:2px 10px}
 .upd-lista{margin:6px 0 12px;padding-left:20px;font-size:13px;line-height:1.7}
@@ -744,9 +752,9 @@ body.sel-mode .ac .salir{display:none}
 <!-- Sistema visual unificado (theme.css) -->
 <link rel="stylesheet" href="/static/theme.css">
 <script src="/static/customize.js"></script>
-<script src="/static/novedades.js?v=2.16.1" defer></script>
-<script src="/static/selects.js?v=2.16.1" defer></script>
-<script src="/static/tour.js?v=2.16.1" defer></script>
+<script src="/static/novedades.js?v=2.16.2" defer></script>
+<script src="/static/selects.js?v=2.16.2" defer></script>
+<script src="/static/tour.js?v=2.16.2" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
 </head>
@@ -1253,7 +1261,7 @@ fetch('/api/version').then(r => r.json()).then(d => {
   </div>
   <button class="btn btn-ghost btn-sm tb2-fija solo-movil" id="btn-filtros-movil" type="button" onclick="toggleFiltrosMovil()" aria-expanded="false">⚙ Filtros</button>
   <button class="btn btn-ghost btn-sm" id="btn-compact" onclick="toggleCompactAll()" title="Compactar / expandir franquicias" style="white-space:nowrap">📦 <span id="txt-compact">Expandir</span></button>
-  <select id="f-tipo" onchange="render()" style="max-width:100px">
+  <select id="f-tipo" onchange="render()" data-nativo hidden>
     <option value="">Todo</option>
     <option value="anime">🎬 Anime</option>
     <option value="manga">📖 Manga</option>
@@ -1294,9 +1302,15 @@ fetch('/api/version').then(r => r.json()).then(d => {
 <main>
   <!-- v2.2: bloque "Continuar viendo" — los que tienes en curso, ordenados por
        última actividad. Se oculta si no hay ninguno. -->
+  <!-- v2.16.2: anime y manga, cada uno en su pestaña (solo si tienes manga) -->
+  <div id="seg-tipo" class="seg-tipo" role="tablist" aria-label="Qué enseñar" hidden>
+    <button type="button" role="tab" data-tipo="anime" onclick="elegirTipoLib('anime')">🎬 Anime <span class="n"></span></button>
+    <button type="button" role="tab" data-tipo="manga" onclick="elegirTipoLib('manga')">📖 Manga <span class="n"></span></button>
+    <button type="button" role="tab" data-tipo="" onclick="elegirTipoLib('')">Todo <span class="n"></span></button>
+  </div>
   <section id="continuar-wrap" style="display:none;margin-bottom:18px">
     <h2 style="font-size:13px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-      ▶ Continuar viendo
+      <span id="continuar-tit">▶ Continuar viendo</span>
       <span id="continuar-count" style="font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400"></span>
     </h2>
     <div id="continuar-strip" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin"></div>
@@ -1726,13 +1740,70 @@ function poblarFiltroFuente() {
 }
 
 function actualizarStats() {
-  const total    = ANIMES.length;
-  const watching = ANIMES.filter(a => a.estado_usuario === 'viendo' || a.estado_usuario === 'watching').length;
-  const done     = ANIMES.filter(a => a.estado_usuario === 'completado' || a.estado_usuario === 'completed').length;
-  document.getElementById('stat-total').textContent    = T('stat_total',    {n: total});
-  document.getElementById('stat-watching').textContent = T('stat_watching', {n: watching});
+  _pintarSegTipo();
+  // Las cifras de arriba son de la pestaña que miras (anime, manga o todo).
+  const t = _tipoLib();
+  const L = t ? ANIMES.filter(a => (a.tipo || 'anime') === t) : ANIMES;
+  const total    = L.length;
+  const watching = L.filter(a => a.estado_usuario === 'viendo' || a.estado_usuario === 'watching').length;
+  const done     = L.filter(a => a.estado_usuario === 'completado' || a.estado_usuario === 'completed').length;
+  document.getElementById('stat-total').textContent    = t === 'manga' ? _tr(total + ' manga')
+                                                      : (t === '' && ANIMES.some(_esManga)) ? _tr(total + ' títulos')
+                                                      : T('stat_total', {n: total});
+  document.getElementById('stat-watching').textContent = t === 'manga' ? _tr(watching + ' leyendo') : T('stat_watching', {n: watching});
   document.getElementById('stat-completed').textContent= T('stat_completed',{n: done});
 }
+
+// ── v2.16.2: anime y manga separados ─────────────────────────────────────────
+// El <select id="f-tipo"> sigue siendo el filtro de verdad (render() lo lee);
+// las pestañas de encima de la lista solo lo manejan. Sin manga no se ven y se
+// enseña todo; con manga se empieza en Anime y se recuerda la elección.
+function _esManga(a) { return (a.tipo || 'anime') === 'manga'; }
+function _tipoLib() { return document.getElementById('f-tipo')?.value || ''; }
+function _pintarSegTipo() {
+  const nav = document.getElementById('seg-tipo'), sel = document.getElementById('f-tipo');
+  if (!nav || !sel) return;
+  const nM = ANIMES.filter(_esManga).length;
+  if (!nM) { nav.hidden = true; sel.value = ''; return; }
+  nav.hidden = false;
+  if (!window._tipoElegido) {
+    let g = null; try { g = localStorage.getItem('miraru_tipo_lib'); } catch (_) {}
+    sel.value = (g === 'manga' || g === '' ) ? g : 'anime';
+    window._tipoElegido = true;
+  }
+  const n = {anime: ANIMES.length - nM, manga: nM, '': ANIMES.length};
+  nav.querySelectorAll('button').forEach(b => {
+    const on = sel.value === b.dataset.tipo;
+    b.querySelector('.n').textContent = n[b.dataset.tipo];
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.tabIndex = on ? 0 : -1;
+  });
+}
+function elegirTipoLib(t) {
+  const sel = document.getElementById('f-tipo');
+  if (!sel || sel.value === t) return;
+  sel.value = t;
+  window._tipoElegido = true;
+  try { localStorage.setItem('miraru_tipo_lib', t); } catch (_) {}
+  // El buscador de arriba añade lo que estás mirando (anime o manga).
+  const it = document.getElementById('inp-tipo');
+  if (t && it && it.value !== t) { it.value = t; onTipoBusquedaChange(); }
+  actualizarStats();
+  render();
+  cargarContinuar();
+}
+// Tras añadir algo de otro tipo, se cambia a su pestaña (si no, «desaparece»).
+function _mostrarTipo(t) {
+  const sel = document.getElementById('f-tipo');
+  if (sel && sel.value && sel.value !== t) elegirTipoLib(t);
+}
+document.addEventListener('keydown', e => {
+  const b = e.target.closest && e.target.closest('#seg-tipo button');
+  if (!b || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+  const bs = [...document.querySelectorAll('#seg-tipo button')];
+  const sig = bs[(bs.indexOf(b) + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length];
+  e.preventDefault(); sig.focus(); sig.click();
+});
 
 // v2.2: parser de búsqueda con operadores tipo `genre:action eps:>20 score:>=8`
 // Operadores soportados (ES/EN):
@@ -1971,8 +2042,8 @@ function render() {
       'abandonado':'dropped','pausa':'paused',
     }[a.estado_usuario] || a.estado_usuario;
     const bc       = 'b-' + (a.estado_usuario || 'pendiente');
-    const stLabel  = T(estado_key) || a.estado_usuario;
     const isManga  = (a.tipo || 'anime') === 'manga';
+    const stLabel  = (isManga && estado_key === 'watching') ? _tr('Leyendo') : (T(estado_key) || a.estado_usuario);
     const capNum   = parseInt(a.capitulos) || 0;
     const volTotal = a.volumenes_totales || 0;
     const volLeidos = a.volumenes_leidos || 0;
@@ -2291,6 +2362,7 @@ async function previsualizarAnime() {
   const fuente = document.getElementById('inp-fuente').value;
   const tipoBusqueda = document.getElementById('inp-tipo')?.value || 'anime';
   if (!nombre) return;
+  window._previewTipo = tipoBusqueda;   // v2.16.2: el manga se guarda como manga
 
   const btn = document.getElementById('btn-preview');
   btn.disabled = true;
@@ -2439,12 +2511,14 @@ function renderMultiResultados(resultados) {
 }
 
 async function agregarDesdeMulti(data, fuente, rowEl) {
-  if (_yaEnLista(data.nombre)) { toast(T('already_in_list'), 'warn'); return; }
+  const tipo = window._previewTipo || 'anime';
+  if (_yaEnLista(data.nombre, tipo)) { toast(T('already_in_list'), 'warn'); return; }
   if (rowEl) { rowEl.style.opacity = '.5'; rowEl.style.pointerEvents = 'none'; }
   try {
-    const r = await fetch('/api/animes', {
+    // Antes el manga de la vista previa se guardaba como anime.
+    const r = await fetch(tipo === 'manga' ? '/api/manga' : '/api/animes', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({nombre: data.nombre, fuente})
+      body: JSON.stringify({nombre: data.nombre, fuente, tipo})
     });
     const d = await r.json();
     if (r.status === 409) { toast(T('already_in_list'), 'warn'); if (rowEl){ rowEl.style.opacity=''; rowEl.style.pointerEvents=''; } return; }
@@ -2453,6 +2527,7 @@ async function agregarDesdeMulti(data, fuente, rowEl) {
     cerrarModal('modal-preview');
     document.getElementById('inp-nombre').value = '';
     await cargar();
+    _mostrarTipo(tipo);
   } catch(e) {
     toast(T('error'), 'err');
     if (rowEl){ rowEl.style.opacity=''; rowEl.style.pointerEvents=''; }
@@ -2462,18 +2537,20 @@ async function agregarDesdeMulti(data, fuente, rowEl) {
 async function confirmarAgregar() {
   if (!_previewData) return;
   // Pre-check anti-duplicado
-  if (_yaEnLista(_previewData.data.nombre)) { toast(T('already_in_list'), 'warn'); return; }
+  const tipo = window._previewTipo || 'anime';
+  if (_yaEnLista(_previewData.data.nombre, tipo)) { toast(T('already_in_list'), 'warn'); return; }
   const btn = document.getElementById('btn-add-confirm');
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span>';
 
   try {
-    const r = await fetch('/api/animes', {
+    const r = await fetch(tipo === 'manga' ? '/api/manga' : '/api/animes', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         nombre: _previewData.data.nombre,
-        fuente: _previewData.fuente_usada
+        fuente: _previewData.fuente_usada,
+        tipo
       })
     });
     const d = await r.json();
@@ -2484,6 +2561,7 @@ async function confirmarAgregar() {
     document.getElementById('inp-nombre').value = '';
     _previewData = null;
     await cargar();
+    _mostrarTipo(tipo);
   } catch(e) { toast(T('error'), 'err'); }
   finally { btn.disabled = false; btn.textContent = T('add_to_list'); }
 }
@@ -2494,10 +2572,12 @@ async function confirmarAgregar() {
 function _claveNombre(n) {
   return (n || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 }
-function _yaEnLista(nombre) {
+function _yaEnLista(nombre, tipo) {
+  // Un anime y su manga pueden llamarse igual: solo cuenta el mismo tipo.
   const k = _claveNombre(nombre);
   if (!k) return false;
-  return ANIMES.some(a => _claveNombre(a.nombre) === k);
+  tipo = tipo || document.getElementById('inp-tipo')?.value || 'anime';
+  return ANIMES.some(a => (a.tipo || 'anime') === tipo && _claveNombre(a.nombre) === k);
 }
 
 // ── Añadir directo (sin preview) ─────────────────────────────────────────────
@@ -2529,6 +2609,7 @@ async function agregarDirecto() {
     toast(label + ' ' + T('added_ok', {name: d.data.nombre, src: d.data.fuente || d.data.fuente_usada}));
     document.getElementById('inp-nombre').value = '';
     await cargar();
+    _mostrarTipo(tipoBusqueda);
   } catch(e) { toast(T('error'), 'err'); }
   finally { btn.disabled = false; txt.textContent = T('add_btn'); }
 }
@@ -2580,7 +2661,12 @@ function abrirModal(enc) {
 
   // Adaptar label de episodios/capítulos según tipo
   const lblSeen = document.getElementById('lbl-seen-ep');
-  if (lblSeen) lblSeen.textContent = _isMangaEdit ? 'Capítulos leídos' : 'Episodios vistos';
+  if (lblSeen) lblSeen.textContent = _tr(_isMangaEdit ? 'Capítulos leídos' : 'Episodios vistos');
+  // v2.16.2: el manga se lee (estado «Leyendo») y no tiene episodios que avisar.
+  const optW = document.getElementById('opt-watching');
+  if (optW) optW.textContent = _isMangaEdit ? _tr('Leyendo') : T('watching');
+  const nLbl = document.getElementById('edit-notif')?.closest('label');
+  if (nLbl) nLbl.style.display = _isMangaEdit ? 'none' : '';
 
   // Mostrar/ocultar fila de volúmenes (solo manga)
   const volRow = document.getElementById('manga-volumes-row');
@@ -3823,7 +3909,7 @@ async function pedirQueVeo() {
 
 async function animeAleatorio() {
   try {
-    const r = await fetch('/api/animes/random?estado=pendiente');
+    const r = await fetch('/api/animes/random?estado=pendiente&tipo=' + (_tipoLib() === 'manga' ? 'manga' : 'anime'));
     if (!r.ok) { toast(T('no_animes_list'), 'warn'); return; }
     const d = await r.json();
     const a = d.anime;
@@ -3877,7 +3963,8 @@ function _pintarLocales(sp, q) {
   sp.querySelector('.sp-local')?.remove();
   const ql = (q || '').trim().toLowerCase();
   if (ql.length < 2) return 0;
-  const matches = ANIMES.filter(a => a.nombre.toLowerCase().includes(ql))
+  const tipoQ = document.getElementById('inp-tipo')?.value === 'manga' ? 'manga' : 'anime';
+  const matches = ANIMES.filter(a => (a.tipo || 'anime') === tipoQ && a.nombre.toLowerCase().includes(ql))
     .sort((a, b) => a.nombre.toLowerCase().indexOf(ql) - b.nombre.toLowerCase().indexOf(ql)).slice(0, 4);
   if (!matches.length) return 0;
   const sec = document.createElement('div'); sec.className = 'sp-local';
@@ -3889,7 +3976,7 @@ function _pintarLocales(sp, q) {
                     img.onerror = () => { img.style.visibility = 'hidden'; }; }
     else { img = document.createElement('span'); img.className = 'ph'; }
     const n = document.createElement('span'); n.className = 'n'; n.textContent = a.nombre; n.setAttribute('data-no-i18n', '');
-    const e = document.createElement('span'); e.className = 'e'; e.textContent = _tr(_EST_CORTO[a.estado_usuario] || '');
+    const e = document.createElement('span'); e.className = 'e'; e.textContent = _tr((_esManga(a) && ['viendo','watching'].includes(a.estado_usuario)) ? 'Leyendo' : (_EST_CORTO[a.estado_usuario] || ''));
     const ir = document.createElement('span'); ir.className = 'ir'; ir.textContent = _tr('Abrir') + ' →';
     b.append(img, n);
     if (IMDB[a.nombre]) { const im = document.createElement('span'); im.className = 'sp-imdb'; im.textContent = 'IMDb ' + Number(IMDB[a.nombre]).toFixed(1); b.append(im); }
@@ -3949,10 +4036,15 @@ async function cargarContinuar() {
     const r = await fetch('/api/continuar');
     if (!r.ok) { wrap.style.display = 'none'; return; }
     const d = await r.json();
-    const items = d.animes || [];
+    // v2.16.2: solo los de la pestaña que miras; con manga, «Continuar leyendo».
+    const t = _tipoLib();
+    const items = (d.animes || []).filter(a => !t || (a.tipo || 'anime') === t);
     if (items.length === 0) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'block';
-    cnt.textContent = items.length + (items.length === 1 ? ' anime' : ' animes');
+    const tit = document.getElementById('continuar-tit');
+    if (tit) tit.textContent = '▶ ' + _tr(t === 'manga' ? 'Continuar leyendo' : 'Continuar viendo');
+    cnt.textContent = t === 'manga' ? _tr(items.length + ' manga')
+                    : items.length + (items.length === 1 ? ' anime' : ' animes');
     strip.innerHTML = '';
     items.forEach(a => {
       const card = document.createElement('div');
@@ -4600,10 +4692,12 @@ async function buscarPreview(q) {
   const sp = document.getElementById('search-preview');
   if (!sp) return;
   const fuente = document.getElementById('inp-fuente')?.value || 'anilist';
+  // v2.16.2: con «📖 Manga» elegido se busca y se añade manga (antes salía anime).
+  const tipo = document.getElementById('inp-tipo')?.value === 'manga' ? 'manga' : 'anime';
   try {
-    const r = await fetch('/api/buscar', {
+    const r = await fetch(tipo === 'manga' ? '/api/buscar/manga' : '/api/buscar', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({nombre: q, fuente})
+      body: JSON.stringify({nombre: q, fuente, tipo})
     });
     if (!r.ok) { cerrarPreview(); return; }
     const d = await r.json();
@@ -4631,7 +4725,7 @@ async function buscarPreview(q) {
       tit.textContent = a.nombre || '';
       const met = document.createElement('div');
       met.className = 'sp-meta';
-      met.textContent = [a.capitulos + ' eps', a.estado_anime, (a.genero||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
+      met.textContent = [a.capitulos + (tipo === 'manga' ? ' caps' : ' eps'), a.estado_anime, (a.genero||[]).slice(0,3).join(', ')].filter(Boolean).join(' · ');
       if (a.imdb) { const im = document.createElement('span'); im.className = 'sp-imdb'; im.textContent = 'IMDb ' + Number(a.imdb).toFixed(1); tit.appendChild(im); }
       info.appendChild(tit);
       info.appendChild(met);
@@ -4644,9 +4738,9 @@ async function buscarPreview(q) {
         addBtn.disabled = true;
         addBtn.textContent = '...';
         try {
-          const r2 = await fetch('/api/animes', {
+          const r2 = await fetch(tipo === 'manga' ? '/api/manga' : '/api/animes', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({nombre: a.nombre, fuente})
+            body: JSON.stringify({nombre: a.nombre, fuente, tipo})
           });
           const d2 = await r2.json();
           if (r2.ok) {
@@ -4654,6 +4748,7 @@ async function buscarPreview(q) {
             cerrarPreview();
             searchInput.value = '';
             await cargar();
+            _mostrarTipo(tipo);
           } else {
             toast(d2.detail || T('error'), 'err');
             addBtn.disabled = false;

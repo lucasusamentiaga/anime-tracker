@@ -117,6 +117,8 @@ def notas_biblioteca(datos: dict, animes: list[dict], franquicias: list[dict] | 
     out: dict[str, float] = {}
     votos: dict[str, int] = {}
     for a in animes:
+        if (a.get("tipo") or "anime") == "manga":
+            continue        # IMDb puntúa series y películas, no manga
         n = nota(datos, a.get("anilist_id"), id_mal.get(str(a.get("anilist_id") or 0)))
         if n:
             out[a["nombre"]] = n[0]

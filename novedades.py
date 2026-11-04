@@ -11,6 +11,20 @@ from __future__ import annotations
 # accion (opcional): {"texto": "...", "url": "/app#..."} → botón dentro del punto.
 NOVEDADES: list[dict] = [
     {
+        "version": "2.16.2",
+        "titulo": "Anime y manga, cada uno en su sitio",
+        "puntos": [
+            {"icono": "📖", "titulo": "Pestañas Anime y Manga",
+             "texto": "Si tienes manga, arriba de tu lista eliges qué ver: anime, manga o todo. Las cifras de la cabecera van con la pestaña."},
+            {"icono": "🔍", "titulo": "Buscar manga de verdad",
+             "texto": "Con «📖 Manga» elegido, el buscador encuentra y añade manga (antes podía guardarlo como anime)."},
+            {"icono": "🤝", "titulo": "El manga y su anime, juntos sin chocar",
+             "texto": "Ya puedes tener el anime y el manga de la misma obra aunque se llamen igual, y AniList no mezcla sus progresos."},
+            {"icono": "📊", "titulo": "Horas y logros solo con anime",
+             "texto": "Los capítulos leídos dan su propia XP y ya no cuentan como horas de anime ni para tu rango ninja."},
+        ],
+    },
+    {
         "version": "2.16.1",
         "titulo": "Sin repetidos y con nota de IMDb",
         "puntos": [

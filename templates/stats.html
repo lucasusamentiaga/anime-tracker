@@ -1008,7 +1008,7 @@ async function abrirListaKpi(tipo) {
     } else {
       const d = await (await fetch('/api/animes/slim', {cache: 'no-store'})).json();
       const est = tipo === 'viendo' ? ['viendo', 'watching'] : ['completado', 'completed'];
-      filas = (d.animes || []).filter(a => est.includes(a.estado_usuario))
+      filas = (d.animes || []).filter(a => est.includes(a.estado_usuario) && (a.tipo || 'anime') !== 'manga')   // las cifras son de anime
         .sort((a, b) => tipo === 'viendo'
           ? String(b.creado_en || '').localeCompare(String(a.creado_en || ''))
           : a.nombre.localeCompare(b.nombre, 'es'))

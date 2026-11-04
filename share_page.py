@@ -3,7 +3,7 @@ Genera una página HTML autocontenida con la biblioteca del usuario, para
 compartir (enviar el archivo o subirlo a GitHub Pages → URL pública). Sin
 backend ni dependencias externas más allá de las imágenes de portada (remotas).
 
-v2.16: dos pestañas, «Anime» y «Series y películas», y el anime agrupado en
+v2.16: pestañas «Anime», «Manga» (si hay) y «No Anime», y el anime agrupado en
 carpetas por franquicia, igual que en la pantalla principal de Miraru.
 
 Función pura y testeable: render_share_html(animes, media, perfil, stats, franquicias).
@@ -39,20 +39,23 @@ def _img(imagen: str) -> str:
             if imagen else '<div class="noimg"></div>')
 
 
-def _card(titulo: str, imagen: str, estado: str, extra: str) -> str:
+def _card(titulo: str, imagen: str, estado: str, extra: str, manga: bool = False) -> str:
     est = _estado(estado)
+    clase = _CLASES.get(est, "")
+    if manga and est == "Viendo":
+        est = "Leyendo"
     return (
         f'<div class="card" data-t="{_esc(str(titulo).casefold())}">'
         f'<div class="thumb">{_img(imagen)}</div>'
         f'<div class="meta"><div class="t">{_esc(titulo)}</div>'
-        f'<div class="s"><i class="dot {_CLASES.get(est, "")}"></i>{_esc(est)}{_esc(extra)}</div></div></div>'
+        f'<div class="s"><i class="dot {clase}"></i>{_esc(est)}{_esc(extra)}</div></div></div>'
     )
 
 
 def _extra_anime(a: dict) -> str:
     cap = str(a.get("capitulos") or "").strip()
     if cap and cap not in ("?", "película"):
-        return f" · {cap} eps"
+        return f" · {cap} {'caps' if (a.get('tipo') or 'anime') == 'manga' else 'eps'}"
     return " · película" if cap == "película" else ""
 
 
@@ -63,7 +66,7 @@ def _carpeta(f: dict, idx: int) -> str:
     completos = sum(1 for m in miembros if _estado(m.get("estado_usuario")) == "Completado")
     buscable = " ".join([str(nombre)] + [str(m.get("nombre", "")) for m in miembros]).casefold()
     dentro = "".join(_card(m.get("nombre", ""), m.get("imagen", ""), m.get("estado_usuario", ""),
-                           _extra_anime(m)) for m in miembros)
+                           _extra_anime(m), (m.get("tipo") or "anime") == "manga") for m in miembros)
     return (
         f'<button type="button" class="card carpeta" data-c="{idx}" data-t="{_esc(buscable)}"'
         f' aria-label="{_esc(nombre)}: {len(miembros)} títulos">'
@@ -85,18 +88,25 @@ def render_share_html(
     nombre = perfil.get("nombre_usuario") or "Mi biblioteca"
     st = stats or stats_util.stats_globales(animes, media)
 
-    # ── Anime: carpetas (franquicias con 2+ títulos) y sueltos ──
+    # ── Anime y manga (v2.16.2: el manga en su pestaña): carpetas y sueltos ──
+    def _es_manga(a):
+        return (a.get("tipo") or "anime") == "manga"
+    mangas = [a for a in animes if _es_manga(a)]
+    animes = [a for a in animes if not _es_manga(a)]
     if franquicias is None:
-        franquicias = [{"nombre": a.get("nombre", ""), "animes": [a]} for a in animes]
-    anime_html = []
+        franquicias = [{"nombre": a.get("nombre", ""), "animes": [a]} for a in animes + mangas]
+    anime_html, manga_html = [], []
     for i, f in enumerate(franquicias):
         miembros = f.get("animes") or []
+        if not miembros:
+            continue
+        dest = manga_html if _es_manga(miembros[0]) else anime_html
         if len(miembros) > 1:
-            anime_html.append(_carpeta(f, i))
-        elif miembros:
+            dest.append(_carpeta(f, i))
+        else:
             a = miembros[0]
-            anime_html.append(_card(a.get("nombre", ""), a.get("imagen", ""),
-                                    a.get("estado_usuario", ""), _extra_anime(a)))
+            dest.append(_card(a.get("nombre", ""), a.get("imagen", ""),
+                              a.get("estado_usuario", ""), _extra_anime(a), _es_manga(a)))
     if not anime_html:
         anime_html = ['<p class="vacio">Todavía no hay anime.</p>']
 
@@ -121,13 +131,20 @@ def render_share_html(
     def metric(v, l):
         return f'<div class="metric"><b>{_esc(v)}</b><span>{_esc(l)}</span></div>'
 
+    tab_manga = panel_manga = ""
+    if mangas:
+        tab_manga = ('<button class="tab" role="tab" aria-selected="false" aria-controls="p-manga" '
+                     f'data-p="p-manga">📖 Manga<span>{len(mangas)}</span></button>\n    ')
+        panel_manga = ('<section class="panel" id="p-manga" role="tabpanel" hidden>'
+                       f'<div class="grid">{"".join(manga_html)}</div></section>\n')
+
     metrics = "".join([
         metric(st["animes"], "anime"),
         metric(st["series"], "series"),
         metric(st["peliculas"], "películas"),
         metric(st["total_episodios"], "episodios"),
         metric(st["horas_totales"], "horas"),
-    ])
+    ] + ([metric(st.get("mangas", 0), "manga")] if st.get("mangas") else []))
 
     return f"""<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
@@ -207,12 +224,12 @@ footer a{{color:var(--light);text-decoration:none}}
 <div class="barra">
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" aria-controls="p-anime" data-p="p-anime">🎌 Anime<span>{len(animes)}</span></button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="p-otros" data-p="p-otros">🎬 No Anime<span>{len(series) + len(pelis)}</span></button>
+    {tab_manga}<button class="tab" role="tab" aria-selected="false" aria-controls="p-otros" data-p="p-otros">🎬 No Anime<span>{len(series) + len(pelis)}</span></button>
   </div>
   <input class="buscar" type="search" placeholder="Buscar un título…" aria-label="Buscar un título">
 </div>
 <section class="panel" id="p-anime" role="tabpanel"><div class="grid">{''.join(anime_html)}</div></section>
-<section class="panel" id="p-otros" role="tabpanel" hidden>{otros_html}</section>
+{panel_manga}<section class="panel" id="p-otros" role="tabpanel" hidden>{otros_html}</section>
 <footer>Generado con <a href="https://github.com/lucasusamentiaga/anime-tracker">Miraru</a></footer>
 </div>
 <script>

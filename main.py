@@ -1475,9 +1475,11 @@ async def listar_fuentes():
     return {"fuentes": list(SCRAPERS.keys())}
 
 @app.get("/api/animes/random")
-async def anime_aleatorio(estado: str = "pendiente"):
-    """Selecciona un anime inteligente basado en géneros favoritos del usuario."""
-    todos = db.listar_animes()
+async def anime_aleatorio(estado: str = "pendiente", tipo: str = "anime"):
+    """Selecciona un anime inteligente basado en géneros favoritos del usuario.
+    v2.16.2: solo del tipo pedido (anime por defecto; `tipo=manga` para manga)."""
+    tipo = "manga" if tipo == "manga" else "anime"
+    todos = [a for a in db.listar_animes() if ((a.get("tipo") or "anime") == "manga") == (tipo == "manga")]
     if not todos:
         return {"anime": None, "mensaje": "Lista vacía"}
 
@@ -1546,7 +1548,8 @@ async def que_veo_esta_noche(
     - animo: accion|comedia|romance|terror|drama|chill|epico|llorar|misterio|fantasia
     - minutos: tiempo disponible (0 = sin filtro). 30 → corto, 60 → medio, 180+ → maratón
     """
-    todos = db.listar_animes()
+    # v2.16.2: es para VER esta noche: el manga no entra.
+    todos = [a for a in db.listar_animes() if (a.get("tipo") or "anime") != "manga"]
     if not todos:
         return {"anime": None, "mensaje": "Tu biblioteca está vacía"}
 
@@ -1757,7 +1760,8 @@ def _start_imdb_once():
             from scrapers.anilist import _post as _anilist_post
             guardado = json.loads(db.get_config("anilist_idmal") or "{}")
             faltan = sorted({int(a["anilist_id"]) for a in db.listar_animes_slim()
-                             if a.get("anilist_id") and str(a["anilist_id"]) not in guardado})
+                             if a.get("anilist_id") and str(a["anilist_id"]) not in guardado
+                             and (a.get("tipo") or "anime") != "manga"})
             for i in range(0, len(faltan), 50):
                 d = _anilist_post("query($ids:[Int]){Page(perPage:50){media(id_in:$ids){id idMal}}}",
                                   {"ids": faltan[i:i + 50]})
@@ -4354,7 +4358,9 @@ async def api_reco_principiante():
 @app.get("/api/calendario")
 async def api_calendario():
     animes = db.listar_animes()
-    viendo = [a for a in animes if a.get("estado_usuario") in ("viendo","watching")]
+    # El manga no tiene episodios en emisión (antes ocupaba sitio de los 25).
+    viendo = [a for a in animes if a.get("estado_usuario") in ("viendo","watching")
+              and (a.get("tipo") or "anime") != "manga"]
     if not viendo:
         return {"dias": {}, "total": 0}
     nombres = [a["nombre"] for a in viendo[:25]]

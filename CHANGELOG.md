@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.16.2 — Anime y manga, cada uno en su sitio
+
+- **Pestañas Anime / Manga / Todo** encima de la lista (solo si tienes manga). Se empieza en
+  Anime, se recuerda la elección y la cabecera, «Continuar viendo/leyendo» y el buscador de
+  arriba siguen a la pestaña. Tras añadir algo, salta a su pestaña.
+- **El buscador con «📖 Manga» busca y añade manga** (la búsqueda instantánea y la vista previa
+  lo guardaban como anime). «En tu lista» solo enseña títulos del tipo que buscas.
+- **Un anime y su manga pueden llamarse igual**: el segundo entra como «Nombre (Manga)» o
+  «Nombre (Anime)». Bajar el manga de AniList ya no le pone sus capítulos al anime del mismo
+  nombre, y los repetidos por nombre no mezclan tipos.
+- **Vocabulario de manga**: «Leyendo», «Capítulos leídos», «Continuar leyendo», sin el aviso de
+  nuevos episodios.
+- **Horas, rango ninja y logros solo con anime**: los capítulos dan su propia XP (×1) y ya no
+  suman 24 min cada uno. Aleatorio, «¿Qué veo?», el calendario y la nota de IMDb no incluyen manga.
+- **Compartir biblioteca** con pestaña propia de Manga.
+
 ## v2.16.1 — Sin repetidos, nota de IMDb y logros renovados
 
 - **Adiós a los animes repetidos**: si el mismo anime entró varias veces con nombres distintos

@@ -36,5 +36,5 @@
     { "name": "Recomendaciones", "url": "/recomendaciones" },
     { "name": "No Anime",  "url": "/peliculas" }
   ],
-  "version": "2.16.1"
+  "version": "2.16.2"
 }
