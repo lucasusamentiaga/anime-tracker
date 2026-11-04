@@ -577,7 +577,7 @@ function renderLista() {
 
     const info=document.createElement('div');
     info.className='ac-info';
-    info.textContent=(a.fuente||'')+(cap>0?` · ${String(a.capitulos).trim()} ep`:'');
+    info.textContent=cap>0?`${String(a.capitulos).trim()} ep`:'';
 
     const badge=document.createElement('span');
     badge.className='badge '+cls; badge.textContent=lbl;
@@ -614,7 +614,7 @@ function renderLista() {
 function abrirModal(a) {
   $('m-nombre').value=a.nombre;
   $('m-name').textContent=a.nombre;
-  $('m-info').textContent=(a.fuente||'')+(a.capitulos?' · '+a.capitulos+' ep':'');
+  $('m-info').textContent=a.capitulos?a.capitulos+' ep':'';
   const src=imgUrl(a.imagen);
   $('m-img').src=src; $('m-img').style.display='block';
   $('m-estado').value=a.estado_usuario||'pendiente';

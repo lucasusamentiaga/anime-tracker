@@ -16,7 +16,7 @@
     {sel: '#lista', ico: '📚', tit: 'Tu lista',
      txt: 'Aquí aparecen tus animes, con las sagas agrupadas en carpetas. Pulsa una portada para editarla o +1 para apuntar un episodio.', lado: 'arriba'},
     {sel: '#tb2', ico: '🎛️', tit: 'Busca, filtra y ordena',
-     txt: 'Encuentra algo en tu lista, filtra por estado o fuente y ordena como quieras.'},
+     txt: 'Encuentra algo en tu lista, filtra por estado y ordena como quieras.'},
     {sel: '#continuar-wrap', ico: '▶️', tit: 'Continuar viendo',
      txt: 'Lo que tienes a medias, con el siguiente episodio a un clic.'},
     {sel: '.header-nav', ico: '🧭', tit: 'Todo lo demás',

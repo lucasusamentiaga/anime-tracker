@@ -3158,22 +3158,20 @@ def _novedades_respaldo(plataforma: str, motivo: str) -> dict:
         if not items:
             return {"novedades": [], "plataforma": plataforma, "total": 0,
                     "fuente": "Kitsu",
-                    "aviso": (f"AniList no está disponible ({motivo}). "
-                              "Se usó Kitsu como respaldo, pero no hay resultados "
-                              "para este filtro.") if motivo else ""}
+                    "aviso": ("Ahora mismo no se pueden cargar todos los datos y "
+                              "no hay resultados para este filtro.") if motivo else ""}
         return {
             "novedades": items[:30],
             "plataforma": plataforma,
             "total": len(items),
             "fuente": "Kitsu",
-            "aviso": ("AniList no está disponible ahora mismo, así que estos "
-                      "datos vienen de Kitsu. Puede que falte el próximo "
-                      "episodio de algunos títulos."),
+            "aviso": ("Ahora mismo hay menos datos de lo normal: puede que "
+                      "falte el próximo episodio de algunos títulos."),
         }
     except Exception as e:
         _sync_log.warning("Respaldo de novedades (Kitsu): %s", e)
         return {"novedades": [], "plataforma": plataforma, "total": 0,
-                "error": f"Ni AniList ni Kitsu respondieron. {motivo or e}"[:250]}
+                "error": "Ahora mismo no se pueden cargar los datos. Inténtalo en un rato."}
 
 # ── Notificaciones por email (nuevos episodios) ───────────────────────────────
 
@@ -4223,13 +4221,13 @@ def _recomendaciones_respaldo(top_genres: list, existentes: set, motivo: str) ->
             "recomendaciones": recos[:15],
             "generos_base": top_genres,
             "fuente": "Kitsu",
-            "aviso": ("AniList no está disponible, así que estas "
-                      "recomendaciones vienen de Kitsu.") if recos else "",
+            "aviso": ("Ahora mismo hay menos datos de lo normal: estas "
+                      "recomendaciones pueden ser menos precisas.") if recos else "",
         }
     except Exception as e:
         _sync_log.warning("Respaldo de recomendaciones (Kitsu): %s", e)
         return {"recomendaciones": [], "generos_base": top_genres,
-                "error": f"Ni AniList ni Kitsu respondieron. {motivo or e}"[:250]}
+                "error": "Ahora mismo no se pueden cargar los datos. Inténtalo en un rato."}
 
 
 def _anilist_por_ids(ids: list) -> dict:
@@ -4304,8 +4302,7 @@ async def _fichas_gateway(pares: list) -> tuple:
                 datos.setdefault(anime_id, {}).update(relleno)
                 recuperadas += 1
         if recuperadas:
-            aviso = ("AniList no está disponible, así que algunas portadas "
-                     "vienen de Kitsu.")
+            aviso = "Ahora mismo hay menos datos de lo normal: puede que falte alguna portada."
 
     # Solo se cachea si se consiguió algo: guardar un resultado vacío dejaría la
     # pantalla sin portadas durante 12 h por un corte de red de un segundo.

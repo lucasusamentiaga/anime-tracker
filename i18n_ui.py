@@ -84,7 +84,7 @@ UI: dict[str, tuple[str, str, str]] = {
     'Tu lista': ('Your list', 'Ta liste', 'Deine Liste'),
     'Aquí aparecen tus animes, con las sagas agrupadas en carpetas. Pulsa una portada para editarla o +1 para apuntar un episodio.': ('Your anime show up here, with sagas grouped into folders. Tap a cover to edit it or +1 to log an episode.', 'Tes animes apparaissent ici, avec les sagas regroupées en dossiers. Clique sur une affiche pour la modifier ou +1 pour noter un épisode.', 'Hier erscheinen deine Animes, Sagas in Ordnern gruppiert. Klicke auf ein Cover zum Bearbeiten oder +1 für eine Folge.'),
     'Busca, filtra y ordena': ('Search, filter and sort', 'Cherche, filtre et trie', 'Suchen, filtern und sortieren'),
-    'Encuentra algo en tu lista, filtra por estado o fuente y ordena como quieras.': ('Find something in your list, filter by status or source and sort as you like.', 'Trouve quelque chose dans ta liste, filtre par statut ou source et trie comme tu veux.', 'Finde etwas in deiner Liste, filtere nach Status oder Quelle und sortiere nach Belieben.'),
+    'Encuentra algo en tu lista, filtra por estado y ordena como quieras.': ('Find something in your list, filter by status and sort as you like.', 'Trouve quelque chose dans ta liste, filtre par statut et trie comme tu veux.', 'Finde etwas in deiner Liste, filtere nach Status und sortiere nach Belieben.'),
     'Lo que tienes a medias, con el siguiente episodio a un clic.': ("What you're halfway through, with the next episode one click away.", "Ce que tu as commencé, avec l'épisode suivant à un clic.", 'Was du gerade schaust, die nächste Folge nur einen Klick entfernt.'),
     'Todo lo demás': ('Everything else', 'Tout le reste', 'Alles andere'),
     'Estadísticas (y tu «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y «No Anime», para tus películas y series.': ("Stats (and your “My year in anime”), this week's releases, calendar, recommendations and “Non-Anime” for your movies and series.", 'Statistiques (et ton « Mon année anime »), sorties de la semaine, calendrier, recommandations et « Hors anime » pour tes films et séries.', 'Statistiken (und dein „Mein Anime-Jahr“), Neuerscheinungen, Kalender, Empfehlungen und „Kein Anime“ für deine Filme und Serien.'),
@@ -593,6 +593,11 @@ UI: dict[str, tuple[str, str, str]] = {
     "Continuar leyendo": ("Continue reading", "Continuer la lecture", "Weiterlesen"),
     "Qué enseñar": ("What to show", "Quoi afficher", "Was anzeigen"),
     "Capítulos de manga leídos": ("Manga chapters read", "Chapitres de manga lus", "Gelesene Manga-Kapitel"),
+    "Ahora mismo no se pueden cargar todos los datos y no hay resultados para este filtro.": ("Not all data can be loaded right now and there are no results for this filter.", "Toutes les données ne peuvent pas être chargées pour le moment et il n'y a aucun résultat pour ce filtre.", "Gerade können nicht alle Daten geladen werden, und für diesen Filter gibt es keine Ergebnisse."),
+    "Ahora mismo hay menos datos de lo normal: puede que falte el próximo episodio de algunos títulos.": ("There's less data than usual right now: the next episode of some titles may be missing.", "Il y a moins de données que d'habitude : le prochain épisode de certains titres peut manquer.", "Gerade gibt es weniger Daten als sonst: Bei manchen Titeln fehlt vielleicht die nächste Folge."),
+    "Ahora mismo hay menos datos de lo normal: estas recomendaciones pueden ser menos precisas.": ("There's less data than usual right now: these recommendations may be less accurate.", "Il y a moins de données que d'habitude : ces recommandations peuvent être moins précises.", "Gerade gibt es weniger Daten als sonst: Diese Empfehlungen sind vielleicht ungenauer."),
+    "Ahora mismo hay menos datos de lo normal: puede que falte alguna portada.": ("There's less data than usual right now: some covers may be missing.", "Il y a moins de données que d'habitude : certaines affiches peuvent manquer.", "Gerade gibt es weniger Daten als sonst: Manche Cover fehlen vielleicht."),
+    "Ahora mismo no se pueden cargar los datos. Inténtalo en un rato.": ("The data can't be loaded right now. Try again in a while.", "Impossible de charger les données pour le moment. Réessaie plus tard.", "Die Daten können gerade nicht geladen werden. Versuch es später noch einmal."),
     "Tu anime del año": ("Your anime of the year", "Ton anime de l'année", "Dein Anime des Jahres"),
     "días de anime": ("days of anime", "jours d'anime", "Tage Anime"),
     "horas de anime": ("hours of anime", "heures d'anime", "Stunden Anime"),
@@ -753,10 +758,10 @@ UI: dict[str, tuple[str, str, str]] = {
                                  "Anime importieren — Miraru"),
     "1. Pega el texto de la página": ("1. Paste the page text", "1. Colle le texte de la page",
                                       "1. Seitentext einfügen"),
-    "Ve a tu página de animes (AnimeAV1, Crunchyroll, etc.), selecciona todo con": (
-        "Go to your anime page (AnimeAV1, Crunchyroll, etc.), select everything with",
-        "Va sur ta page d'animes (AnimeAV1, Crunchyroll, etc.), sélectionne tout avec",
-        "Öffne deine Anime-Seite (AnimeAV1, Crunchyroll usw.), markiere alles mit"),
+    "Ve a la página web donde tienes tu lista de animes, selecciona todo con": (
+        "Go to the website where you keep your anime list, select everything with",
+        "Va sur le site où se trouve ta liste d'animes, sélectionne tout avec",
+        "Öffne die Website mit deiner Anime-Liste, markiere alles mit"),
     ", copia con": (", copy with", ", copie avec", ", kopiere mit"),
     "y pega aquí. El programa detectará automáticamente los nombres.": (
         "and paste it here. The app will detect the names automatically.",
@@ -767,12 +772,10 @@ UI: dict[str, tuple[str, str, str]] = {
                                                     "Füge hier den kompletten Seitentext ein..."),
     "Detectar animes": ("Detect anime", "Détecter les animes", "Anime erkennen"),
     "2. Confirma y añade": ("2. Confirm and add", "2. Confirme et ajoute", "2. Bestätigen und hinzufügen"),
-    "Revisa los nombres detectados, desmarca los que no son animes, elige la fuente de búsqueda y pulsa Añadir.": (
-        "Check the detected names, untick the ones that aren't anime, choose the search source and press Add.",
-        "Vérifie les noms détectés, décoche ceux qui ne sont pas des animes, choisis la source puis clique sur "
-        "Ajouter.",
-        "Prüfe die erkannten Namen, entferne die Haken bei Nicht-Anime, wähle die Quelle und klicke auf "
-        "Hinzufügen."),
+    "Revisa los nombres detectados, desmarca los que no son animes y pulsa Añadir.": (
+        "Check the detected names, untick the ones that aren't anime and press Add.",
+        "Vérifie les noms détectés, décoche ceux qui ne sont pas des animes puis clique sur Ajouter.",
+        "Prüfe die erkannten Namen, entferne die Haken bei Nicht-Anime und klicke auf Hinzufügen."),
     "Los animes detectados aparecerán aquí": ("Detected anime will appear here", "Les animes détectés apparaîtront ici",
                                               "Erkannte Anime erscheinen hier"),
     "Añadir seleccionados": ("Add selected", "Ajouter la sélection", "Auswahl hinzufügen"),

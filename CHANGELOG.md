@@ -15,6 +15,10 @@
 - **Horas, rango ninja y logros solo con anime**: los capítulos dan su propia XP (×1) y ya no
   suman 24 min cada uno. Aleatorio, «¿Qué veo?», el calendario y la nota de IMDb no incluyen manga.
 - **Compartir biblioteca** con pestaña propia de Manga.
+- **Las fuentes de datos ya no se ven**: Miraru elige por detrás de dónde saca cada anime. Fuera
+  el selector «Buscar en», el filtro y la gráfica «Por fuente», el nombre de la web en tarjetas,
+  ficha, vista previa, importación, avisos y mensajes de «añadido». Siguen los botones para
+  conectar tu cuenta de AniList y la extensión de AnimeAV1, y la exportación a Sheets/CSV.
 
 ## v2.16.1 — Sin repetidos, nota de IMDb y logros renovados
 

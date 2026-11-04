@@ -128,7 +128,7 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
   <div class="panel">
     <h2 id="h-paste">1. Pega el texto de la página</h2>
     <p class="desc" id="desc-paste">
-      Ve a tu página de animes (AnimeAV1, Crunchyroll, etc.), selecciona todo
+      Ve a la página web donde tienes tu lista de animes, selecciona todo
       con <strong>Ctrl+A</strong>, copia con <strong>Ctrl+C</strong> y pega aquí.
       El programa detectará automáticamente los nombres.
     </p>
@@ -144,11 +144,11 @@ textarea:focus{outline:2px solid var(--accent);border-color:transparent}
   <div class="panel">
     <h2 id="h-candidates">2. Confirma y añade</h2>
     <p class="desc" id="desc-candidates">
-      Revisa los nombres detectados, desmarca los que no son animes, elige la
-      fuente de búsqueda y pulsa Añadir.
+      Revisa los nombres detectados, desmarca los que no son animes y pulsa Añadir.
     </p>
 
-    <div class="fuente-row">
+    <!-- v2.16.2: la fuente la elige Miraru por detrás -->
+    <div class="fuente-row" style="display:none">
       <label id="lbl-source">Buscar en:</label>
       <select id="sel-fuente">
         <option value="anilist">AniList</option>

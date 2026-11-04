@@ -400,14 +400,10 @@ main{padding:20px;max-width:900px;margin:0 auto}
     </p>
   </div>
 
-  <div class="grid-2" style="margin-bottom:16px">
+  <div style="margin-bottom:16px">
     <div class="section">
       <h2 id="lbl-by-state">Por estado</h2>
       <div id="chart-state" class="donut-wrap"></div>
-    </div>
-    <div class="section">
-      <h2 id="lbl-by-src">Por fuente</h2>
-      <div id="chart-src"></div>
     </div>
   </div>
 
@@ -532,7 +528,7 @@ function makeAnimeRow(a, showScore=false, opts={}) {
   else if (/pel/i.test(caps)) partes.push('Película');
   const gen = String(a.genero || '').split(',')[0].trim();
   if (gen) partes.push(gen);
-  meta.textContent = partes.join(' · ') || (a.fuente || '');
+  meta.textContent = partes.join(' · ');
   info.appendChild(name);
   info.appendChild(meta);
   row.appendChild(info);
@@ -634,7 +630,6 @@ async function loadStats() {
   const lblComp = document.getElementById('lbl-completed');
   if (lblComp) lblComp.textContent = T('completed_count') || 'Completados';
   document.getElementById('lbl-by-state').textContent = T('by_state');
-  document.getElementById('lbl-by-src').textContent   = T('by_source');
   document.getElementById('lbl-genres').textContent   = T('genres');
   document.getElementById('lbl-top').textContent      = T('top_rated');
   document.getElementById('lbl-recent').textContent   = T('recently_added');
@@ -696,13 +691,6 @@ async function loadStats() {
       label: stateKeys[k] || k, value: v, color: COLORS[i % COLORS.length],
     })));
   }
-
-  // Fuente
-  const srcEntries = Object.entries(d.by_source || {});
-  const maxSrc = srcEntries.length ? Math.max(...srcEntries.map(([,v])=>v)) : 1;
-  document.getElementById('chart-src').innerHTML = srcEntries.length
-    ? srcEntries.map(([k,v],i) => makeBar(k, v, maxSrc, COLORS[i%COLORS.length])).join('')
-    : '<p style="color:var(--muted);font-size:13px">Sin datos aún</p>';
 
   // Géneros — pills coloridas
   const genreEntries = Object.entries(d.genres || {}).sort((a,b) => b[1]-a[1]);
@@ -1116,7 +1104,7 @@ function _pintarWrapped(fondo, d) {
 
     if (d.pocos_datos) {
       const av = _wEl('p', 'wrap-aviso');
-      av.textContent = 'Aquí cuenta lo que vas marcando con +1 (o desde AniList y AnimeAV1) desde que usas Miraru. Lo que importaste de golpe no tiene fecha, así que no entra: tu año se irá llenando según veas anime.';
+      av.textContent = 'Aquí cuenta lo que vas marcando con +1 desde que usas Miraru. Lo que importaste de golpe no tiene fecha, así que no entra: tu año se irá llenando según veas anime.';
       cuerpo.append(av);
     }
     // Frase resumen
