@@ -16,6 +16,14 @@
 - **Carpetas**: lo que AniList relaciona como resumen o versión alternativa (las películas de
   Attack on Titan) va en la carpeta de su saga, también si esa carpeta es una tuya.
 - Calendario traducido (días, «Episodio», «HOY») y «1 título» en No Anime.
+- **Temporadas de verdad** en las carpetas: «T3», «T3 P2», «Final», «Final P2», «Final Esp. 1»,
+  «OVA» o el nombre del arco, en vez de numerar cada entrada (Attack on Titan salía con «T11»).
+  La cabecera dice «4 temporadas · 3 extras · 3 películas» y todo va en orden de emisión.
+  También en el resumen de saga del buscador.
+- **Extensión de AnimeAV1 (Mis Listas)**: lo que ya viste entero entra como completado y lo que
+  llevas a medias como «viendo», aunque en AnimeAV1 lo dejaras en «Por ver». Nunca baja lo que
+  ya tienes en Miraru. La extensión vuelve a mandar las listas una vez para aplicarlo.
+- La ficha ya no repite el bloque «Puntuaciones» al abrirla dos veces seguidas.
 
 ## v2.16.2 — Anime y manga, cada uno en su sitio
 

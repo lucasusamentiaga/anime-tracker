@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Miraru × AnimeAV1",
   "short_name": "Miraru AV1",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Lo que marcas como visto en AnimeAV1 y tus listas («Mis Listas») se apuntan solos en tu Miraru.",
   "icons": {
     "16": "iconos/16.png",

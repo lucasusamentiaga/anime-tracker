@@ -757,6 +757,7 @@ body.sel-mode .ac .salir{display:none}
 <script src="/static/customize.js"></script>
 <script src="/static/novedades.js?v=2.16.3" defer></script>
 <script src="/static/selects.js?v=2.16.3" defer></script>
+<script src="/static/temporadas.js?v=2.16.3"></script>
 <script src="/static/tour.js?v=2.16.3" defer></script>
 <script src="/static/i18n-dom.js" defer></script>
 <script src="/static/dialogos.js" defer></script>
@@ -2224,7 +2225,11 @@ function render() {
     const totalEps = series.reduce((s,a) => s + (parseInt(a.capitulos)||0), 0);
     const totalVistos = series.reduce((s,a) => s + Math.min(a.episodios_vistos||0, parseInt(a.capitulos)||Infinity), 0);
     const partesMeta = [];
-    if (series.length) partesMeta.push(series.length + ' ' + _tr(series.length === 1 ? 'temporada' : 'temporadas'));
+    // v2.16.3: temporadas de verdad (AoT: 4, no 11) y aparte OVAs y especiales.
+    const tmp = window.miraruTemporadas ? window.miraruTemporadas(fq.animes, fq.nombre)
+                                        : {etiquetas: null, temporadas: series.length, extras: 0};
+    if (tmp.temporadas) partesMeta.push(tmp.temporadas + ' ' + _tr(tmp.temporadas === 1 ? 'temporada' : 'temporadas'));
+    if (tmp.extras) partesMeta.push(tmp.extras + ' ' + _tr(tmp.extras === 1 ? 'extra' : 'extras'));
     if (pelis.length) partesMeta.push(pelis.length + ' ' + _tr(pelis.length === 1 ? 'película' : 'películas'));
     if (totalEps) partesMeta.push(totalVistos + '/' + totalEps + ' eps');
     const spanMeta = document.createElement('span');
@@ -2252,12 +2257,13 @@ function render() {
     const temps = document.createElement('div');
     temps.className = 'fq-temps';
     let nT = 0;
-    fq.animes.forEach(a => {
+    fq.animes.forEach((a, k) => {
       const pil = document.createElement('button');
       pil.type = 'button';
       pil.className = 'fq-temp e-' + (a.estado_usuario || 'pendiente');
       const caps = parseInt(a.capitulos) || 0;
-      const et = esPeli(a) ? '🎬' : 'T' + (++nT);
+      const et = esPeli(a) ? '🎬' : (tmp.etiquetas ? tmp.etiquetas[k] : 'T' + (++nT));
+      pil.setAttribute('data-no-i18n', '');
       pil.textContent = et + (esPeli(a) ? '' : ' ' + (a.episodios_vistos || 0) + '/' + (caps || '?'));
       pil.title = a.nombre;
       pil.addEventListener('click', e => { e.stopPropagation(); abrirModal(encodeURIComponent(a.nombre)); });
@@ -2857,13 +2863,17 @@ async function cargarScoresModal(nombre) {
   const cont = document.getElementById('edit-scores');
   if (!cont) return;
   cont.innerHTML = '';
+  // v2.16.3: si se pide dos veces seguidas (abrir la ficha dispara más de una
+  // carga), solo pinta la última; antes salían dos bloques «Puntuaciones».
+  const turno = cont._turno = (cont._turno || 0) + 1;
   let d;
   try {
     const r = await fetch('/api/animes/' + encodeURIComponent(nombre) + '/scores');
     if (!r.ok) return;
     d = await r.json();
   } catch(_) { return; }
-  if (!d) return;
+  if (!d || turno !== cont._turno) return;
+  cont.innerHTML = '';
 
   const sources = [
     { key: 'anilist', name: 'AniList', icon: '📊', color: '#02a9ff' },
@@ -4888,8 +4898,17 @@ function _textoResumenSaga(r) {
 function _pintarSaga(cont, d, {abierta = false, grupo = null, alTerminar = null} = {}) {
   cont.querySelectorAll('.sp-saga, .saga-fichas, .sp-saga-lista, .sp-saga-pie').forEach(n => n.remove());
   const ents = d.entradas;
-  const r = d.resumen || {};
+  let r = d.resumen || {};
   const destino = grupo || d.nombre;
+  // v2.16.3: «T3 P2», «Final»… en vez de numerar cada entrada (ver temporadas.js).
+  const serieS = ents.filter(e => e.temporada);
+  const tmpS = window.miraruTemporadas
+    ? window.miraruTemporadas(serieS.map(e => ({nombre: e.nombre || '', capitulos: e.capitulos})), d.nombre) : null;
+  const etiquetaDe = new Map();
+  if (tmpS) {
+    serieS.forEach((e, i) => etiquetaDe.set(e, tmpS.etiquetas[i]));
+    r = Object.assign({}, r, {temporadas: tmpS.temporadas, extras: (r.extras || 0) + tmpS.extras});
+  }
 
   const bar = document.createElement('div');
   bar.className = 'sp-saga';
@@ -4917,7 +4936,8 @@ function _pintarSaga(cont, d, {abierta = false, grupo = null, alTerminar = null}
     f.className = 'saga-ficha' + (e.en_lista ? ' ya' : '');
     f.title = e.nombre + (e.en_lista ? ' — ' + _tr('Ya en tu lista') : '');
     const et = document.createElement('b');
-    et.textContent = e.temporada ? 'T' + e.temporada : '🎬';
+    et.textContent = e.temporada ? (etiquetaDe.get(e) || 'T' + e.temporada) : '🎬';
+    et.setAttribute('data-no-i18n', '');
     const ep = document.createElement('span');
     ep.textContent = e.formato === 'MOVIE' ? _tr('Película') : ((e.capitulos && e.capitulos !== '?') ? e.capitulos + ' eps' : '? eps');
     const an = document.createElement('small');

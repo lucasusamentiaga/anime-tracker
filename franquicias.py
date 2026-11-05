@@ -178,12 +178,43 @@ class _Uniones:
             self.p[max(ri, rj)] = min(ri, rj)
 
 
+_SOLO_TEMPORADA = re.compile(
+    r"(?i)\b(?:season|temporada)\s*(\d+)|\b(\d+)(?:st|nd|rd|th)\s+season\b|\bS(\d+)\b"
+    r"|\s(II|III|IV|V|VI|VII|VIII|IX)(?=\s*$|\s*[:\-])")
+
+
+def _temporada_explicita(nombre: str) -> int:
+    """Nº de temporada que dice el nombre (no las «Part 2»); Final = 90."""
+    import unicodedata
+    n = unicodedata.normalize("NFKC", nombre or "")
+    if re.search(r"(?i)\bfinal\s+(?:season|chapters?)\b", n):
+        return 90
+    m = _SOLO_TEMPORADA.search(n)
+    if not m:
+        return 0
+    g = next(x for x in m.groups() if x)
+    return _ROMAN.get(g.upper(), 0) if not g.isdigit() else int(g)
+
+
 def _ordenar_miembros(members: list[dict]) -> None:
-    """Por número de temporada del nombre y, a igualdad, por anilist_id (AniList
-    da los ids por orden de alta y las secuelas se dan de alta después: así
-    "Bunny Girl Senpai" va antes que "Santa Claus")."""
-    members.sort(key=lambda a: (_season_order(a["nombre"]),
-                                int(a.get("anilist_id") or 0) or 10**9, a["nombre"]))
+    """v2.16.3: en orden de emisión. Lo que dice su temporada en el nombre
+    manda («Season 3», «Final Season» al final); lo demás (OVAs, películas,
+    «Part 2», especiales) va detrás de la temporada que se emitió antes, por
+    anilist_id (AniList los da por orden de alta). Antes todo lo que no tenía
+    número iba primero y «Season 2» quedaba detrás de las películas."""
+    con_id = sorted((a for a in members if int(a.get("anilist_id") or 0)),
+                    key=lambda a: int(a["anilist_id"]))
+    efectiva: dict[int, int] = {}
+    actual = 1
+    for a in con_id:
+        t = _temporada_explicita(a.get("nombre", ""))
+        if t:
+            actual = max(actual, t) if t != 90 else 90
+        efectiva[id(a)] = t or actual
+    def _sin_id(a):     # sin anilist_id: base al principio, una película suelta al final
+        return 1000 if "pel" in str(a.get("capitulos") or "").lower() else 1
+    members.sort(key=lambda a: (efectiva.get(id(a)) or _temporada_explicita(a.get("nombre", "")) or _sin_id(a),
+                                int(a.get("anilist_id") or 0) or 10**9, a.get("nombre", "")))
 
 
 def agrupar_franquicias(animes: list[dict],

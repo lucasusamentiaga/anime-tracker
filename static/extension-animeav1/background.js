@@ -198,7 +198,10 @@ async function sincronizarListas(forzar = false) {
     const malo = j.type === 'error' || j.type === 'redirect' || (j.nodes || []).some(n => n && n.type === 'error');
     if (malo) { await guardar({estado: 'sin-sesion'}); return 'sin-sesion'; }
   } catch (_) { await guardar({estado: 'error', detalle: 'AnimeAV1 no responde'}); return 'error'; }
-  const h = await huella(texto);
+  // Si Miraru cambia cómo entiende las listas («reglas»), se vuelven a mandar.
+  let reglas = '';
+  try { reglas = String((await (await fetch(`http://127.0.0.1:${await puerto()}/api/animeav1/listas/estado`)).json()).reglas || ''); } catch (_) {}
+  const h = await huella(texto + '|' + reglas);
   const {listasHuella} = await chrome.storage.local.get('listasHuella');
   if (!forzar && h === listasHuella) { await guardar({estado: 'al-dia'}); return 'al-dia'; }
   try {

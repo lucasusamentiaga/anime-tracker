@@ -20,6 +20,10 @@ NOVEDADES: list[dict] = [
              "texto": "La nota sale abajo a la izquierda de cada portada y ahora también en temporadas sin ficha propia (llevan la de su serie)."},
             {"icono": "🔔", "titulo": "Avisos más claros",
              "texto": "El número rojo del botón Avisos son episodios nuevos que aún no has visto."},
+            {"icono": "📚", "titulo": "Temporadas de verdad",
+             "texto": "Las carpetas dicen «T3 P2», «Final» u «OVA» en vez de numerar cada entrada, y van en orden de emisión."},
+            {"icono": "🧩", "titulo": "AnimeAV1 más listo",
+             "texto": "Lo que ya viste entero en AnimeAV1 entra como completado y lo que llevas a medias, como viendo."},
         ],
     },
     {

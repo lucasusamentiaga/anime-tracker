@@ -135,6 +135,48 @@ def _entradas(datos: dict) -> list[dict]:
     return out
 
 
+_EN_EMISION = ("en emisión", "en emision", "releasing", "currently airing", "próximamente")
+
+
+def _total_eps(capitulos, estado_anime="") -> int:
+    """Episodios totales si se saben de verdad (no «12+» de algo en emisión)."""
+    c = str(capitulos or "").strip().lower()
+    if "pel" in c:
+        return 1
+    if not re.fullmatch(r"\d+", c):
+        return 0
+    return int(c)
+
+
+def estado_inteligente(e: dict, capitulos=None, estado_anime: str = "") -> tuple[str, int]:
+    """v2.16.3: (estado, episodios vistos) de una entrada de «Mis Listas».
+
+    AnimeAV1 guarda el estado que eliges (Por ver, Viendo, Completado…) y, a
+    parte, hasta qué episodio llegaste. Mucha gente no cambia el estado: lo
+    deja en «Por ver» aunque ya lo haya visto entero. Así que:
+      - Completado en AnimeAV1 → completado, con todos sus episodios.
+      - Has visto todos los episodios de algo ya terminado → completado.
+      - Llevas algún episodio → viendo (salvo pausado/abandonado a propósito).
+      - Si no, lo que diga AnimeAV1 (Por ver → pendiente)."""
+    base = e.get("estado") or "pendiente"
+    ep = int(e.get("episodio") or 0)
+    total = _total_eps(capitulos)
+    emision = (estado_anime or "").strip().lower() in _EN_EMISION
+    if base == "completado":
+        return "completado", max(ep, total)
+    if total and ep >= total and not emision:
+        return "completado", ep
+    if ep > 0 and base == "pendiente":
+        return "viendo", ep
+    return base, ep
+
+
+REGLAS_LISTAS = 2   # v2.16.3: estado según episodios vistos (ver estado_inteligente)
+
+# Orden para no empeorar nunca lo que ya tienes en Miraru.
+_RANGO = {"pendiente": 0, "pausa": 1, "abandonado": 1, "viendo": 2, "completado": 3}
+
+
 def _claves_titulos(e: dict) -> set:
     ts = [e.get("titulo") or ""] + [v for v in (e.get("aka") or {}).values() if isinstance(v, str)]
     return {db.clave_nombre(t) for t in ts if t}
@@ -200,20 +242,21 @@ def pull(progreso: Progreso = NULO, s=None, anilist=None, sleep=_time.sleep,
             if local is not None:
                 ids[local["nombre"]] = e["id"]
                 cambios: dict = {}
-                if e["episodio"] > int(local.get("episodios_vistos") or 0):
-                    cambios["episodios_vistos"] = e["episodio"]
+                estado, eps = estado_inteligente(e, local.get("capitulos"), local.get("estado_anime") or "")
+                if eps > int(local.get("episodios_vistos") or 0):
+                    cambios["episodios_vistos"] = eps
                 actual = local.get("estado_usuario") or "pendiente"
-                if e["estado"] != actual and (
-                        actual == "pendiente"
-                        or (e["estado"] == "completado" and actual == "viendo")):
-                    cambios["estado_usuario"] = e["estado"]
+                # Solo a mejor: de pendiente a lo que sea, de viendo a completado.
+                if estado != actual and (actual == "pendiente"
+                                         or _RANGO.get(estado, 0) > _RANGO.get(actual, 0)):
+                    cambios["estado_usuario"] = estado
                 if cambios:
                     db.actualizar_anime(local["nombre"], cambios)
                     updated += 1
             elif nuevo_data is not None:
                 datos = dict(nuevo_data.__dict__)
-                datos.update({"estado_usuario": e["estado"],
-                              "episodios_vistos": e["episodio"], "tipo": "anime"})
+                estado, eps = estado_inteligente(e, datos.get("capitulos"), datos.get("estado_anime") or "")
+                datos.update({"estado_usuario": estado, "episodios_vistos": eps, "tipo": "anime"})
                 ok, msg = db.guardar_anime(datos)
                 if ok:
                     added += 1

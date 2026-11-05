@@ -95,3 +95,34 @@ def test_mis_listas_sin_repetidos(cliente, db):
 def test_mismo_anilist_id_no_entra_dos_veces(db):
     assert db.guardar_anime({"nombre": "Attack on Titan", "anilist_id": 16498})[0]
     assert db.guardar_anime({"nombre": "Shingeki no Kyojin", "anilist_id": 16498}) == (False, "duplicado")
+
+
+# ── v2.16.3: estado según lo que llevas visto ────────────────────────────────
+
+def test_estado_inteligente():
+    from animeav1_sync import estado_inteligente as ei
+    assert ei({"estado": "completado", "episodio": 0}, "12", "Finalizado") == ("completado", 12)
+    assert ei({"estado": "pendiente", "episodio": 12}, "12", "Finalizado") == ("completado", 12)
+    assert ei({"estado": "pendiente", "episodio": 1}, "película", "Finalizado") == ("completado", 1)
+    assert ei({"estado": "pendiente", "episodio": 5}, "12", "Finalizado") == ("viendo", 5)
+    # en emisión: aunque vayas al día, sigues viéndolo
+    assert ei({"estado": "viendo", "episodio": 8}, "8", "En emisión") == ("viendo", 8)
+    assert ei({"estado": "pendiente", "episodio": 8}, "12+", "En emisión") == ("viendo", 8)
+    assert ei({"estado": "pausa", "episodio": 3}, "12", "Finalizado") == ("pausa", 3)
+    assert ei({"estado": "pendiente", "episodio": 0}, "12", "Finalizado") == ("pendiente", 0)
+
+
+def test_las_listas_nunca_empeoran_lo_que_tienes(db):
+    import animeav1_sync as s
+    db.guardar_anime({"nombre": "Frieren", "capitulos": "28", "estado_anime": "Finalizado",
+                      "estado_usuario": "completado", "episodios_vistos": 28})
+    db.guardar_anime({"nombre": "Dandadan", "capitulos": "12", "estado_anime": "Finalizado",
+                      "estado_usuario": "pendiente", "episodios_vistos": 0})
+    datos = {"libraryEntries": [
+        {"media": {"id": 1, "title": "Frieren"}, "status": 1, "episode": 3},
+        {"media": {"id": 2, "title": "Dandadan"}, "status": 1, "episode": 12}]}
+    s.pull(datos=datos, anilist=object(), sleep=lambda *_: None)
+    assert db.obtener_anime("Frieren")["estado_usuario"] == "completado"
+    assert db.obtener_anime("Frieren")["episodios_vistos"] == 28
+    d = db.obtener_anime("Dandadan")
+    assert d["estado_usuario"] == "completado" and d["episodios_vistos"] == 12

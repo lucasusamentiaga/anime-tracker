@@ -5156,7 +5156,9 @@ async def animeav1_listas(req: AnimeAV1ListasRequest, request: Request):
 @app.get("/api/animeav1/listas/estado")
 async def animeav1_listas_estado():
     with _av1_listas_lock:
-        return dict(_av1_listas)
+        # reglas: sube cuando cambia cómo se interpretan las listas; la
+        # extensión la mete en su huella y así las vuelve a mandar una vez.
+        return {**_av1_listas, "reglas": animeav1_sync.REGLAS_LISTAS}
 
 
 @app.get("/api/animeav1/extension")
