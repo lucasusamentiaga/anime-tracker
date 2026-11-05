@@ -24,6 +24,11 @@
   llevas a medias como «viendo», aunque en AnimeAV1 lo dejaras en «Por ver». Nunca baja lo que
   ya tienes en Miraru. La extensión vuelve a mandar las listas una vez para aplicarlo.
 - La ficha ya no repite el bloque «Puntuaciones» al abrirla dos veces seguidas.
+- **Recorrido guiado renovado**: se adapta a tu lista (vacía o no: «Ya tienes 343 títulos»),
+  enseña lo nuevo (carpetas con temporadas reales, tarjeta con IMDb abriendo un momento la
+  primera carpeta, avisos, anime/manga), dice «3/11», no salta al final de listas largas, en el
+  móvil la tarjeta va abajo si no cabe y termina con algo que hacer («Añadir mi primer anime»,
+  «Ir a mi lista», «Ver mis estadísticas»). Las temporadas se escriben «S1» fuera del español.
 
 ## v2.16.2 — Anime y manga, cada uno en su sitio
 

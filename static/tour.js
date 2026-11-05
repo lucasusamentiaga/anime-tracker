@@ -7,33 +7,72 @@
   if (window.miraruTour) return;
 
   // sel: un selector o varios (el foco abarca todos los que se vean).
-  // Pocos pasos y cada uno con algo que hacer: el primer anime es lo que importa.
+  // txt puede ser una función: el texto se adapta a lo que ya tienes.
+  // si: condición extra para enseñar el paso.
+  // v2.16.3: recorrido renovado — se adapta a tu lista (vacía o no), enseña
+  // lo nuevo (carpetas con temporadas reales, IMDb, avisos, anime/manga) y
+  // termina con algo que hacer, no con un «listo».
+  // ANIMES y FRANQUICIAS son `let` de la página: no cuelgan de window.
+  function nAnimes() { try { return ANIMES.length; } catch (_) { return 0; } }  // eslint-disable-line no-undef
+  function nCarpetas() {
+    try { return FRANQUICIAS.filter(function (f) { return f.count > 1; }).length; } catch (_) { return 0; }  // eslint-disable-line no-undef
+  }
+
+  // Para enseñar una tarjeta sin bajar hasta el final de la lista: se abre un
+  // momento la primera carpeta (y se cierra al pasar de paso).
+  var carpetaAbierta = null;
+  function enPantalla(n) { var r = n.getBoundingClientRect(); return r.top >= 70 && r.bottom <= innerHeight - 20; }
+  function abrirPrimeraCarpeta() {
+    var ya = [].slice.call(document.querySelectorAll('#lista .ac')).some(function (n) { return visible(n) && enPantalla(n); });
+    if (ya) return;
+    var g = document.querySelector('#lista .fq-group');
+    var grid = g && g.querySelector('.fq-grid.collapsed');
+    if (!grid) return;
+    if (grid._llenar) grid._llenar();
+    grid.classList.remove('collapsed');
+    carpetaAbierta = grid;
+  }
+  function cerrarCarpeta() {
+    if (carpetaAbierta) { carpetaAbierta.classList.add('collapsed'); carpetaAbierta = null; }
+  }
+
   var PASOS = [
     {sel: null, ico: '👋', tit: '¡Bienvenido a Miraru!',
-     txt: 'Tu lista de anime, en tu PC y sin cuentas. Te enseño lo importante en un minuto.'},
-    {sel: '#inp-nombre', ico: '🔎', tit: 'Añade tu primer anime',
-     txt: 'Escribe el nombre (o pega un enlace) y pulsa «+ Añadir». Si tiene más temporadas, te ofrecerá añadir la saga entera.'},
-    {sel: '#lista', ico: '📚', tit: 'Tu lista',
-     txt: 'Aquí aparecen tus animes, con las sagas agrupadas en carpetas. Pulsa una portada para editarla o +1 para apuntar un episodio.', lado: 'arriba'},
-    {sel: '#tb2', ico: '🎛️', tit: 'Busca, filtra y ordena',
-     txt: 'Encuentra algo en tu lista, filtra por estado y ordena como quieras.'},
+     txt: function () {
+       return nAnimes()
+         ? ['Ya tienes ' + nAnimes() + ' títulos aquí.', 'Te enseño en un minuto dónde está cada cosa.']
+         : 'Tu lista de anime, en tu PC y sin cuentas. Te enseño lo importante en un minuto.';
+     }, nota: 'Usa ← y → para moverte y Esc para salir.'},
+    {sel: '#inp-nombre', ico: '🔎', tit: 'Añade un anime',
+     txt: 'Escribe el nombre (o pega un enlace) y pulsa «+ Añadir». Si tiene más temporadas, te ofrece añadir la saga entera de una vez.'},
+    {sel: '#seg-tipo', ico: '📖', tit: 'Anime y manga, por separado',
+     txt: 'Cada uno en su pestaña, con sus cifras. Elige «Todo» para verlos juntos.'},
+    {sel: '#lista .fq-header', ico: '📁', tit: 'Cada saga, en su carpeta',
+     txt: function () {
+       return (nCarpetas() > 1 ? ['Tienes ' + nCarpetas() + ' sagas agrupadas.'] : []).concat(
+         ['Las etiquetas dicen la temporada de verdad (T1, T3 P2, Final, OVA) y su color, cómo vas. Pulsa la cabecera para abrirla.']);
+     }},
+    {sel: '#lista .ac', ico: '🃏', tit: 'Cada anime', antes: abrirPrimeraCarpeta, despues: cerrarCarpeta,
+     txt: 'Pulsa la portada para editarlo o «+1» para apuntar un episodio. La nota de IMDb va abajo a la izquierda.', lado: 'lado'},
     {sel: '#continuar-wrap', ico: '▶️', tit: 'Continuar viendo',
      txt: 'Lo que tienes a medias, con el siguiente episodio a un clic.'},
+    {sel: '#tb2', ico: '🎛️', tit: 'Busca, filtra y ordena',
+     txt: 'Encuentra algo en tu lista, filtra por estado, ordena como quieras o pulsa «¿Qué veo?» si no te decides.'},
     {sel: '.header-nav', ico: '🧭', tit: 'Todo lo demás',
-     txt: 'Estadísticas (y tu «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y «No Anime», para tus películas y series.'},
-    {sel: '#btn-copia', ico: '☁️', tit: 'Tu lista, a salvo',
-     txt: 'Miraru guarda una copia en tu OneDrive, Google Drive o Dropbox. Si formateas el PC, la recuperas con un clic.'},
-    {sel: ['#btn-anilist', '#btn-extension'], ico: '🔗', tit: 'Trae tu lista y no apuntes a mano',
-     txt: '¿Tu lista está en AniList? Tráela entera de golpe. ¿Ves anime en AnimeAV1? Con su extensión cada episodio se apunta solo.'},
-    {sel: 'a[href="/mobile"]', ico: '📱', tit: 'También en el móvil',
-     txt: 'Activa el acceso móvil, escanea el QR y usa Miraru desde el sofá (misma WiFi).'},
+     txt: 'Estadísticas (con tu nivel, tus logros y «Mi año en anime»), estrenos de la semana, calendario, recomendaciones y «No Anime» para películas y series.'},
+    {sel: '#btn-notif-perm', ico: '🔔', tit: 'Que no se te escape un episodio',
+     txt: 'Activa los avisos y Miraru te dice cuándo sale un episodio nuevo de lo que estás viendo. El número rojo son los que tienes por ver.'},
+    {sel: ['#btn-copia', '#btn-anilist', '#btn-extension', 'a[href="/mobile"]'], ico: '☁️', tit: 'Tu lista, a salvo y en todas partes',
+     txt: 'Copia automática en tu nube, tu lista de AniList de golpe, la extensión de AnimeAV1 que apunta cada episodio sola y Miraru en el móvil con un QR.'},
     // En el móvil todo lo anterior vive tras «☰».
     {sel: '#btn-menu-movil', ico: '☰', tit: 'Más opciones',
-     txt: 'Aquí están la copia en la nube, AniList, AnimeAV1, el acceso móvil y los ajustes.'},
+     txt: 'Aquí están los avisos, la copia en la nube, AniList, AnimeAV1, el acceso móvil y los ajustes.'},
     {sel: ['#miraru-ayuda', '#miraru-fab'], ico: '🎨', tit: 'Hazla tuya',
      txt: 'Con 🎨 cambias el color, el tema y la densidad. Con «?» repites este recorrido cuando quieras.', lado: 'arriba'},
-    {sel: null, ico: '🎉', tit: '¡Listo!',
-     txt: 'Empieza añadiendo un anime que estés viendo.', fin: true}
+    {sel: null, ico: '🎉', tit: '¡Listo!', fin: true,
+     txt: function () {
+       return nAnimes() ? '¿Qué quieres hacer ahora?' : 'Empieza añadiendo un anime que estés viendo.';
+     }}
   ];
 
   var CSS = [
@@ -60,7 +99,12 @@
     '.mtour-tarjeta p{margin:10px 0 0;font-size:14px;line-height:1.55;color:var(--muted,#a49dc0);text-wrap:pretty}',
     '.mtour-pie{display:flex;align-items:center;gap:8px;margin-top:16px}',
     '.mtour-tarjeta.grande .mtour-pie{justify-content:center;flex-wrap:wrap}',
-    '.mtour-puntos{display:flex;gap:5px;margin-right:auto}',
+    '.mtour-puntos{display:flex;align-items:center;gap:5px;margin-right:auto}',
+    '.mtour-num{font-size:11.5px;color:var(--muted,#a49dc0);font-variant-numeric:tabular-nums;margin-left:4px}',
+    '.mtour-nota{margin:12px 0 0;font-size:12px;color:var(--muted,#a49dc0);opacity:.85}',
+    '.mtour-acciones{display:flex;flex-direction:column;gap:8px;margin-top:16px}',
+    '@media (max-width:480px){.mtour-puntos i{display:none}.mtour-num{margin-left:0}.mtour-btn{padding:9px 12px}}',
+    '.mtour-acciones .mtour-btn{width:100%;padding:11px 16px}',
     '.mtour-tarjeta.grande .mtour-puntos{width:100%;justify-content:center;margin:0 0 8px}',
     '.mtour-puntos i{width:6px;height:6px;border-radius:99px;background:var(--border,#2b2542);transition:width .3s cubic-bezier(.22,1,.36,1),background .3s}',
     '.mtour-puntos i.on{width:18px;background:var(--accent,#7c3aed)}',
@@ -98,7 +142,19 @@
 
   function nodos(p) {
     if (!p.sel) return [];
-    return [].concat(p.sel).map(function (q) { return document.querySelector(q); }).filter(visible);
+    // El primero que se VEA de cada selector (la primera tarjeta puede estar
+    // dentro de una carpeta cerrada).
+    // Mejor uno que ya esté en pantalla (si no, el primero): así el recorrido
+    // no salta al final de una lista larga.
+    return [].concat(p.sel).map(function (q) {
+      var todos = document.querySelectorAll(q), primero = null;
+      for (var k = 0; k < todos.length && k < 400; k++) {
+        if (!visible(todos[k])) continue;
+        if (enPantalla(todos[k])) return todos[k];
+        if (!primero) primero = todos[k];
+      }
+      return primero;
+    }).filter(Boolean);
   }
 
   // Rectángulo que abarca todos los elementos del paso.
@@ -114,7 +170,12 @@
   }
 
   function pasosValidos() {
-    return PASOS.filter(function (p) { return !p.sel || nodos(p).length; });
+    return PASOS.filter(function (p) {
+      if (p.si && !p.si()) return false;
+      if (!p.sel) return true;
+      if (p.antes === abrirPrimeraCarpeta && document.querySelector('#lista .fq-group')) return true;
+      return nodos(p).length > 0;
+    });
   }
 
   function empezar(forzar) {
@@ -145,8 +206,11 @@
 
   function ir(i) {
     var e = estado; if (!e) return;
+    var antes = e.pasos[e.i];
+    if (antes && antes.despues && i !== e.i) antes.despues();
     e.i = Math.max(0, Math.min(i, e.pasos.length - 1));
     var p = e.pasos[e.i];
+    if (p.antes) p.antes();
     var ns = nodos(p);
     if (p.sel && !ns.length) {      // desapareció (p. ej. «Continuar viendo» vacío): siguiente
       e.pasos.splice(e.i, 1);
@@ -173,11 +237,18 @@
     var h = el('h3', null, p.tit); h.id = 'mtour-tit';
     tj.setAttribute('aria-labelledby', 'mtour-tit');
     cab.append(ico, h);
-    var txt = el('p', null, p.txt);
+    // Frase a frase: así cada una se traduce por separado.
+    var txt = el('p');
+    [].concat(typeof p.txt === 'function' ? p.txt() : p.txt).forEach(function (f, k) {
+      if (k) txt.appendChild(document.createTextNode(' '));
+      txt.appendChild(document.createTextNode(t(f)));
+    });
     var pie = el('div', 'mtour-pie');
     var puntos = el('div', 'mtour-puntos');
     puntos.setAttribute('aria-label', t('Paso') + ' ' + (e.i + 1) + ' / ' + e.pasos.length);
     e.pasos.forEach(function (_, k) { var d = el('i'); if (k === e.i) d.className = 'on'; puntos.appendChild(d); });
+    var num = document.createElement('span'); num.className = 'mtour-num'; num.textContent = (e.i + 1) + '/' + e.pasos.length;
+    puntos.appendChild(num);
     pie.appendChild(puntos);
     var principal;
     if (e.i === 0) {
@@ -185,10 +256,28 @@
       principal = el('button', 'mtour-btn', 'Empezar →');
       pie.append(saltar, principal);
     } else if (p.fin) {
-      var atras0 = el('button', 'mtour-btn sec', '←'); atras0.type = 'button'; atras0.setAttribute('aria-label', t('Atrás'));
+      // Termina con algo que hacer: añadir el primero, o ir a lo tuyo.
+      var acc = el('div', 'mtour-acciones');
+      var vacia = !nAnimes();
+      principal = el('button', 'mtour-btn', vacia ? 'Añadir mi primer anime' : 'Ir a mi lista');
+      principal.type = 'button';
+      principal.onclick = function () {
+        terminar(true);
+        var inp = document.getElementById('inp-nombre');
+        if (vacia && inp) { inp.scrollIntoView({block: 'center'}); try { inp.focus(); } catch (_) {} }
+      };
+      acc.appendChild(principal);
+      if (!vacia) {
+        var st = el('button', 'mtour-btn sec', 'Ver mis estadísticas'); st.type = 'button';
+        st.onclick = function () { terminar(true); location.href = '/stats'; };
+        acc.appendChild(st);
+      }
+      var atras0 = el('button', 'mtour-btn txt', '← Atrás'); atras0.type = 'button';
       atras0.onclick = function () { ir(e.i - 1); };
-      principal = el('button', 'mtour-btn', '¡A ver anime!');
-      pie.append(atras0, principal);
+      pie.append(atras0);
+      tj.append(cab, txt, acc, pie);
+      setTimeout(function () { try { principal.focus({preventScroll: true}); } catch (_) {} }, 30);
+      return;
     } else {
       var salir = el('button', 'mtour-btn txt', 'Saltar'); salir.type = 'button'; salir.onclick = function () { terminar(); };
       var atras = el('button', 'mtour-btn sec', '←'); atras.type = 'button'; atras.setAttribute('aria-label', t('Atrás'));
@@ -197,8 +286,10 @@
       pie.append(salir, atras, principal);
     }
     principal.type = 'button';
-    principal.onclick = function () { p.fin ? terminar() : ir(e.i + 1); };
-    tj.append(cab, txt, pie);
+    principal.onclick = function () { ir(e.i + 1); };
+    tj.append(cab, txt);
+    if (p.nota) tj.appendChild(el('p', 'mtour-nota', p.nota));
+    tj.append(pie);
     setTimeout(function () { try { principal.focus({preventScroll: true}); } catch (_) {} }, 30);
   }
 
@@ -224,10 +315,17 @@
     var tw2 = tj.offsetWidth, th2 = tj.offsetHeight, gap = 14;
     var y, x = Math.min(Math.max(12, r.left + r.width / 2 - tw2 / 2), innerWidth - tw2 - 12);
     var abajo = top + h + gap, arriba = top - gap - th2;
-    if (p.lado === 'arriba' && arriba >= 12) y = arriba;
+    var alLado = p.lado === 'lado' && (innerWidth - (left + w) > tw2 + gap + 12 || left > tw2 + gap + 12);
+    if (alLado) {
+      y = Math.min(Math.max(12, r.top), innerHeight - th2 - 12);
+      x = (innerWidth - (left + w) > tw2 + gap + 12) ? left + w + gap : left - tw2 - gap;
+    } else if (p.lado === 'arriba' && arriba >= 12) y = arriba;
     else if (abajo + th2 <= innerHeight - 12) y = abajo;
     else if (arriba >= 12) y = arriba;
-    else {
+    else if (innerWidth < 600) {
+      // Móvil sin hueco arriba ni abajo: la tarjeta, abajo del todo (como una hoja).
+      y = innerHeight - th2 - 12; x = Math.max(12, (innerWidth - tw2) / 2);
+    } else {
       y = Math.min(Math.max(12, r.top), innerHeight - th2 - 12);
       x = (r.left > innerWidth / 2) ? Math.max(12, left - tw2 - gap) : Math.min(innerWidth - tw2 - 12, left + w + gap);
     }
@@ -247,7 +345,7 @@
   function tecla(ev) {
     if (!estado) return;
     if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); terminar(); }
-    else if (ev.key === 'ArrowRight') { ev.preventDefault(); ev.stopPropagation(); var p = estado.pasos[estado.i]; p.fin ? terminar() : ir(estado.i + 1); }
+    else if (ev.key === 'ArrowRight') { ev.preventDefault(); ev.stopPropagation(); var p = estado.pasos[estado.i]; if (!p.fin) ir(estado.i + 1); }
     else if (ev.key === 'ArrowLeft') { ev.preventDefault(); ev.stopPropagation(); ir(estado.i - 1); }
     else if (ev.key === 'Tab') {
       // El foco se queda en la tarjeta.
@@ -265,8 +363,9 @@
     }
   }
 
-  function terminar() {
+  function terminar(sinFoco) {
     var e = estado; if (!e) return;
+    cerrarCarpeta();
     estado = null;
     document.removeEventListener('keydown', tecla, true);
     window.removeEventListener('resize', recolocar);
@@ -275,7 +374,7 @@
     document.body.classList.remove('mtour-on');
     fetch('/api/recorrido/visto', {method: 'POST'}).catch(function () {});
     var inp = document.getElementById('inp-nombre');
-    if (inp && !e.forzado) { try { inp.focus({preventScroll: true}); } catch (_) {} }
+    if (inp && !e.forzado && sinFoco !== true) { try { inp.focus({preventScroll: true}); } catch (_) {} }
   }
 
   // ¿Es la primera vez? Lo decide el servidor (instalación nueva).

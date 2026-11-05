@@ -59,6 +59,9 @@
 
   function miraruTemporadas(animes, base) {
     const lista = animes || [];
+    // T(emporada) en español; S(eason/aison/taffel) en los demás idiomas.
+    const lang = (typeof document !== 'undefined' && document.documentElement.lang) || 'es';
+    const T = /^es/.test(lang) ? 'T' : 'S', ESP = /^es/.test(lang) ? 'Esp.' : 'Sp.';
     const nombres = lista.filter(a => !esPeli(a)).map(a => String(a.nombre || ''));
     const pref = nombres.length > 1 ? prefijoComun(nombres) : 0;
     const etiquetas = [];
@@ -75,14 +78,14 @@
       const ova = /\b(?:OVA|OAD|ONA)\b/i.test(n);
       let et, clave = null;
       if (fin) {
-        et = 'Final' + (esp ? ' Esp.' + (esp[1] ? ' ' + esp[1] : '') : p ? ' P' + p : '');
+        et = 'Final' + (esp ? ' ' + ESP + (esp[1] ? ' ' + esp[1] : '') : p ? ' P' + p : '');
         clave = 'final';
       } else if (esp) {
-        et = 'Esp.' + (esp[1] ? ' ' + esp[1] : '');
+        et = ESP + (esp[1] ? ' ' + esp[1] : '');
       } else if (ova) {
         et = 'OVA';
       } else if (t) {
-        et = 'T' + t + (p ? ' P' + p : '');
+        et = T + t + (p ? ' P' + p : '');
         clave = 't' + t;
       } else if (p) {
         // «TO THE TOP Part 2»: la parte 2 de esa temporada, no una nueva.
@@ -91,7 +94,7 @@
         et = (sub && sub !== sinParte ? sub + ' ' : '') + 'P' + p;
         clave = sub ? 'sub:' + sub : 'p';
       } else if (primeraSinMarca && (caps === 0 || caps > 4)) {
-        et = 'T1';
+        et = T + '1';
         clave = 't1';
         primeraSinMarca = false;
       } else {
